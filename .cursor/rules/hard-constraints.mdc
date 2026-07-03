@@ -1,0 +1,47 @@
+---
+description: Non-negotiable constraints for commits, TypeScript layout, gameplay design ownership, and context recovery.
+alwaysApply: true
+---
+
+# Hard Constraints (always)
+
+These rules override convenience habits. If anything else conflicts, follow this file.
+
+## 1) Commit preparation (mandatory gate)
+
+When the user asks to prepare a commit (e.g. 准备commit, 准备提交, 帮我准备commit, **我要commit**, 写提交信息, commit message, summarize for commit):
+
+- **Prepare ≠ execute:** phrases like 准备/我要 commit mean **draft message + wait for approval**, not immediate `git commit`. See `git-commit-mentor` skill.
+- Inspect staged/unstaged changes first; draft from **actual** diffs only.
+- Use **Conventional Commits** for the subject: `type(scope): summary`. Summary = concrete work, not Feature/Slice IDs.
+- Run **Doc DoD** checks per `git-commit-mentor` when the change is feature/design/bug-driven.
+- Present the **full draft** and **wait for explicit approval** before `git add` / `git commit`.
+- **NEVER** run `git commit` (or push) unless the user clearly approves that draft **and** asks to execute.
+- If the user only wanted a message draft, stop after the draft unless they then ask to commit.
+
+## 2) Gameplay design doc (user-owned)
+
+- **Authoritative gameplay design:** `docs/design/卡牌游戏.md` (git-tracked).
+- **Default: read-only for agents** — do not edit unless the user **explicitly** requests (e.g. 帮我在卡牌游戏.md 里改公式).
+- Engineering collaboration lives in `docs/ai/`; do not duplicate gameplay prose there.
+- Full policy: `.cursor/rules/design-doc-governance.mdc`, `docs/design/DESIGN_DOC_GOVERNANCE.md`.
+
+## 3) TypeScript implementation (when code exists)
+
+When writing or editing `.ts` / `.tsx`:
+
+- **`packages/core`:** pure rules engine — no DOM, no React, no Node-only I/O in core logic.
+- **Effects:** data-driven (JSON + interpreter/registry); avoid hardcoding per-card logic in core.
+- **RNG:** seeded and serializable for reproducible tests and agent play.
+- **Hosts** (`cli`, `editor`, `ui`): may use Node/DOM; depend on `core`, not the reverse.
+
+## 4) Context recovery (re-apply this rule)
+
+**Re-read and silently re-apply sections 1–3** at the start of your reply when any of these is true:
+
+- New Cursor session or thread, or conversation was **summarized / compressed**.
+- User says **re-bootstrap**, **对齐约束**, or asks to realign with project rules.
+- Resuming after a long tool-heavy stretch before a **non-trivial code change** or **commit-related** action.
+- Unsure whether commit-approval or design-doc rules still apply.
+
+After recovery: do not repeat the full rule text unless the user asks; behave according to it.

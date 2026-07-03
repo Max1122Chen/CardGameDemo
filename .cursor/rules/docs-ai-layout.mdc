@@ -1,0 +1,45 @@
+---
+description: Where to place docs under docs/ai/ and docs/design/. Apply when creating or moving design docs, roadmaps, or session notes.
+alwaysApply: false
+---
+
+# 文档布局
+
+## 何时适用
+
+- 新建实现设计案、路线图、缺陷记录
+- 移动或重命名 `docs/ai/` 或 `docs/design/` 下已有文档
+- AI 会话结束需要落盘讨论时
+
+## 目录职责
+
+| 目录 | 放什么 | 不放什么 |
+|------|--------|----------|
+| **`docs/design/`** | **`卡牌游戏.md`（玩法真源）**、`DESIGN_DOC_GOVERNANCE.md`、未来 GLOSSARY/REQUIREMENTS | AI 协作、实现规格 |
+| `docs/ai/` 根 | `PROJECT_CONTEXT.md`、`PROGRESS_LOG.md`、`ACTIVE_WORK.md` 等 | 玩法设计正文 |
+| `docs/ai/Core/` | 规则引擎、状态机、RNG | UI、CLI |
+| `docs/ai/Combat/` | 战斗循环、卡组 | 地牢探索 |
+| `docs/ai/Dungeon/` | 地牢图、遭遇 | 战斗细节 |
+| `docs/ai/Data/` | Schema、资产格式 | 编辑器 UI |
+| `docs/ai/Editor/` | 可视化数据编辑器 | 运行时 core |
+| `docs/ai/CLI/` | 控制台、Agent 协议 | — |
+| `docs/ai/UI/` | 简易人类 UI | — |
+| `docs/ai/bugs/` | 跨领域缺陷 | — |
+| `docs/ai/sessions/` | 临时会话笔记 | 长期定稿 |
+| `docs/ai/templates/` | 模板与 `DOC_GOVERNANCE.md` | 业务定稿 |
+
+## 玩法设计
+
+- 真源：**`docs/design/卡牌游戏.md`** — agent 默认只读（见 `design-doc-governance.mdc`）。
+- `docs/ai/` 只写**如何实现**与**协作进度**，不写玩法定稿正文。
+
+## 新能力流程
+
+1. `FEATURE_REGISTRY.md` 登记 Feature ID
+2. 从 `templates/` 复制 design / implementation 模板
+3. 对应域目录写 `*_DESIGN.md`（实现向）
+4. 实施后 `PROGRESS_LOG.md` 记一笔
+
+## Bootstrap
+
+会话先读：`PROJECT_CONTEXT.md`、`PROGRESS_LOG.md`、`ACTIVE_WORK.md`、`BOOTSTRAP_DIGEST.md`；玩法见 `docs/design/卡牌游戏.md`。

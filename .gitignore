@@ -1,0 +1,15 @@
+# Node / TS (when added)
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Env
+.env
+.env.*
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

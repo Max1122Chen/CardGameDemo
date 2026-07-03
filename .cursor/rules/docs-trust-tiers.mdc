@@ -1,0 +1,51 @@
+---
+description: Which docs/ai files agents may use for planning vs background only; code wins over stale docs.
+alwaysApply: true
+---
+
+# docs/ai trust tiers (agents)
+
+When inferring **what to build next**, **what is unfinished**, or **current behavior**, follow this rule. Full policy: `docs/ai/templates/DOC_GOVERNANCE.md` §5.3; human-edited backlog: `docs/ai/ACTIVE_WORK.md`.
+
+## Tier A — planning sources (may drive work)
+
+- `docs/ai/PROJECT_CONTEXT.md`
+- `docs/ai/PROGRESS_LOG.md` (recent entries only)
+- `docs/ai/BOOTSTRAP_DIGEST.md`
+- `docs/ai/ACTIVE_WORK.md` (authoritative short backlog when present)
+- `docs/ai/FEATURE_REGISTRY.md` — only **In Progress** or **Planned** rows
+- `docs/ai/TECH_DEBT.md` — only **Open** rows
+- `docs/design/卡牌游戏.md` — **read-only** for agents; implement only when user scopes work in ACTIVE_WORK
+- A **single** in-repo design doc the user names for the current task, if Meta **Status** is `In Progress` or `Review`
+
+## Tier B — reference only (do not build backlog from)
+
+- Roadmaps / plans with Meta **Done**, **Deferred**, **Cancelled**, **Archived**, **Snapshot**, or **Reference**
+- `*_CURRENT_STATE.md` snapshots
+- Unchecked checkboxes or “待做” prose in Tier B docs
+- `docs/ai/sessions/` (session notes)
+- `卡牌游戏.md` — background for intent; **not** a mandate to implement every idea listed
+
+Allowed use: naming, architecture context, links — **not** “must implement because doc says so”.
+
+## Tier C — code is truth
+
+If Tier A/B disagrees with **source code** or **tests / `npm run verify`**:
+
+1. Trust **code + tests** for “what exists today”.
+2. State that the doc may be stale; do not treat gaps as mandatory work unless user or ACTIVE_WORK asks.
+3. Do not quote CLI/API from old docs without verifying in repo.
+
+## Conflicts
+
+| Situation | Resolution |
+|-----------|------------|
+| Doc vs code | Code (+ tests) |
+| Doc vs user this session | User |
+| ACTIVE_WORK vs old roadmap | ACTIVE_WORK |
+| Design doc vs in-repo impl spec | `卡牌游戏.md` for **what**; in-repo for **how built**; user resolves conflicts |
+| FEATURE_REGISTRY Planned vs no ACTIVE_WORK entry | Ask user or treat as optional future |
+
+## New work
+
+Register in `FEATURE_REGISTRY.md`; update `ACTIVE_WORK.md` when user wants agent-visible priority. Do not start large implementation until user calls for it after design phase.
