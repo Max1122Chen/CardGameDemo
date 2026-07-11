@@ -5,10 +5,9 @@
 - **Status:** Draft
 - **Owner:**
 - **Last updated:** YYYY-MM-DD
-- **Related:** [卡牌游戏.md](../../design/卡牌游戏.md)
-- **Type:** Feature | Refactor
+- **Related:** [Overview.md](../../design/Overview.md), relevant [systems/](../../design/systems/)
 
-> **Agent:** Implementation design only. Gameplay rules → `卡牌游戏.md` (user-owned).
+> **Agent:** Implementation design only. Gameplay → `docs/design/systems/` (user-owned).
 
 ## TL;DR
 

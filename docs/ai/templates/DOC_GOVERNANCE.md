@@ -22,7 +22,7 @@ Status: **Active**
 | **Progress Log** | 时间线 | `PROGRESS_LOG.md` |
 | **Bug Record** | 缺陷 | `bugs/*.md` |
 
-**玩法设计真源** — [卡牌游戏.md](../../design/卡牌游戏.md)；编辑规则见 [DESIGN_DOC_GOVERNANCE.md](../../design/DESIGN_DOC_GOVERNANCE.md)。
+**玩法设计真源** — [Overview.md](../../design/Overview.md) + [systems/](../../design/systems/)；编辑规则见 [DESIGN_DOC_GOVERNANCE.md](../../design/DESIGN_DOC_GOVERNANCE.md)。
 
 ---
 
@@ -85,12 +85,12 @@ Design / Roadmap / Implementation / ADR 顶部：
 ### 5.2 Agent doc trust
 
 - **Planning:** ACTIVE_WORK, FEATURE_REGISTRY (In Progress/Planned), TECH_DEBT (Open), user-scoped in-repo design, code/tests
-- **Not planning:** Snapshot/Archived/Reference, sessions/, unscoped ideas in `卡牌游戏.md`
-- **Conflict:** code + tests > stale prose; **gameplay what** > `卡牌游戏.md` > in-repo impl when user resolves
+- **Not planning:** unscoped ideas in `docs/design/systems/*`
+- **Conflict:** code + tests > stale prose; **gameplay what** > `docs/design/systems/*` > in-repo impl
 
 ### 5.3 玩法设计文档
 
-- 真源：`docs/design/卡牌游戏.md`
+- 入口：`docs/design/Overview.md`；正文：`docs/design/systems/*.md`
 - Agent **默认只读**；仅用户明确委托时可改
 - 规则：`.cursor/rules/design-doc-governance.mdc`
 
@@ -143,7 +143,7 @@ Slice/Feature 完成后 → **提议准备 commit**，再开下一 Feature（用
 
 - 新工程 Feature：先 Registry → 用户确认 scope → Design ≥ Planned → 代码
 - **Draft 设计不得大规模改代码**
-- 玩法变更：用户改 `卡牌游戏.md`；Agent 实现须等用户点名任务
+- 玩法变更：用户改 `docs/design/systems/*.md`；Agent 实现须等用户点名任务
 - Partner + Pre-flight：见 `cardgame-prototype-mentor` skill
 
 ---

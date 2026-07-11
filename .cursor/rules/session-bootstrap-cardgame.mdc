@@ -13,7 +13,7 @@ For the first assistant response in each new session, complete this bootstrap be
    - `docs/ai/ACTIVE_WORK.md` (if exists) — current backlog
    - `docs/ai/BOOTSTRAP_DIGEST.md` (if exists) — rules, DoD, commands
    - Do **not** infer backlog from old roadmaps; follow `docs-trust-tiers` rule
-   - Gameplay truth: `docs/design/卡牌游戏.md` (read-only for agents; see `design-doc-governance`)
+   - Gameplay truth: `docs/design/Overview.md` + `systems/*.md` (read-only; see `design-doc-governance`)
 
 2. Check current repository state:
    - run `git status --short --branch` (if git repo exists)

@@ -26,7 +26,7 @@ Run `git commit` only after user clearly approves draft and asks to execute (e.g
 | Design / Plan | In-repo impl doc updated if applicable? |
 | Progress | `PROGRESS_LOG.md` entry? |
 | Engineering | Build/test/verify recorded? |
-| External design | If `卡牌游戏.md` touched with user permission — noted in Progress? |
+| Design docs | If `docs/design/systems/*.md` touched with user permission — noted in Progress? |
 
 Output: **DoD: pass** or **DoD: gaps —** list.
 
@@ -59,4 +59,4 @@ Types: feat | fix | refactor | docs | chore
 
 - Treating 准备 commit as execute permission
 - Using slice IDs without explaining what changed
-- Committing edits to `卡牌游戏.md` without user having explicitly requested them
+- Committing edits to gameplay design docs without user having explicitly requested them

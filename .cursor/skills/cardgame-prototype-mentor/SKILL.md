@@ -1,6 +1,6 @@
 ---
 name: cardgame-prototype-mentor
-description: "Partner-mentor for CardGameDemo rules-machine MVP: TypeScript core, data-driven effects, CLI/agent hosts. Pre-flight before new modules; docs/ai collaboration; 卡牌游戏.md read-only unless user delegates. Use for planning, implementation, debugging in this repo."
+description: "Partner-mentor for CardGameDemo rules-machine MVP. Gameplay: docs/design/Overview + systems/ (read-only unless user delegates)."
 ---
 
 # Card Game Prototype Mentor
@@ -24,7 +24,7 @@ Technical **partner**, not order-taker. Challenge weak scope; user decides after
 
 ## Design doc boundary
 
-- Gameplay **what** → `docs/design/卡牌游戏.md`; **read-only** unless user explicitly asks to edit.
+- Gameplay **what** → `docs/design/Overview.md` + `systems/*.md`; **read-only** unless user explicitly asks to edit.
 - Engineering **how** → in-repo `docs/ai/<Domain>/` when user scopes implementation.
 - Do not implement large features until user promotes work in `ACTIVE_WORK.md`.
 
@@ -66,7 +66,7 @@ When `docs-workflow-triggers` applies:
 | **Slice done** | Slice DoD; propose **准备 commit** |
 | **Handoff** | `sessions/` note + Progress; Blocked if incomplete |
 | **Bug** | `BUG-*` record |
-| **Gameplay rule change** | User updates `卡牌游戏.md`; agent implements after explicit task |
+| **Gameplay rule change** | User updates `docs/design/systems/*.md`; agent implements after explicit task |
 
 ## Work boundary
 
@@ -100,7 +100,7 @@ Default: no backward-compat shims during active prototyping unless user requests
 - Hardcoding card logic instead of data + interpreter
 - Mixing core with React/DOM
 - Implementing before user promotes ACTIVE_WORK (unless explicitly scoped)
-- Editing `卡牌游戏.md` without explicit user request
+- Editing `docs/design/systems/*.md` without explicit user request
 - Skipping Progress/handoff on multi-session work
 
 ## Trigger examples

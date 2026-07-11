@@ -1,23 +1,22 @@
 # Active work (agent backlog)
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
-> **Agent:** Primary backlog. Do not infer tasks from full [卡牌游戏.md](../design/卡牌游戏.md) without promotion here.
+> **Agent:** Primary backlog. Do not infer implementation from full design docs without promotion here.
 
 ---
 
 ## In focus
 
-- **Design phase (user):** [卡牌游戏.md](../design/卡牌游戏.md) — effects, combat pipeline
-- **WF-F01** Documentation & AI collaboration — **In Progress**
+- **Design phase (user):** [Overview.md](../design/Overview.md) + `systems/*` — especially [effects.md](../design/systems/effects.md)
+- **WF-F01** Documentation & AI collaboration — **In Progress** (design split 2026-07-04)
 
 ---
 
 ## Not backlog (until promoted)
 
-- TypeScript monorepo / `packages/core`
-- P0 combat / effect interpreter
-- Dungeon generation & ecology
+- TypeScript monorepo / rules engine code
+- P0 combat prototype
 
 ---
 
@@ -25,6 +24,5 @@ Last updated: 2026-07-03
 
 | File | Role |
 |------|------|
-| [卡牌游戏.md](../design/卡牌游戏.md) | Gameplay authority |
-| [DESIGN_DOC_GOVERNANCE.md](../design/DESIGN_DOC_GOVERNANCE.md) | Edit rules |
-| [FEATURE_REGISTRY.md](./FEATURE_REGISTRY.md) | Feature IDs |
+| [Overview.md](../design/Overview.md) | Design index |
+| [systems/](../design/systems/) | Gameplay chapters |

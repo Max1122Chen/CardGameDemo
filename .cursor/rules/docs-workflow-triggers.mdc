@@ -10,13 +10,13 @@ On matching user intent, **state the recommended workflow in 2–4 lines** and p
 | Intent (examples) | Propose |
 |-------------------|---------|
 | 计划、路线图、优先级、roadmap | Check `ACTIVE_WORK.md` + `FEATURE_REGISTRY.md`; register `<DOMAIN>-Fnn` before use |
-| 设计、方案、架构、怎么实现 | In-repo Design Spec when implementing; **gameplay rules in 卡牌游戏.md** — user edits unless agent delegated |
+| 设计、方案、架构、怎么实现 | In-repo Design Spec when implementing; **gameplay in docs/design/systems/** — user edits unless agent delegated |
 | 新模块、新功能、开始做 X（substantial） | **Pre-flight** per `cardgame-prototype-mentor`; confirm user scoped work |
 | 重构、refactor、重写 | Registry + plan + **Pre-flight**; true refactor not band-aid |
 | 别模块 bug、顺手修 | File `BUG-*` first unless user overrides |
 | handoff、交接、换会话 | Session note + `PROGRESS_LOG`; Blocked + Status note if slice incomplete |
 | 发现 bug、崩溃、回归 | Bug Record `BUG-<DOMAIN>-nnn` |
-| 改设计、方案变更 | User edits `卡牌游戏.md`; agent updates in-repo impl docs + ADR if needed |
+| 改设计、方案变更 | User edits `docs/design/systems/*.md`; agent updates in-repo impl docs + ADR if needed |
 | 做完、收尾、slice 完成 | Slice DoD + `PROGRESS_LOG`; propose **准备 commit** |
 | 准备 commit、写提交信息 | **git-commit-mentor**: draft + wait for approval |
 

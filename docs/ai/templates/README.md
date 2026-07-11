@@ -11,4 +11,4 @@ Copy from here when starting structured docs. Governance: [DOC_GOVERNANCE.md](./
 | [bug-record.template.md](./bug-record.template.md) | Defects |
 | [adr.template.md](./adr.template.md) | Architecture decisions |
 
-**Gameplay design** → [卡牌游戏.md](../../design/卡牌游戏.md) + [DESIGN_DOC_GOVERNANCE.md](../../design/DESIGN_DOC_GOVERNANCE.md).
+**Gameplay design** → [Overview.md](../../design/Overview.md) + [systems/](../../design/systems/).

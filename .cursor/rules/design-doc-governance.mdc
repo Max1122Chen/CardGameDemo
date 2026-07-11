@@ -9,36 +9,32 @@ alwaysApply: true
 
 | Layer | Location | Who edits | Agent default |
 |-------|----------|-----------|---------------|
-| **Gameplay design** | `docs/design/卡牌游戏.md` | **User only** | Read-only |
+| **Gameplay index** | `docs/design/Overview.md` | **User only** | Read-only |
+| **Gameplay systems** | `docs/design/systems/*.md` | **User only** | Read-only |
 | **Edit rules** | `docs/design/DESIGN_DOC_GOVERNANCE.md` | User | Read-only unless user asks |
 | **AI / process docs** | `docs/ai/` | User + agent per workflow | Editable per workflow |
-| **Implementation specs** | `docs/ai/Core/`, `Combat/`, `Data/`, etc. | User + agent when tasked | Editable when implementing |
+| **Implementation specs** | `docs/ai/Core/`, etc. | User + agent when tasked | Editable when implementing |
 
-`docs/design/` is **not** under `docs/ai/` — gameplay authority is separate from AI collaboration artifacts.
+`docs/design/` is **not** under `docs/ai/`.
 
-## Agent may read `卡牌游戏.md` when
+## Agent may read gameplay docs when
 
-- Session bootstrap or user asks about gameplay/rules.
-- Implementing a user-scoped task (cite the section relied on).
-- Drafting REQUIREMENTS or design discussion in chat or separate Draft files.
+- Bootstrap: start from `Overview.md`, then task-relevant `systems/*.md`.
+- User asks about rules or scopes implementation (cite section).
 
 ## Agent must NOT (default)
 
-- Edit, rename, or delete `docs/design/卡牌游戏.md` without **explicit user request**.
-- Treat chat paraphrases as approved design — confirm or wait for user to update the design doc.
-- Silently resolve conflicts between design doc and code; ask the user.
+- Edit `Overview.md` or `systems/*.md` without **explicit user request** (file + scope).
+- Treat chat as approved design changes.
 
-## When user explicitly delegates design edits
+## When user explicitly delegates
 
-Phrases like: 「帮我在卡牌游戏.md 里改…」「更新设计文档里的公式」.
+Phrases like: 「帮我在 effects.md 里改…」「更新 equipment 章节…」
 
-Then:
+1. Confirm path under `docs/design/systems/`.
+2. Minimal edit only.
+3. Note in `docs/ai/PROGRESS_LOG.md`.
 
-1. Confirm **file** and **scope** (one section / one change).
-2. Make **minimal** edits only in that scope.
-3. Note in `docs/ai/PROGRESS_LOG.md` (path + brief summary).
+## Stub
 
-## `docs/design/` vs `docs/ai/`
-
-- **`docs/design/`** — gameplay (`卡牌游戏.md`), governance, future formal specs (REQUIREMENTS, GLOSSARY).
-- **`docs/ai/`** — PROJECT_CONTEXT, ACTIVE_WORK, templates, implementation design under subdirs.
+`docs/design/卡牌游戏.md` — migration pointer only; do not add content. Scheduled for deletion.

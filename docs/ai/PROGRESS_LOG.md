@@ -1,6 +1,6 @@
 # CardGameDemo Progress Log (for AI)
 
-Last updated: 2026-07-03
+Last updated: 2026-07-11
 
 ## Purpose
 
@@ -9,6 +9,27 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 ---
 
 ## Recent entries
+
+### 2026-07-11 — Design systems split + gameplay framework vision (WF-F01)
+
+- **Goal:** Replace monolith with book-style design docs; document rules framework and Demo target capabilities.
+- **Main changes:**
+  - `docs/design/Overview.md` + `docs/design/systems/*` (combat, dungeon, equipment, attributes, character, etc.)
+  - `gameplay-framework.md` — GAS-inspired pipeline, design constraints, open questions
+  - `demo-minimal-feature-set.md` — final Demo vision (multi-mode, console, battle-only)
+  - `effects.md` → Deprecated; `game-rule-specification.md` stub added
+  - `卡牌游戏.md` → migration stub; rules/skills/docs/ai references updated
+- **Validation done:** N/A (docs only)
+- **Next step:** Discuss and scope first code slice (likely battle-only + core framework)
+
+### 2026-07-04 — Split gameplay design into Overview + systems (WF-F01)
+
+- **Goal:** Replace monolith `卡牌游戏.md` with book-style layout.
+- **Main changes:**
+  - Added `docs/design/Overview.md`, `docs/design/systems/*.md` (10 chapters, content migrated)
+  - `卡牌游戏.md` → migration stub
+  - Updated rules, skills, docs/ai references
+- **Next step:** User refines chapters; formalize effects spec; rule engine design
 
 ### 2026-07-03 — Design doc layout + initial repo (WF-F01)
 

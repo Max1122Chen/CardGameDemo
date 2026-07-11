@@ -12,7 +12,7 @@ Build a **rules machine** MVP for a roguelike card game: validate gameplay via c
 ## 2) Architecture direction (planned)
 
 ```text
-docs/design/卡牌游戏.md (gameplay authority, user-owned)
+docs/design/Overview.md + systems/ (gameplay authority, user-owned)
         ↓
 Data assets (JSON + Schema) ← Editor (later)
         ↓
@@ -25,7 +25,7 @@ Hosts: CLI / Agent API / simple UI
 
 **Design iteration + infrastructure.**
 
-- **Done:** Cursor workflow; gameplay design in [../design/卡牌游戏.md](../design/卡牌游戏.md)
+- **Done:** Design split into [Overview.md](../design/Overview.md) + [systems/](../design/systems/)
 - **User:** refining mechanics, effects, numbers in design doc
 - **Not started:** npm workspace, `packages/core`, combat P0
 
@@ -34,7 +34,7 @@ Agents should **not** start large implementation until `ACTIVE_WORK.md` lists co
 ## 4) Collaboration conventions
 
 - Bootstrap: `PROJECT_CONTEXT`, `PROGRESS_LOG`, `ACTIVE_WORK`, `BOOTSTRAP_DIGEST`
-- Gameplay **what** → [../design/卡牌游戏.md](../design/卡牌游戏.md); **how** → `docs/ai/` when tasked
+- Gameplay **what** → [Overview.md](../design/Overview.md) + `systems/`; **how** → `docs/ai/` when tasked
 - Session end: append `PROGRESS_LOG`; complex tasks → `sessions/`
 - Commit: prepare ≠ execute (`git-commit-mentor`)
 

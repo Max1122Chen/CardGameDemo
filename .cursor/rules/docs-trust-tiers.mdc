@@ -15,7 +15,8 @@ When inferring **what to build next**, **what is unfinished**, or **current beha
 - `docs/ai/ACTIVE_WORK.md` (authoritative short backlog when present)
 - `docs/ai/FEATURE_REGISTRY.md` — only **In Progress** or **Planned** rows
 - `docs/ai/TECH_DEBT.md` — only **Open** rows
-- `docs/design/卡牌游戏.md` — **read-only** for agents; implement only when user scopes work in ACTIVE_WORK
+- `docs/design/Overview.md` + `docs/design/systems/*.md` — **read-only** for agents
+- `卡牌游戏.md` — stub only; do not treat as content source
 - A **single** in-repo design doc the user names for the current task, if Meta **Status** is `In Progress` or `Review`
 
 ## Tier B — reference only (do not build backlog from)
@@ -24,7 +25,7 @@ When inferring **what to build next**, **what is unfinished**, or **current beha
 - `*_CURRENT_STATE.md` snapshots
 - Unchecked checkboxes or “待做” prose in Tier B docs
 - `docs/ai/sessions/` (session notes)
-- `卡牌游戏.md` — background for intent; **not** a mandate to implement every idea listed
+- Unscoped ideas in design docs — **not** mandatory work unless in ACTIVE_WORK
 
 Allowed use: naming, architecture context, links — **not** “must implement because doc says so”.
 
@@ -43,7 +44,7 @@ If Tier A/B disagrees with **source code** or **tests / `npm run verify`**:
 | Doc vs code | Code (+ tests) |
 | Doc vs user this session | User |
 | ACTIVE_WORK vs old roadmap | ACTIVE_WORK |
-| Design doc vs in-repo impl spec | `卡牌游戏.md` for **what**; in-repo for **how built**; user resolves conflicts |
+| Design doc vs in-repo impl spec | `docs/design/systems/*` for **what**; in-repo for **how**; user resolves conflicts |
 | FEATURE_REGISTRY Planned vs no ACTIVE_WORK entry | Ask user or treat as optional future |
 
 ## New work

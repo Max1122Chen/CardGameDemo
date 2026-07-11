@@ -21,4 +21,4 @@
 
 ## 链接
 
-<!-- Design / Bug / 卡牌游戏.md section if relevant -->
+<!-- Design / Bug / docs/design/systems/ section if relevant -->

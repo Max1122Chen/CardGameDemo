@@ -1,41 +1,23 @@
 # Working With AI in CardGameDemo
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
-## Why this exists
+## Gameplay docs
 
-Keep AI-readable context in `docs/ai/`. **Gameplay design** lives separately in [../design/卡牌游戏.md](../design/卡牌游戏.md).
+- **入口：** [../design/Overview.md](../design/Overview.md)
+- **章节：** [../design/systems/](../design/systems/)
+- Agent **默认只读**；见 [DESIGN_DOC_GOVERNANCE.md](../design/DESIGN_DOC_GOVERNANCE.md)
 
-## Minimal workflow
+## Prompts
 
-### 1) Before coding
-
-- Agent reads `PROJECT_CONTEXT`, `PROGRESS_LOG`, `ACTIVE_WORK`, `BOOTSTRAP_DIGEST`
-- Gameplay rules: [../design/卡牌游戏.md](../design/卡牌游戏.md)
-
-### 2) During work
-
-- Register new Features in `FEATURE_REGISTRY`
-- **准备 commit** = draft + your approval
-- Agent **does not** edit `docs/design/卡牌游戏.md` unless you explicitly ask
-
-### 3) End of session
-
-- Append `PROGRESS_LOG`; complex tasks → `sessions/`
-
-## Suggested prompts
-
-**Design phase:**
+**Design:**
 
 ```text
-继续 CardGameDemo。读 ACTIVE_WORK 和 docs/design/卡牌游戏.md。
-不要写代码，讨论机制/效果系统。
+继续 CardGameDemo。读 Overview.md 和 systems/effects.md。不要写代码。
 ```
 
 **Implementation (when ready):**
 
 ```text
-ACTIVE_WORK 里 CORE-F01 可以做了。玩法以 docs/design/卡牌游戏.md 为准。
+ACTIVE_WORK 里 CORE-F01。先读 Overview 推荐阅读顺序里的 P0 战斗章节。
 ```
-
-See [../design/DESIGN_DOC_GOVERNANCE.md](../design/DESIGN_DOC_GOVERNANCE.md).
