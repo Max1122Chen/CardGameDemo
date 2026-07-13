@@ -7,6 +7,7 @@ export {
 export type {
   ActiveGameplayEffect,
   ActiveGameplayEffectSnapshot,
+  ActiveAbilitySnapshot,
   AttributeChangeCallback,
   AttributeChangeContext,
   AttributeValue,
@@ -14,7 +15,25 @@ export type {
   GameplayEffectDuration,
   GameplayEffectModifier,
   GameplayModifierOp,
+  GrantedAbilitySnapshot,
   GfcAttributeSnapshot,
   GfcSnapshot,
   GfcTagSnapshot,
 } from './types.js';
+export {
+  GameplayAbilityRuntime,
+  GameplayAbilityError,
+  evaluateTagGates,
+  gatesNeedEntity,
+  type AbilityActivationContext,
+  type ActivationFailureReason,
+  type ActivationResult,
+  type GameplayAbilityCost,
+  type GameplayAbilityDefinition,
+  type GameplayAbilityEffectBinding,
+  type GameplayAbilityEffectTarget,
+  type GameplayAbilityKind,
+  type GameplayAbilityPassiveTrigger,
+  type GameplayAbilityTagGates,
+  type GameplayAbilityHost,
+} from '../ga/index.js';

@@ -27,7 +27,7 @@ Hosts: CLI / Agent API / simple UI
 
 - **Done:** Design split; CORE-F01–F03 (monorepo, tags, event system)
 - **Done:** CORE-F01–F07 (through Attribute/GE + event-driven Duration); CLI-F02 TUI; COMBAT-F01 minimal battle slice
-- **Next:** CLI-F01 ndjson/debug stubs (see [ACTIVE_WORK.md](./ACTIVE_WORK.md))
+- **Next:** CORE-F08 GA framework (spec review) → CORE-F09 → COMBAT-F02
 
 Agents: follow `ACTIVE_WORK.md` order; register slices in [FEATURE_REGISTRY.md](./FEATURE_REGISTRY.md).
 

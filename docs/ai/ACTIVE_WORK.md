@@ -8,18 +8,15 @@ Last updated: 2026-07-13
 
 ## In focus
 
-**Phase: Framework foundation (code)** — RuleEngine → GFC → Attribute/GE.
+**Phase: GFC depth** — GA → numeric pipeline → combat integration.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–3 | CORE-F01–F03 | Monorepo, tags, events | **Done** |
-| 4 | **CORE-F04** | `RuleEngine` + `GameWorld` | **Done** ([spec](./Core/CORE-F04-rule-engine-gameworld.md)) |
-| 5 | **CORE-F05** | `GameplayFrameworkComponent` | **Done** ([spec](./Core/CORE-F05-gfc-skeleton.md)) |
-| 6 | **CORE-F06** | Attribute + minimal GE | **Done** ([spec](./Core/CORE-F06-attribute-minimal-ge.md)) |
-| 7 | **CORE-F07** | Event-driven Duration | **Done** ([spec](./Core/CORE-F07-event-driven-duration.md)) |
-| 8 | **CLI-F02** | Terminal gameplay UI shell | **Done** ([spec](./CLI/CLI-F02-terminal-tui.md)) |
-| 9 | **COMBAT-F01** | Minimal battle rules slice | **Done** ([spec](./Combat/COMBAT-F01-minimal-battle-slice.md)) |
-| 10 | **CLI-F01** | ndjson / debug stubs | Planned |
+| 1–9 | CORE-F01–F07, CLI-F02, COMBAT-F01 | Foundation + minimal battle | **Done** |
+| 10 | **CORE-F08** | GameplayAbility on GFC | **Done** ([spec](./Core/CORE-F08-gameplay-ability-framework.md)) |
+| 11 | **CORE-F09** | Numeric pipeline (HP from Constitution, damage stages) | Planned ([stub](./Core/CORE-F09-numeric-calculation-pipeline.md)) |
+| 12 | **COMBAT-F02** | Apply GA + pipeline to `CombatSession` | Planned ([stub](./Combat/COMBAT-F02-gfc-combat-integration.md)) |
+| — | **CLI-F01** | ndjson / debug stubs | Planned (not blocking F08–F02 chain) |
 
 ---
 

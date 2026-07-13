@@ -74,4 +74,19 @@ export type GfcSnapshot = {
   tags: GfcTagSnapshot[];
   attributes: GfcAttributeSnapshot[];
   activeEffects: ActiveGameplayEffectSnapshot[];
+  grantedAbilities: GrantedAbilitySnapshot[];
+  activeAbilities: ActiveAbilitySnapshot[];
+};
+
+export type GrantedAbilitySnapshot = {
+  handle: string;
+  abilityDefId: string;
+  kind: 'active' | 'passive';
+  name?: string;
+};
+
+export type ActiveAbilitySnapshot = {
+  instanceId: string;
+  handle: string;
+  abilityDefId: string;
 };

@@ -159,6 +159,59 @@ export type CombatEndTraceEntry = {
   result: string;
 };
 
+export type GaGrantTraceEntry = {
+  kind: 'ga.grant';
+  t: number;
+  entity: string;
+  abilityDefId: string;
+  handle: string;
+  kindAbility: string;
+};
+
+export type GaRevokeTraceEntry = {
+  kind: 'ga.revoke';
+  t: number;
+  entity: string;
+  handle: string;
+  abilityDefId: string;
+};
+
+export type GaActivateAttemptTraceEntry = {
+  kind: 'ga.activate.attempt';
+  t: number;
+  entity: string;
+  handle: string;
+  abilityDefId: string;
+  ok: boolean;
+  reason?: string;
+};
+
+export type GaActivateTraceEntry = {
+  kind: 'ga.activate';
+  t: number;
+  entity: string;
+  instanceId: string;
+  abilityDefId: string;
+  sourceId?: string;
+  targetId?: string;
+};
+
+export type GaEndTraceEntry = {
+  kind: 'ga.end';
+  t: number;
+  entity: string;
+  instanceId: string;
+  abilityDefId: string;
+};
+
+export type GaPassiveTriggerTraceEntry = {
+  kind: 'ga.passive.trigger';
+  t: number;
+  entity: string;
+  handle: string;
+  eventTags: string[];
+};
+
 export type GameTraceEntry =
   | TraceStartEntry
   | TraceEndEntry
@@ -179,7 +232,13 @@ export type GameTraceEntry =
   | CombatDrawTraceEntry
   | CombatPlayCardTraceEntry
   | CombatDamageTraceEntry
-  | CombatEndTraceEntry;
+  | CombatEndTraceEntry
+  | GaGrantTraceEntry
+  | GaRevokeTraceEntry
+  | GaActivateAttemptTraceEntry
+  | GaActivateTraceEntry
+  | GaEndTraceEntry
+  | GaPassiveTriggerTraceEntry;
 
 export type TraceEntryInput =
   | (Omit<TraceStartEntry, 't'> & { t?: number })
@@ -201,7 +260,13 @@ export type TraceEntryInput =
   | (Omit<CombatDrawTraceEntry, 't'> & { t?: number })
   | (Omit<CombatPlayCardTraceEntry, 't'> & { t?: number })
   | (Omit<CombatDamageTraceEntry, 't'> & { t?: number })
-  | (Omit<CombatEndTraceEntry, 't'> & { t?: number });
+  | (Omit<CombatEndTraceEntry, 't'> & { t?: number })
+  | (Omit<GaGrantTraceEntry, 't'> & { t?: number })
+  | (Omit<GaRevokeTraceEntry, 't'> & { t?: number })
+  | (Omit<GaActivateAttemptTraceEntry, 't'> & { t?: number })
+  | (Omit<GaActivateTraceEntry, 't'> & { t?: number })
+  | (Omit<GaEndTraceEntry, 't'> & { t?: number })
+  | (Omit<GaPassiveTriggerTraceEntry, 't'> & { t?: number });
 
 export type TraceSink = {
   emit(entry: TraceEntryInput): void;

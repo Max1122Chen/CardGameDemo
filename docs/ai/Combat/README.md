@@ -7,6 +7,7 @@ Engineering **how** for battle rules. Gameplay **what** stays in [docs/design/sy
 | Doc | Feature | Status |
 |-----|---------|--------|
 | [COMBAT-F01-minimal-battle-slice.md](./COMBAT-F01-minimal-battle-slice.md) | COMBAT-F01 | Done |
+| [COMBAT-F02-gfc-combat-integration.md](./COMBAT-F02-gfc-combat-integration.md) | COMBAT-F02 | Planned |
 
 ## Conventions
 

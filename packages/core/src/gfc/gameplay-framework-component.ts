@@ -1,6 +1,12 @@
 import type { GameplayEventChannel } from '../events/gameplay-event-channel.js';
 import type { GameplayEventSystem, GameplayEventSubscribeOptions } from '../events/gameplay-event-system.js';
 import type { GameplayEvent } from '../events/gameplay-event.js';
+import { GameplayAbilityRuntime } from '../ga/gameplay-ability-runtime.js';
+import type {
+  AbilityActivationContext,
+  ActivationResult,
+  GameplayAbilityDefinition,
+} from '../ga/types.js';
 import type { EntityId } from '../engine/component-type.js';
 import type { GameplayTag } from '../tags/gameplay-tag.js';
 import { GameplayTagContainer } from '../tags/gameplay-tag-container.js';
@@ -21,9 +27,9 @@ export type GameplayFrameworkComponentOptions = {
   tagManager: GameplayTagManager;
   eventSystem: GameplayEventSystem;
   sink?: TraceSink;
+  getGfc?: (entityId: EntityId) => GameplayFrameworkComponent | undefined;
 };
 
-let nextAbilityHandle = 0;
 let nextEffectHandle = 0;
 
 export class GameplayFrameworkComponent {
@@ -34,7 +40,9 @@ export class GameplayFrameworkComponent {
   private readonly sink?: TraceSink;
   private readonly tags: GameplayTagContainer;
   private readonly manualListenerIds: string[] = [];
-  private readonly grantedAbilityHandles = new Set<string>();
+  private readonly passiveListenerIds: string[] = [];
+  private readonly abilityRuntime: GameplayAbilityRuntime;
+  private readonly resolveGfc: (entityId: EntityId) => GameplayFrameworkComponent | undefined;
   private readonly attributeSets = new Map<string, unknown>();
   private readonly attributes = new Map<string, AttributeValue>();
   private readonly activeEffects = new Map<string, ActiveGameplayEffect>();
@@ -56,6 +64,41 @@ export class GameplayFrameworkComponent {
       manager: options.tagManager,
       entityId: options.entityId,
       sink: options.sink,
+    });
+    this.resolveGfc = options.getGfc ?? (() => undefined);
+    this.abilityRuntime = new GameplayAbilityRuntime({
+      entityId: this.entityId,
+      tagManager: this.tagManager,
+      getOwnerTags: () => this.tags,
+      getAttribute: (attribute) => {
+        const value = this.attributes.get(attribute);
+        return value ? { ...value } : undefined;
+      },
+      setAttributeBase: (attribute, value) => {
+        this.setAttributeBase(attribute, value);
+      },
+      applyGameplayEffectTo: (entityId, effect) => {
+        const gfc = this.resolveGfc(entityId);
+        if (!gfc) {
+          throw new Error(`GameplayFrameworkComponent not found: ${entityId}`);
+        }
+        return gfc.applyGameplayEffect(effect);
+      },
+      resolveEntityTags: (entityId) => this.resolveGfc(entityId)?.getTagContainer(),
+      subscribePassive: (channel, listenerId, handler) => {
+        this.eventSystem.subscribe({ channel, listenerId, handler });
+        this.passiveListenerIds.push(listenerId);
+      },
+      unsubscribePassive: (listenerId) => {
+        this.eventSystem.unsubscribe(listenerId);
+        const index = this.passiveListenerIds.indexOf(listenerId);
+        if (index >= 0) {
+          this.passiveListenerIds.splice(index, 1);
+        }
+      },
+      emitTrace: (entry) => {
+        this.sink?.emit(entry);
+      },
     });
   }
 
@@ -119,7 +162,10 @@ export class GameplayFrameworkComponent {
       this.eventSystem.unsubscribe(subscription.listenerId);
     }
 
+    this.abilityRuntime.dispose();
+
     this.manualListenerIds.length = 0;
+    this.passiveListenerIds.length = 0;
     this.channelSubscriptions.clear();
     this.activeEffects.clear();
     this.disposed = true;
@@ -221,16 +267,39 @@ export class GameplayFrameworkComponent {
     }));
   }
 
-  grantAbility(_spec: unknown): string {
+  grantAbility(definition: GameplayAbilityDefinition): string {
     this.assertActive();
-    const handle = `ability-${nextAbilityHandle++}`;
-    this.grantedAbilityHandles.add(handle);
-    return handle;
+    return this.abilityRuntime.grantAbility(definition);
   }
 
-  revokeAbility(handle: string): void {
+  revokeAbility(handle: string): boolean {
     this.assertActive();
-    this.grantedAbilityHandles.delete(handle);
+    return this.abilityRuntime.revokeAbility(handle);
+  }
+
+  canActivate(handle: string, ctx: AbilityActivationContext): boolean {
+    this.assertActive();
+    return this.abilityRuntime.canActivate(handle, ctx);
+  }
+
+  tryActivate(handle: string, ctx: AbilityActivationContext): ActivationResult {
+    this.assertActive();
+    return this.abilityRuntime.tryActivate(handle, ctx);
+  }
+
+  endAbility(instanceId: string): boolean {
+    this.assertActive();
+    return this.abilityRuntime.endAbility(instanceId);
+  }
+
+  listGrantedAbilities() {
+    this.assertActive();
+    return this.abilityRuntime.listGrantedAbilities();
+  }
+
+  listActiveAbilities() {
+    this.assertActive();
+    return this.abilityRuntime.listActiveAbilities();
   }
 
   onPreAttributeChange(callback: AttributeChangeCallback): () => void {
@@ -277,6 +346,8 @@ export class GameplayFrameworkComponent {
           effect.definition.duration.kind === 'Duration' ? effect.definition.duration.magnitude : undefined,
         durationChannels: effect.durationChannels.map((channel) => channel.name),
       })),
+      grantedAbilities: this.abilityRuntime.listGrantedAbilities(),
+      activeAbilities: this.abilityRuntime.listActiveAbilities(),
     };
   }
 

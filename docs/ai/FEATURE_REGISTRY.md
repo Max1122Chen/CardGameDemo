@@ -24,9 +24,12 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F05` | GameplayFrameworkComponent skeleton (ASC on entity) | Done | — | [CORE-F05-gfc-skeleton.md](./Core/CORE-F05-gfc-skeleton.md) |
 | `CORE-F06` | Attribute (UE-style) + minimal GE on GFC | Done | — | [CORE-F06-attribute-minimal-ge.md](./Core/CORE-F06-attribute-minimal-ge.md), [gameplay-framework.md](../design/systems/gameplay-framework.md), [attributes.md](../design/systems/attributes.md) |
 | `CORE-F07` | Event-driven Duration for GameplayEffect | Done | — | [CORE-F07-event-driven-duration.md](./Core/CORE-F07-event-driven-duration.md) |
+| `CORE-F08` | GameplayAbility framework on GFC (grant, activate, passive) | Done | — | [CORE-F08-gameplay-ability-framework.md](./Core/CORE-F08-gameplay-ability-framework.md), [gameplay-framework.md](../design/systems/gameplay-framework.md) |
+| `CORE-F09` | Numeric calculation pipeline (derived attrs, damage stages) | Planned | — | [CORE-F09-numeric-calculation-pipeline.md](./Core/CORE-F09-numeric-calculation-pipeline.md), [attributes.md](../design/systems/attributes.md), [effects.md](../design/systems/effects.md) |
 | `CLI-F01` | Host logging sink, ndjson trace output, debug console stubs | Planned | — | [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `CLI-F02` | Terminal gameplay UI shell with overlays and immediate input | Done | — | [CLI-F02-terminal-tui.md](./CLI/CLI-F02-terminal-tui.md), [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Done | — | [COMBAT-F01-minimal-battle-slice.md](./Combat/COMBAT-F01-minimal-battle-slice.md), [combat.md](../design/systems/combat.md) |
+| `COMBAT-F02` | GFC-backed combat (GA cards, damage event, DealDamage passive) | Planned | — | [COMBAT-F02-gfc-combat-integration.md](./Combat/COMBAT-F02-gfc-combat-integration.md) |
 
 ---
 
@@ -35,8 +38,8 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | DOMAIN | Next Feature # | Notes |
 |--------|----------------|-------|
 | `WF` | F02 | Workflow / docs |
-| `CORE` | F08 | After F07 duration |
-| `COMBAT` | F02 | After F01 battle-only slice |
+| `CORE` | F10 | F08 GA, F09 numeric pipeline registered |
+| `COMBAT` | F03 | F02 GFC combat integration registered |
 | `DUNGEON` | F01 | Map, encounters, loot |
 | `DATA` | F01 | Schema, asset loading |
 | `EFFECT` | F01 | May fold into CORE-F06; register if split |

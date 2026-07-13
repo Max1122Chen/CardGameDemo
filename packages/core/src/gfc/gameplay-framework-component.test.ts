@@ -297,6 +297,8 @@ describe('GameplayFrameworkComponent', () => {
           durationChannels: [],
         },
       ],
+      grantedAbilities: [],
+      activeAbilities: [],
     });
   });
 
@@ -315,10 +317,15 @@ describe('GameplayFrameworkComponent', () => {
   it('probe 13: grantAbility returns handle and revoke is safe', () => {
     const engine = RuleEngine.create();
     const gfc = engine.createEntityWithGfc('player');
-    const handle = gfc.grantAbility({ id: 'passive.equip' });
+    const handle = gfc.grantAbility({
+      id: 'passive.equip',
+      kind: 'active',
+      tags: {},
+      effectsOnActivate: [],
+    });
 
     expect(handle).toMatch(/^ability-\d+$/);
-    expect(() => gfc.revokeAbility(handle)).not.toThrow();
+    expect(gfc.revokeAbility(handle)).toBe(true);
   });
 
   it('rejects duplicate GFC on same entity', () => {

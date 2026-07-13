@@ -14,6 +14,8 @@ Engineering **how** for the rules machine. Gameplay **what** stays in [docs/desi
 | [CORE-F05-gfc-skeleton.md](./CORE-F05-gfc-skeleton.md) | CORE-F05 | Done |
 | [CORE-F06-attribute-minimal-ge.md](./CORE-F06-attribute-minimal-ge.md) | CORE-F06 | Done |
 | [CORE-F07-event-driven-duration.md](./CORE-F07-event-driven-duration.md) | CORE-F07 | Done |
+| [CORE-F08-gameplay-ability-framework.md](./CORE-F08-gameplay-ability-framework.md) | CORE-F08 | Done |
+| [CORE-F09-numeric-calculation-pipeline.md](./CORE-F09-numeric-calculation-pipeline.md) | CORE-F09 | Planned |
 
 ## Conventions
 

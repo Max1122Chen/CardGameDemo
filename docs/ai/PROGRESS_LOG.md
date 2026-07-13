@@ -10,6 +10,22 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-13 — CORE-F08: GameplayAbility framework on GFC
+
+- **Goal:** Typed GA grant/activate/passive on GFC; cost check; owner/source/target tag gates.
+- **Main changes:** `packages/core/src/ga/*`, GFC integration, `ga.*` trace kinds, 8 GA tests
+- **Verify:** `npm run verify` — 95 tests green
+- **Next step:** CORE-F09 numeric pipeline (Constitution → HP derivation)
+
+### 2026-07-13 — CORE-F08 spec + F09/F02 registration (GFC depth chain)
+
+- **Goal:** Three-feature split — GA (core), numeric pipeline (core), combat integration (combat).
+- **Main changes:**
+  - [CORE-F08-gameplay-ability-framework.md](./Core/CORE-F08-gameplay-ability-framework.md) (Review)
+  - Stubs: [CORE-F09](./Core/CORE-F09-numeric-calculation-pipeline.md), [COMBAT-F02](./Combat/COMBAT-F02-gfc-combat-integration.md)
+  - User model: attacker evaluates damage → damage event → target DealDamage passive GA
+- **Next step:** User approves CORE-F08 + answers Q1–Q6 → implement S01
+
 ### 2026-07-13 — COMBAT-F01: minimal battle rules slice implemented
 
 - **Goal:** Closed-loop battle in `packages/core` + playable via CLI TUI.
