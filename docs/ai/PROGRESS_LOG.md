@@ -10,6 +10,17 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-11 — CORE-F01 monorepo + trace scaffold
+
+- **Goal:** npm workspaces, verify gate, structured trace model in core, CLI ndjson output.
+- **Main changes:**
+  - `packages/core` — `TraceBuffer`, `NoopTraceSink`, `GameTraceEntry` kinds
+  - `packages/cli` — `--trace ndjson|off`, `--seed`, `--scenario` stub session
+  - Root toolchain: TypeScript project refs, Vitest, ESLint 9, Prettier
+  - Spec: [CORE-F01-monorepo-tooling-logging.md](./Core/CORE-F01-monorepo-tooling-logging.md)
+- **Validation done:** `npm run verify`; `npm run start -w @cardgame/cli -- --trace ndjson --seed 42 --scenario probe`
+- **Next step:** CORE-F02 GameplayTag
+
 ### 2026-07-11 — Design systems split + gameplay framework vision (WF-F01)
 
 - **Goal:** Replace monolith with book-style design docs; document rules framework and Demo target capabilities.

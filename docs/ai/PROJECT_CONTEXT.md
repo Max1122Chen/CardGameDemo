@@ -1,6 +1,6 @@
 # CardGameDemo Project Context (for AI)
 
-Last updated: 2026-07-03
+Last updated: 2026-07-11
 
 ## 1) Project goal
 
@@ -23,13 +23,13 @@ Hosts: CLI / Agent API / simple UI
 
 ## 3) Current phase
 
-**Design iteration + infrastructure.**
+**Framework foundation (code)** — see [ACTIVE_WORK.md](./ACTIVE_WORK.md).
 
-- **Done:** Design split into [Overview.md](../design/Overview.md) + [systems/](../design/systems/)
-- **User:** refining mechanics, effects, numbers in design doc
-- **Not started:** npm workspace, `packages/core`, combat P0
+- **Done:** Design split; CORE-F01 monorepo + trace scaffold (`packages/core`, `packages/cli`)
+- **In progress:** CORE-F02–F05 framework foundation (Tag, Event, GFC, pipeline)
+- **Later:** COMBAT-F01 BattleOnly slice after pipeline probe
 
-Agents should **not** start large implementation until `ACTIVE_WORK.md` lists concrete tasks and user scopes work.
+Agents: follow `ACTIVE_WORK.md` order; register slices in [FEATURE_REGISTRY.md](./FEATURE_REGISTRY.md).
 
 ## 4) Collaboration conventions
 

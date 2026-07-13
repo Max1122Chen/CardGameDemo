@@ -1,0 +1,17 @@
+{
+  "name": "@cardgame/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "cardgame": "./dist/main.js"
+  },
+  "dependencies": {
+    "@cardgame/core": "*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx src/main.ts",
+    "start": "node dist/main.js"
+  }
+}

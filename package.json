@@ -1,0 +1,31 @@
+{
+  "name": "cardgame-demo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "npm run typecheck && npm run test && npm run lint",
+    "dev": "npm run build && npm run dev -w @cardgame/cli"
+  },
+  "devDependencies": {
+    "@eslint/js": "~9.31.0",
+    "@types/node": "~24.0.14",
+    "eslint": "~9.31.0",
+    "prettier": "~3.6.2",
+    "tsx": "~4.20.3",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "~8.38.0",
+    "vitest": "~3.2.4"
+  }
+}
