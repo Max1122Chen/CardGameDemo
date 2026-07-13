@@ -6,55 +6,61 @@ Applies to `packages/core` and future framework modules unless a feature spec ov
 
 ---
 
+## Naming: `RuleEngine` and avoiding `Rule*`
+
+| Name | Use |
+|------|-----|
+| **`RuleEngine`** | Root of one rules simulation instance (BattleOnly, debug session). **Only** prominent `Rule*` type. |
+| **`GameWorld`** | ECS entity/component store owned by RuleEngine. **Not** `RuleWorld`. |
+| **`EntityId`** | Opaque string entity handle in GameWorld. |
+| **`Gameplay*`** | Framework types (Tag, Event, GFC, …). |
+| **Avoid** | `RuleWorld`, `RuleContext`, `RuleEntity`, etc. unless literally naming the rules layer |
+
+Variable shorthand: `engine` for RuleEngine, `world` for GameWorld, `gfc` for GameplayFrameworkComponent.
+
+---
+
 ## System naming: `Manager` vs `System`
 
-Unless explicitly documented otherwise, a **framework module** (coordinates a domain of state or services) uses:
-
-| Suffix | Use when | Examples (planned / actual) |
-|--------|----------|----------------------------|
-| **`Manager`** | Owns **registry, lifecycle, lookup**, or **authoritative store** for a resource family | `GameplayTagManager` |
-| **`System`** | **Processes**, **dispatches**, or **runs logic** over time/events (pub-sub, tick, pipeline pass) | `GameplayEventSystem` (CORE-F03) |
-
-**Heuristic**
-
-- “Where is X defined / resolved / stored?” → **Manager**
-- “Who handles / routes / executes X when something happens?” → **System**
-
-Do **not** shorten type names (`Manager`, `System` alone). Full names: `GameplayTagManager`, not `TagRegistry`.
+| Suffix | Use when | Examples |
+|--------|----------|----------|
+| **`Manager`** | Registry, lifecycle, lookup | `GameplayTagManager` |
+| **`System`** | Dispatch, process, tick | `GameplayEventSystem` |
 
 ---
 
 ## Gameplay Framework types
 
-Align with [gameplay-framework.md](../../design/systems/gameplay-framework.md) and UE-GAS vocabulary where noted.
-
 | Type | Name | Notes |
 |------|------|-------|
-| Tag handle | `GameplayTag` | Opaque, registry-backed; not a free string at runtime |
-| Tag bag on entity | `GameplayTagContainer` | Mutable container on GFC / entities |
-| Tag tree + lookup | `GameplayTagManager` | Singleton per rules context (not `Registry` suffix) |
-| Framework host | `GameplayFrameworkComponent` or `Gfc` variable name | CORE-F04 |
-| Event record | `GameplayEvent` | `tags` + optional `payload`; no built-in src/target |
-| Event router | `GameplayEventSystem` | Channel-partitioned pub-sub (CORE-F03) |
-| Event bus label | `GameplayEventChannel` | Wrapper around a `GameplayTag` used as channel name |
+| Simulation root | `RuleEngine` | CORE-F04 |
+| ECS world | `GameWorld` | CORE-F04 |
+| Tag handle | `GameplayTag` | F02 |
+| Tag bag | `GameplayTagContainer` | On GFC |
+| Tag tree | `GameplayTagManager` | Per engine |
+| Framework host | `GameplayFrameworkComponent` | **One per entity** (UE ASC); CORE-F05 |
+| Event record | `GameplayEvent` | F03 |
+| Event router | `GameplayEventSystem` | F03 |
+| Channel label | `GameplayEventChannel` | Tag wrapper |
+
+**GFC is not split** into Tag/Attribute components — single component aligned with UE ASC.
 
 ---
 
 ## Packages and purity
 
-- `@cardgame/core` — no `console`, `fs`, `process`; see CORE-F01 ESLint rules.
-- Hosts (`cli`, future `editor`/`ui`) — I/O and logging sinks only.
+- `@cardgame/core` — no `console`, `fs`, `process` in library code.
+- Hosts (`cli`, …) — I/O only.
 
 ---
 
 ## Tests and probes
 
-- Each `CORE-Fnn` ships a **probe test** proving minimal behavior before the next feature.
-- Prefer domain names in test `describe` blocks (`GameplayTagManager`, `GameplayTagContainer`).
+- Each `CORE-Fnn` ships probe tests before the next feature.
 
 ---
 
 ## Related
 
-- [CORE-F01-monorepo-tooling-logging.md](./CORE-F01-monorepo-tooling-logging.md) — toolchain
-- [CORE-F02-gameplay-tag.md](./CORE-F02-gameplay-tag.md) — Tag Manager + Container
+- [CORE-F04-rule-engine-gameworld.md](./CORE-F04-rule-engine-gameworld.md)
+- [CORE-F05-gfc-skeleton.md](./CORE-F05-gfc-skeleton.md)

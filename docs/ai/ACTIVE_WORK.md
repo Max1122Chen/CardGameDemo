@@ -8,29 +8,30 @@ Last updated: 2026-07-13
 
 ## In focus
 
-**Phase: Framework foundation (code)** — infrastructure before full gameplay; each layer validated with a thin probe test.
+**Phase: Framework foundation (code)** — RuleEngine → GFC → Attribute/GE; each layer with probe tests.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1 | **CORE-F01** | Monorepo, TS/tooling, verify, logging trace model | **Done** ([spec](./Core/CORE-F01-monorepo-tooling-logging.md)) |
+| 1 | **CORE-F01** | Monorepo, verify, trace | **Done** ([spec](./Core/CORE-F01-monorepo-tooling-logging.md)) |
 | 2 | **CORE-F02** | `GameplayTagManager` + `GameplayTagContainer` | **Done** ([spec](./Core/CORE-F02-gameplay-tag.md)) |
 | 3 | **CORE-F03** | `GameplayEventSystem` | **Done** ([spec](./Core/CORE-F03-gameplay-event.md)) |
-| 4 | **CORE-F04** | GFC skeleton | **Next** |
-| 5 | CORE-F05 | Attribute pipeline + minimal GE probe | Planned |
-| 6 | CLI-F01 | ndjson host sink + debug console stubs | Planned |
-| 7 | COMBAT-F01 | BattleOnly vertical slice | Planned |
+| 4 | **CORE-F04** | `RuleEngine` + `GameWorld` (ECS) | **Next — implement** ([spec](./Core/CORE-F04-rule-engine-gameworld.md)) |
+| 5 | **CORE-F05** | `GameplayFrameworkComponent` skeleton | Planned ([spec](./Core/CORE-F05-gfc-skeleton.md)) |
+| 6 | **CORE-F06** | Attribute + minimal GE (UE-aligned) | Planned |
+| 7 | CLI-F01 | ndjson / debug stubs | Planned |
+| 8 | COMBAT-F01 | BattleOnly vertical slice | Planned |
 
-- **WF-F01** Documentation & AI collaboration — In Progress (design split landed 2026-07-11; ongoing governance)
+- **WF-F01** Documentation & AI collaboration — In Progress
 
-**Conventions:** [ENGINEERING_CONVENTIONS.md](./Core/ENGINEERING_CONVENTIONS.md) — `Manager` / `System` suffixes; `GameplayTagContainer` naming.
+**Conventions:** [ENGINEERING_CONVENTIONS.md](./Core/ENGINEERING_CONVENTIONS.md)
 
 ---
 
 ## Not backlog (until promoted)
 
-- Full GE/GA feature parity with UE-GAS
-- Dungeon, equipment editors, UI
-- `DATA-F01` schema tooling (after core probes)
+- Full GA activation, equipment wear → passive GA grant
+- Dungeon, editors, UI
+- `DATA-F01` schema tooling
 
 ---
 
@@ -39,6 +40,4 @@ Last updated: 2026-07-13
 | File | Role |
 |------|------|
 | [FEATURE_REGISTRY.md](./FEATURE_REGISTRY.md) | Feature IDs |
-| [Overview.md](../design/Overview.md) | Design index |
 | [gameplay-framework.md](../design/systems/gameplay-framework.md) | Framework target |
-| [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) | Demo end-state capabilities |
