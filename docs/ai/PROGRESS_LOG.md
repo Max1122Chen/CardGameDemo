@@ -10,6 +10,25 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-13 — CORE-F06/F07 implementation: Attribute, GE, event-driven Duration
+
+- **Goal:** Finish the first usable GFC gameplay-state layer with UE-style attributes, minimal GE lifecycle, and event-driven duration.
+- **Main changes:**
+  - `GameplayFrameworkComponent` now supports attribute base/current state, `Instant` / `Infinite` / `Duration` GE, granted tags, active effect storage, and duration-driven channel subscriptions
+  - New exported gameplay types for attributes/effects/duration snapshots
+  - New trace kinds for attribute recompute, GE apply/remove, duration progress/expire, and GFC channel subscribe/unsubscribe
+  - Probe tests expanded to cover F06/F07 behavior
+- **Validation done:** `npm run verify` (55 tests)
+- **Next step:** CLI-F01 host logging/debug stubs, then COMBAT-F01 battle-only vertical slice
+
+### 2026-07-13 — CORE-F06/F07 specs: Attribute/GE + event-driven Duration
+
+- **Goal:** Lock down F06 Attribute + minimal GE, and F07 event-driven Duration model (unitTag-driven).
+- **Main changes:** Spec docs:
+  - [CORE-F06-attribute-minimal-ge.md](./Core/CORE-F06-attribute-minimal-ge.md)
+  - [CORE-F07-event-driven-duration.md](./Core/CORE-F07-event-driven-duration.md)
+- **Next step:** Implement CORE-F06 in `@cardgame/core` + probe tests; then move to CORE-F07.
+
 ### 2026-07-13 — CORE-F04/F05 RuleEngine, GameWorld, GFC skeleton
 
 - **Goal:** Session root + ECS; ASC-shaped GFC per entity.

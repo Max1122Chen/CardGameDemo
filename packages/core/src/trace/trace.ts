@@ -43,13 +43,92 @@ export type EventDispatchEntry = {
   payloadKeys?: string[];
 };
 
+export type AttributeBaseSetEntry = {
+  kind: 'attribute.base.set';
+  t: number;
+  entity: string;
+  attribute: string;
+  after: number;
+};
+
+export type AttributeCurrentRecomputeEntry = {
+  kind: 'attribute.current.recompute';
+  t: number;
+  entity: string;
+  attribute: string;
+  before: number;
+  after: number;
+};
+
+export type GameplayEffectAppliedEntry = {
+  kind: 'ge.applied';
+  t: number;
+  entity: string;
+  effectId: string;
+  effectDefId: string;
+  durationKind: 'Instant' | 'Infinite' | 'Duration';
+};
+
+export type GameplayEffectRemovedEntry = {
+  kind: 'ge.removed';
+  t: number;
+  entity: string;
+  effectId: string;
+  effectDefId: string;
+  durationKind: 'Instant' | 'Infinite' | 'Duration';
+};
+
+export type GameplayEffectDurationProgressEntry = {
+  kind: 'ge.duration.progress';
+  t: number;
+  entity: string;
+  effectId: string;
+  effectDefId: string;
+  unitTag: string;
+  before: number;
+  after: number;
+  target: number;
+};
+
+export type GameplayEffectDurationExpiredEntry = {
+  kind: 'ge.duration.expired';
+  t: number;
+  entity: string;
+  effectId: string;
+  effectDefId: string;
+  unitTag: string;
+  finalProgress: number;
+};
+
+export type GfcChannelSubscribeEntry = {
+  kind: 'gfc.channel.subscribe';
+  t: number;
+  entity: string;
+  channel: string;
+};
+
+export type GfcChannelUnsubscribeEntry = {
+  kind: 'gfc.channel.unsubscribe';
+  t: number;
+  entity: string;
+  channel: string;
+};
+
 export type GameTraceEntry =
   | TraceStartEntry
   | TraceEndEntry
   | DebugNoteEntry
   | TagAddEntry
   | TagRemoveEntry
-  | EventDispatchEntry;
+  | EventDispatchEntry
+  | AttributeBaseSetEntry
+  | AttributeCurrentRecomputeEntry
+  | GameplayEffectAppliedEntry
+  | GameplayEffectRemovedEntry
+  | GameplayEffectDurationProgressEntry
+  | GameplayEffectDurationExpiredEntry
+  | GfcChannelSubscribeEntry
+  | GfcChannelUnsubscribeEntry;
 
 export type TraceEntryInput =
   | (Omit<TraceStartEntry, 't'> & { t?: number })
@@ -57,7 +136,15 @@ export type TraceEntryInput =
   | (Omit<DebugNoteEntry, 't'> & { t?: number })
   | (Omit<TagAddEntry, 't'> & { t?: number })
   | (Omit<TagRemoveEntry, 't'> & { t?: number })
-  | (Omit<EventDispatchEntry, 't'> & { t?: number });
+  | (Omit<EventDispatchEntry, 't'> & { t?: number })
+  | (Omit<AttributeBaseSetEntry, 't'> & { t?: number })
+  | (Omit<AttributeCurrentRecomputeEntry, 't'> & { t?: number })
+  | (Omit<GameplayEffectAppliedEntry, 't'> & { t?: number })
+  | (Omit<GameplayEffectRemovedEntry, 't'> & { t?: number })
+  | (Omit<GameplayEffectDurationProgressEntry, 't'> & { t?: number })
+  | (Omit<GameplayEffectDurationExpiredEntry, 't'> & { t?: number })
+  | (Omit<GfcChannelSubscribeEntry, 't'> & { t?: number })
+  | (Omit<GfcChannelUnsubscribeEntry, 't'> & { t?: number });
 
 export type TraceSink = {
   emit(entry: TraceEntryInput): void;

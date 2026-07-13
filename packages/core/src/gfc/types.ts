@@ -1,19 +1,77 @@
+import type { GameplayEventChannel } from '../events/gameplay-event-channel.js';
 import type { EntityId } from '../engine/component-type.js';
+import type { GameplayTag } from '../tags/gameplay-tag.js';
 
-export type AttributeChangeCallback = (ctx: {
+export type AttributeValue = {
+  baseValue: number;
+  currentValue: number;
+};
+
+export type AttributeChangeContext = {
   entityId: EntityId;
-  setId: string;
-  attrId: string;
+  attribute: string;
   oldValue: number;
   newValue: number;
-}) => void;
+};
+
+export type AttributeChangeCallback = (ctx: AttributeChangeContext) => void;
+
+export type GameplayModifierOp = 'Add' | 'Multiply' | 'Override';
+
+export type GameplayEffectModifier = {
+  attribute: string;
+  op: GameplayModifierOp;
+  magnitude: number;
+};
+
+export type GameplayEffectDuration =
+  | { kind: 'Instant' }
+  | { kind: 'Infinite' }
+  | {
+      kind: 'Duration';
+      unitTag: GameplayTag;
+      magnitude: number;
+      channels?: readonly GameplayEventChannel[];
+    };
+
+export type GameplayEffectDefinition = {
+  id: string;
+  modifiers: readonly GameplayEffectModifier[];
+  duration: GameplayEffectDuration;
+  grantedTags?: readonly GameplayTag[];
+};
+
+export type ActiveGameplayEffect = {
+  id: string;
+  definition: GameplayEffectDefinition;
+  applicationOrder: number;
+  durationProgress?: number;
+  durationChannels: readonly GameplayEventChannel[];
+};
 
 export type GfcTagSnapshot = {
   name: string;
   count: number;
 };
 
+export type GfcAttributeSnapshot = {
+  attribute: string;
+  baseValue: number;
+  currentValue: number;
+};
+
+export type ActiveGameplayEffectSnapshot = {
+  id: string;
+  definitionId: string;
+  durationKind: GameplayEffectDuration['kind'];
+  durationProgress?: number;
+  durationTarget?: number;
+  durationChannels: string[];
+};
+
 export type GfcSnapshot = {
   entityId: EntityId;
   tags: GfcTagSnapshot[];
+  attributes: GfcAttributeSnapshot[];
+  activeEffects: ActiveGameplayEffectSnapshot[];
 };

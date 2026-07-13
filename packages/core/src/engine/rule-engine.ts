@@ -69,6 +69,7 @@ export class RuleEngine {
       entityId: id,
       tagManager: this.tagManager,
       eventSystem: this.eventSystem,
+      sink: this.traceSink,
     });
     this.gameWorld.addComponent(id, GfcComponentType, gfc);
     return gfc;

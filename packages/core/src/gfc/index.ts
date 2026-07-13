@@ -4,4 +4,17 @@ export {
   GameplayFrameworkComponent,
   type GameplayFrameworkComponentOptions,
 } from './gameplay-framework-component.js';
-export type { AttributeChangeCallback, GfcSnapshot, GfcTagSnapshot } from './types.js';
+export type {
+  ActiveGameplayEffect,
+  ActiveGameplayEffectSnapshot,
+  AttributeChangeCallback,
+  AttributeChangeContext,
+  AttributeValue,
+  GameplayEffectDefinition,
+  GameplayEffectDuration,
+  GameplayEffectModifier,
+  GameplayModifierOp,
+  GfcAttributeSnapshot,
+  GfcSnapshot,
+  GfcTagSnapshot,
+} from './types.js';

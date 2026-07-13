@@ -22,7 +22,8 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F03` | GameplayEvent System (tag-channel pub-sub) | Done | — | [CORE-F03-gameplay-event.md](./Core/CORE-F03-gameplay-event.md) |
 | `CORE-F04` | RuleEngine and GameWorld (ECS skeleton) | Done | — | [CORE-F04-rule-engine-gameworld.md](./Core/CORE-F04-rule-engine-gameworld.md) |
 | `CORE-F05` | GameplayFrameworkComponent skeleton (ASC on entity) | Done | — | [CORE-F05-gfc-skeleton.md](./Core/CORE-F05-gfc-skeleton.md) |
-| `CORE-F06` | Attribute (UE-style) + minimal GE on GFC | Planned | — | [gameplay-framework.md](../design/systems/gameplay-framework.md), [attributes.md](../design/systems/attributes.md) |
+| `CORE-F06` | Attribute (UE-style) + minimal GE on GFC | Done | — | [CORE-F06-attribute-minimal-ge.md](./Core/CORE-F06-attribute-minimal-ge.md), [gameplay-framework.md](../design/systems/gameplay-framework.md), [attributes.md](../design/systems/attributes.md) |
+| `CORE-F07` | Event-driven Duration for GameplayEffect | Done | — | [CORE-F07-event-driven-duration.md](./Core/CORE-F07-event-driven-duration.md) |
 | `CLI-F01` | Host logging sink, ndjson trace output, debug console stubs | Planned | — | [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Planned | — | [combat.md](../design/systems/combat.md) |
 
@@ -33,7 +34,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | DOMAIN | Next Feature # | Notes |
 |--------|----------------|-------|
 | `WF` | F02 | Workflow / docs |
-| `CORE` | F07 | After F06 attribute + GE |
+| `CORE` | F08 | After F07 duration |
 | `COMBAT` | F02 | After F01 battle-only slice |
 | `DUNGEON` | F01 | Map, encounters, loot |
 | `DATA` | F01 | Schema, asset loading |
