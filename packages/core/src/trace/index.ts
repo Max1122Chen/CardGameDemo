@@ -4,6 +4,8 @@ export {
   NoopTraceSink,
   type DebugNoteEntry,
   type GameTraceEntry,
+  type TagAddEntry,
+  type TagRemoveEntry,
   type TraceEndEntry,
   type TraceEntryInput,
   type TraceSink,

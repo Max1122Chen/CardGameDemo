@@ -19,12 +19,35 @@ export type DebugNoteEntry = {
   message: string;
 };
 
-export type GameTraceEntry = TraceStartEntry | TraceEndEntry | DebugNoteEntry;
+export type TagAddEntry = {
+  kind: 'tag.add';
+  t: number;
+  tag: string;
+  count: number;
+  entity?: string;
+};
+
+export type TagRemoveEntry = {
+  kind: 'tag.remove';
+  t: number;
+  tag: string;
+  count: number;
+  entity?: string;
+};
+
+export type GameTraceEntry =
+  | TraceStartEntry
+  | TraceEndEntry
+  | DebugNoteEntry
+  | TagAddEntry
+  | TagRemoveEntry;
 
 export type TraceEntryInput =
   | (Omit<TraceStartEntry, 't'> & { t?: number })
   | (Omit<TraceEndEntry, 't'> & { t?: number })
-  | (Omit<DebugNoteEntry, 't'> & { t?: number });
+  | (Omit<DebugNoteEntry, 't'> & { t?: number })
+  | (Omit<TagAddEntry, 't'> & { t?: number })
+  | (Omit<TagRemoveEntry, 't'> & { t?: number });
 
 export type TraceSink = {
   emit(entry: TraceEntryInput): void;

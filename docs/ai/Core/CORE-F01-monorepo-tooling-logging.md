@@ -232,11 +232,12 @@ Tests default to `NoopTraceSink` or inspect `TraceBuffer.entries`.
 
 ## Naming conventions (code)
 
-Align with [gameplay-framework.md](../../design/systems/gameplay-framework.md):
+Align with [gameplay-framework.md](../../design/systems/gameplay-framework.md) and [ENGINEERING_CONVENTIONS.md](./ENGINEERING_CONVENTIONS.md):
 
 | Area | Convention |
 |------|------------|
-| Types / classes | `GameplayTag`, `GameplayEvent`, `TraceBuffer` — PascalCase |
+| Framework modules | `*Manager` (registry/lifecycle) or `*System` (dispatch/process) — see conventions doc |
+| Types / classes | `GameplayTag`, `GameplayTagManager`, `GameplayTagContainer`, `TraceBuffer` — PascalCase |
 | Tag string literals | Dot hierarchy: `Character.Enemy.Orc` |
 | Files | kebab-case dirs ok; primary types match doc names |
 | Tests | `*.test.ts` adjacent or under `__tests__/` |

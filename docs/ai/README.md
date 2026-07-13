@@ -17,4 +17,4 @@
 |------|------|
 | `docs/design/` | 玩法 Overview + systems |
 | `docs/ai/` | 工程协作、实现设计 |
-| `docs/ai/Core/` | 实现向设计 — [Core/README.md](./Core/README.md) |
+| `docs/ai/Core/` | 实现向设计 — [Core/README.md](./Core/README.md), [ENGINEERING_CONVENTIONS.md](./Core/ENGINEERING_CONVENTIONS.md) |

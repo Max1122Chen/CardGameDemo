@@ -1,0 +1,5 @@
+[
+  "Status.Debuff.Heavy",
+  "GameplayEvent.Combat.DamageDealt",
+  "GameplayEvent.Combat.TurnStarted"
+]

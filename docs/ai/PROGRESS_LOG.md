@@ -10,6 +10,18 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-13 — CORE-F02 GameplayTag Manager and Container
+
+- **Goal:** UE-aligned hierarchical tags with Manager/Container and trace integration.
+- **Main changes:**
+  - `GameplayTagManager`, `GameplayTagContainer`, `NATIVE_GAMEPLAY_TAGS`
+  - Native + JSON merge (`data/tags.json`, fixtures); strict unknown tag errors
+  - Trace kinds `tag.add` / `tag.remove`
+  - Engineering conventions doc (Manager/System naming)
+  - Spec: [CORE-F02-gameplay-tag.md](./Core/CORE-F02-gameplay-tag.md)
+- **Validation done:** `npm run verify` (20 tests)
+- **Next step:** CORE-F03 GameplayEventSystem
+
 ### 2026-07-11 — CORE-F01 monorepo + trace scaffold
 
 - **Goal:** npm workspaces, verify gate, structured trace model in core, CLI ndjson output.

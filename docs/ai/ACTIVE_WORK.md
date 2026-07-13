@@ -1,6 +1,6 @@
 # Active work (agent backlog)
 
-Last updated: 2026-07-11
+Last updated: 2026-07-13
 
 > **Agent:** Primary backlog. Do not infer implementation from full design docs without promotion here.
 
@@ -13,14 +13,16 @@ Last updated: 2026-07-11
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
 | 1 | **CORE-F01** | Monorepo, TS/tooling, verify, logging trace model | **Done** ([spec](./Core/CORE-F01-monorepo-tooling-logging.md)) |
-| 2 | **CORE-F02** | GameplayTag + Container | **Next** |
-| 3 | CORE-F03 | GameplayEvent bus | Planned |
+| 2 | **CORE-F02** | `GameplayTagManager` + `GameplayTagContainer` | **Done** ([spec](./Core/CORE-F02-gameplay-tag.md)) |
+| 3 | **CORE-F03** | `GameplayEventSystem` | **Next** |
 | 4 | CORE-F04 | GFC skeleton | Planned |
 | 5 | CORE-F05 | Attribute pipeline + minimal GE probe | Planned |
 | 6 | CLI-F01 | ndjson host sink + debug console stubs | Planned |
 | 7 | COMBAT-F01 | BattleOnly vertical slice | Planned |
 
 - **WF-F01** Documentation & AI collaboration — In Progress (design split landed 2026-07-11; ongoing governance)
+
+**Conventions:** [ENGINEERING_CONVENTIONS.md](./Core/ENGINEERING_CONVENTIONS.md) — `Manager` / `System` suffixes; `GameplayTagContainer` naming.
 
 ---
 
