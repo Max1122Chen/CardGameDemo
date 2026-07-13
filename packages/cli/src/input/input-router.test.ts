@@ -32,6 +32,11 @@ describe('routeInput', () => {
     expect(actions).toEqual([{ type: 'select_hand', index: 1 }]);
   });
 
+  it('routes e to end turn in gameplay', () => {
+    const actions = routeInput(base, parseKeypress('e'));
+    expect(actions).toEqual([{ type: 'end_turn' }]);
+  });
+
   it('routes console typing only when console is focused', () => {
     const consoleState = { ...base, overlay: 'console' as const, focusLayer: 'console' as const };
     expect(routeInput(consoleState, parseKeypress('s'))).toEqual([{ type: 'console_append', char: 's' }]);

@@ -26,7 +26,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F07` | Event-driven Duration for GameplayEffect | Done | — | [CORE-F07-event-driven-duration.md](./Core/CORE-F07-event-driven-duration.md) |
 | `CLI-F01` | Host logging sink, ndjson trace output, debug console stubs | Planned | — | [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `CLI-F02` | Terminal gameplay UI shell with overlays and immediate input | Done | — | [CLI-F02-terminal-tui.md](./CLI/CLI-F02-terminal-tui.md), [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
-| `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Planned | — | [combat.md](../design/systems/combat.md) |
+| `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Done | — | [COMBAT-F01-minimal-battle-slice.md](./Combat/COMBAT-F01-minimal-battle-slice.md), [combat.md](../design/systems/combat.md) |
 
 ---
 

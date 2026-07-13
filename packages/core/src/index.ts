@@ -53,6 +53,28 @@ export {
   type RuleEngineOptions,
 } from './engine/index.js';
 export {
+  CombatSession,
+  CombatError,
+  CARD_CATALOG,
+  COMBAT_ENEMY_ID,
+  COMBAT_PLAYER_ID,
+  DEFAULT_COMBAT_CONFIG,
+  STARTER_DECK,
+  getCardSpec,
+  type CardActionId,
+  type CardActionSpec,
+  type CardInstance,
+  type CardView,
+  type CombatAction,
+  type CombatPhase,
+  type CombatResult,
+  type CombatSessionConfig,
+  type CombatSnapshot,
+  type CombatTurnOwner,
+  type DeckState,
+  type EnemyIntent,
+} from './combat/index.js';
+export {
   GameplayFrameworkComponent,
   GameplayNotImplementedError,
   GfcComponentType,

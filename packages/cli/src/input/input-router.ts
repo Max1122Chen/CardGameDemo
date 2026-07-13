@@ -35,6 +35,9 @@ function gameplayActions(key: ParsedKey): UiAction[] {
       if (key.char === ' ') {
         return [{ type: 'play_selected_card' }];
       }
+      if (key.char === 'e' || key.char === 'E') {
+        return [{ type: 'end_turn' }];
+      }
       const digit = Number(key.char);
       if (Number.isInteger(digit) && digit >= 1 && digit <= 9) {
         return [{ type: 'select_hand', index: digit - 1 }];
@@ -121,10 +124,12 @@ export function createInitialAppState(options: {
     playerHealth: 0,
     playerBlock: 0,
     actionPoints: 0,
+    combatPhase: 'Setup',
+    turnOwner: 'player',
     combatLog: [],
     consoleInput: '',
     consoleScrollback: [],
-    statusMessage: 'Use hjkl / arrows to navigate. Space plays selected card.',
+    statusMessage: 'Use hjkl / arrows to navigate. Space plays card. E ends turn.',
     shouldQuit: false,
   };
 }

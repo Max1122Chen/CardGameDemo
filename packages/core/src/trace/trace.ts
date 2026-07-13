@@ -114,6 +114,51 @@ export type GfcChannelUnsubscribeEntry = {
   channel: string;
 };
 
+export type CombatPhaseTraceEntry = {
+  kind: 'combat.phase';
+  t: number;
+  before: string;
+  after: string;
+};
+
+export type CombatTurnTraceEntry = {
+  kind: 'combat.turn';
+  t: number;
+  owner: string;
+  phase: string;
+};
+
+export type CombatDrawTraceEntry = {
+  kind: 'combat.draw';
+  t: number;
+  entityId: string;
+  cardId: string;
+  handSize: number;
+};
+
+export type CombatPlayCardTraceEntry = {
+  kind: 'combat.play_card';
+  t: number;
+  entityId: string;
+  cardId: string;
+  cost: number;
+};
+
+export type CombatDamageTraceEntry = {
+  kind: 'combat.damage';
+  t: number;
+  sourceId: string;
+  targetId: string;
+  amount: number;
+  blocked: number;
+};
+
+export type CombatEndTraceEntry = {
+  kind: 'combat.end';
+  t: number;
+  result: string;
+};
+
 export type GameTraceEntry =
   | TraceStartEntry
   | TraceEndEntry
@@ -128,7 +173,13 @@ export type GameTraceEntry =
   | GameplayEffectDurationProgressEntry
   | GameplayEffectDurationExpiredEntry
   | GfcChannelSubscribeEntry
-  | GfcChannelUnsubscribeEntry;
+  | GfcChannelUnsubscribeEntry
+  | CombatPhaseTraceEntry
+  | CombatTurnTraceEntry
+  | CombatDrawTraceEntry
+  | CombatPlayCardTraceEntry
+  | CombatDamageTraceEntry
+  | CombatEndTraceEntry;
 
 export type TraceEntryInput =
   | (Omit<TraceStartEntry, 't'> & { t?: number })
@@ -144,7 +195,13 @@ export type TraceEntryInput =
   | (Omit<GameplayEffectDurationProgressEntry, 't'> & { t?: number })
   | (Omit<GameplayEffectDurationExpiredEntry, 't'> & { t?: number })
   | (Omit<GfcChannelSubscribeEntry, 't'> & { t?: number })
-  | (Omit<GfcChannelUnsubscribeEntry, 't'> & { t?: number });
+  | (Omit<GfcChannelUnsubscribeEntry, 't'> & { t?: number })
+  | (Omit<CombatPhaseTraceEntry, 't'> & { t?: number })
+  | (Omit<CombatTurnTraceEntry, 't'> & { t?: number })
+  | (Omit<CombatDrawTraceEntry, 't'> & { t?: number })
+  | (Omit<CombatPlayCardTraceEntry, 't'> & { t?: number })
+  | (Omit<CombatDamageTraceEntry, 't'> & { t?: number })
+  | (Omit<CombatEndTraceEntry, 't'> & { t?: number });
 
 export type TraceSink = {
   emit(entry: TraceEntryInput): void;

@@ -10,6 +10,22 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-13 — COMBAT-F01: minimal battle rules slice implemented
+
+- **Goal:** Closed-loop battle in `packages/core` + playable via CLI TUI.
+- **Main changes:**
+  - `CombatSession` with deck/hand/discard, AP, Strike/Defend/Bash, Slime AI, win/lose
+  - Combat events on `Combat` channel + combat trace kinds
+  - CLI wired to `legalActions` / `applyAction`; `E` ends turn
+- **Verify:** `npm run verify` — 87 tests green
+- **Next step:** CLI-F01 ndjson/debug stubs or COMBAT-F02 polish
+
+### 2026-07-13 — COMBAT-F01 spec: minimal battle-only rules slice
+
+- **Goal:** Define P0 combat rules machine scope for GFC validation (turn loop, deck, CardAction, fixed enemy AI).
+- **Main changes:** [COMBAT-F01-minimal-battle-slice.md](./Combat/COMBAT-F01-minimal-battle-slice.md)
+- **Next step:** User review → implement S01–S04 after approval
+
 ### 2026-07-13 — CLI-F02 terminal gameplay UI shell
 
 - **Goal:** Terminal-first host with immediate key feedback, overlays, and in-game debug console.

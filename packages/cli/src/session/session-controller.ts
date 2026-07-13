@@ -1,4 +1,9 @@
-import { RuleEngine, TraceBuffer, createGameplayEvent } from '@cardgame/core';
+import {
+  CombatSession,
+  RuleEngine,
+  TraceBuffer,
+  type CombatSnapshot,
+} from '@cardgame/core';
 
 import { executeConsoleCommand } from '../console/console-executor.js';
 import { applyOverlayToggle } from '../input/input-router.js';
@@ -6,16 +11,12 @@ import type { AppState, EnemyView, HandCard, UiAction } from '../types.js';
 
 export type SessionController = {
   engine: RuleEngine;
+  combatSession: CombatSession;
   traceLines: string[];
   bootstrapBattle: () => void;
   syncViewState: (state: AppState) => AppState;
+  getCombatSnapshot: () => CombatSnapshot;
 };
-
-const DEFAULT_HAND: HandCard[] = [
-  { id: 'strike', name: 'Strike', cost: 1 },
-  { id: 'defend', name: 'Defend', cost: 1 },
-  { id: 'bash', name: 'Bash', cost: 2 },
-];
 
 export function createSessionController(options: {
   seed?: number;
@@ -27,60 +28,58 @@ export function createSessionController(options: {
     traceSink: traceBuffer,
   });
 
+  let combatSession = CombatSession.bootstrap(engine);
+
   const controller: SessionController = {
     engine,
+    combatSession,
     traceLines: [],
     bootstrapBattle() {
-      const player = engine.createEntityWithGfc('player');
-      const enemy = engine.createEntityWithGfc('enemy-1');
-
-      player.setAttributeBase('Health', 30);
-      player.setAttributeBase('Block', 0);
-      player.setAttributeBase('ActionPoints', 3);
-      enemy.setAttributeBase('Health', 12);
-
-      engine.eventSystem.dispatch(
-        createGameplayEvent(engine.tagManager, {
-          tags: [engine.tagManager.resolve('GameplayEvent.Combat')],
-          payload: {
-            phase: 'turn_start',
-            seed: options.seed,
-            scenarioId: options.scenarioId,
-          },
-        }),
-      );
+      combatSession = CombatSession.bootstrap(engine);
+      controller.combatSession = combatSession;
+    },
+    getCombatSnapshot() {
+      return combatSession.getSnapshot();
     },
     syncViewState(state) {
-      const player = engine.getGfc('player');
-      const enemy = engine.getGfc('enemy-1');
+      const snapshot = combatSession.getSnapshot();
 
-      const enemies: EnemyView[] = enemy
-        ? [
-            {
-              id: 'enemy-1',
-              name: 'Slime',
-              health: enemy.getAttribute('Health')?.currentValue ?? 0,
-              intent: 'Attack 6',
-            },
-          ]
-        : [];
+      const hand: HandCard[] = snapshot.hand.map((card) => ({
+        id: card.actionId,
+        name: card.name,
+        cost: card.cost,
+      }));
+
+      const enemies: EnemyView[] = snapshot.enemies.map((enemy) => ({
+        id: enemy.entityId,
+        name: enemy.name,
+        health: enemy.health,
+        intent: snapshot.enemyIntent?.label ?? 'Unknown',
+      }));
 
       controller.traceLines = traceBuffer
         ? traceBuffer.entries.map((entry) => JSON.stringify(entry))
         : controller.traceLines;
 
+      const combatLog = snapshot.combatLog.length > 0 ? snapshot.combatLog : state.combatLog;
+
       return {
         ...state,
-        hand: state.hand.length > 0 ? state.hand : DEFAULT_HAND,
+        hand,
         enemies,
-        playerHealth: player?.getAttribute('Health')?.currentValue ?? 0,
-        playerBlock: player?.getAttribute('Block')?.currentValue ?? 0,
-        actionPoints: player?.getAttribute('ActionPoints')?.currentValue ?? 0,
+        playerHealth: snapshot.player.health,
+        playerBlock: snapshot.player.block,
+        actionPoints: snapshot.player.actionPoints ?? 0,
+        combatPhase: snapshot.phase,
+        turnOwner: snapshot.turnOwner,
+        combatResult: snapshot.result,
+        combatLog,
+        selectedHandIndex: Math.min(state.selectedHandIndex, Math.max(0, hand.length - 1)),
+        selectedEnemyIndex: Math.min(state.selectedEnemyIndex, Math.max(0, enemies.length - 1)),
       };
     },
   };
 
-  controller.bootstrapBattle();
   return controller;
 }
 
@@ -97,6 +96,10 @@ function pushLog(state: AppState, line: string): AppState {
     combatLog.shift();
   }
   return { ...state, combatLog, statusMessage: line };
+}
+
+function isCombatInteractive(state: AppState): boolean {
+  return state.combatPhase === 'PlayerTurn' && !state.combatResult;
 }
 
 export function applyUiAction(
@@ -152,46 +155,52 @@ export function applyUiAction(
         statusMessage: `Selected card slot ${action.index + 1}.`,
       };
     case 'play_selected_card': {
+      if (!isCombatInteractive(state)) {
+        return pushLog(state, state.combatResult ? `Combat ended: ${state.combatResult}.` : 'Not your turn.');
+      }
+
       const card = state.hand[state.selectedHandIndex];
       if (!card) {
         return pushLog(state, 'No card selected.');
       }
-      if (state.actionPoints < card.cost) {
-        return pushLog(state, `Not enough AP for ${card.name}.`);
+
+      const legal = controller.combatSession.legalActions();
+      const canPlay = legal.some(
+        (candidate) => candidate.type === 'PlayCard' && candidate.handIndex === state.selectedHandIndex,
+      );
+      if (!canPlay) {
+        return pushLog(state, `Cannot play ${card.name}.`);
       }
 
-      const player = controller.engine.getGfc('player');
-      const enemy = controller.engine.getGfc('enemy-1');
-      if (!player || !enemy) {
-        return pushLog(state, 'Battle session is not ready.');
+      try {
+        controller.combatSession.applyAction({
+          type: 'PlayCard',
+          handIndex: state.selectedHandIndex,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to play card.';
+        return pushLog(state, message);
       }
 
-      const ap = player.getAttribute('ActionPoints');
-      if (ap) {
-        player.setAttributeBase('ActionPoints', ap.baseValue - card.cost);
+      const synced = controller.syncViewState(state);
+      const latestLog = synced.combatLog[synced.combatLog.length - 1] ?? `Played ${card.name}.`;
+      return { ...synced, statusMessage: latestLog };
+    }
+    case 'end_turn': {
+      if (!isCombatInteractive(state)) {
+        return pushLog(state, state.combatResult ? `Combat ended: ${state.combatResult}.` : 'Not your turn.');
       }
 
-      if (card.id === 'strike' || card.id === 'bash') {
-        const enemyHealth = enemy.getAttribute('Health');
-        const damage = card.id === 'bash' ? 8 : 6;
-        if (enemyHealth) {
-          enemy.setAttributeBase('Health', Math.max(0, enemyHealth.baseValue - damage));
-        }
-        controller.engine.eventSystem.dispatch(
-          createGameplayEvent(controller.engine.tagManager, {
-            tags: [controller.engine.tagManager.resolve('GameplayEvent.Combat')],
-            payload: { card: card.id, damage, targetId: 'enemy-1' },
-          }),
-        );
-        return pushLog(controller.syncViewState(state), `Played ${card.name} for ${damage} damage.`);
+      try {
+        controller.combatSession.applyAction({ type: 'EndTurn' });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to end turn.';
+        return pushLog(state, message);
       }
 
-      const block = player.getAttribute('Block');
-      const gained = 5;
-      if (block) {
-        player.setAttributeBase('Block', block.baseValue + gained);
-      }
-      return pushLog(controller.syncViewState(state), `Played ${card.name} and gained ${gained} block.`);
+      const synced = controller.syncViewState(state);
+      const latestLog = synced.combatLog[synced.combatLog.length - 1] ?? 'Ended turn.';
+      return { ...synced, statusMessage: latestLog };
     }
     case 'console_append':
       return { ...state, consoleInput: `${state.consoleInput}${action.char}` };

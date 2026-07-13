@@ -31,6 +31,9 @@ export type AppState = {
   playerHealth: number;
   playerBlock: number;
   actionPoints: number;
+  combatPhase: string;
+  turnOwner: 'player' | 'enemy';
+  combatResult?: 'victory' | 'defeat';
   combatLog: string[];
   consoleInput: string;
   consoleScrollback: string[];
@@ -51,6 +54,7 @@ export type UiAction =
   | { type: 'enemy_next' }
   | { type: 'select_hand'; index: number }
   | { type: 'play_selected_card' }
+  | { type: 'end_turn' }
   | { type: 'console_append'; char: string }
   | { type: 'console_backspace' }
   | { type: 'console_submit' };

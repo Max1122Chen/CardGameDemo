@@ -15,6 +15,11 @@ function box(title: string, lines: string[], width = 72): string[] {
 }
 
 function renderGameplay(state: AppState): string[] {
+  const phaseLine =
+    state.combatResult !== undefined
+      ? theme.header(`${state.combatResult === 'victory' ? 'Victory' : 'Defeat'}!`)
+      : theme.muted(`Phase: ${state.combatPhase} | Turn: ${state.turnOwner}`);
+
   const enemyLines =
     state.enemies.length === 0
       ? [theme.muted('(no enemies)')]
@@ -41,6 +46,7 @@ function renderGameplay(state: AppState): string[] {
       : [theme.muted('Battle ready.')];
 
   return [
+    phaseLine,
     ...box('Player', [formatPlayerStats(state.playerHealth, state.playerBlock, state.actionPoints), theme.status(state.statusMessage)]),
     ...box('Enemies', enemyLines),
     ...box('Hand', handLines),
@@ -90,7 +96,7 @@ export function renderFrame(state: AppState, controller: SessionController): str
   const header = theme.header(
     `CardGameDemo [${state.runtimeMode}] seed=${state.seed ?? '-'} scenario=${state.scenarioId ?? '-'}`,
   );
-  const footer = theme.footer('Esc Settings | B Inventory | ~ Console | T Trace | Q Quit');
+  const footer = theme.footer('Space Play | E End Turn | Esc Settings | B Inventory | ~ Console | T Trace | Q Quit');
   const lines = [header, ...renderGameplay(state)];
 
   if (state.showTracePane) {
