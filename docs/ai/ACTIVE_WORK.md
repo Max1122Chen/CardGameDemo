@@ -17,8 +17,9 @@ Last updated: 2026-07-13
 | 5 | **CORE-F05** | `GameplayFrameworkComponent` | **Done** ([spec](./Core/CORE-F05-gfc-skeleton.md)) |
 | 6 | **CORE-F06** | Attribute + minimal GE | **Done** ([spec](./Core/CORE-F06-attribute-minimal-ge.md)) |
 | 7 | **CORE-F07** | Event-driven Duration | **Done** ([spec](./Core/CORE-F07-event-driven-duration.md)) |
-| 8 | **CLI-F01** | ndjson / debug stubs | **Next** |
-| 9 | **COMBAT-F01** | BattleOnly slice | Planned |
+| 8 | **CLI-F02** | Terminal gameplay UI shell | **Done** ([spec](./CLI/CLI-F02-terminal-tui.md)) |
+| 9 | **COMBAT-F01** | BattleOnly slice | **Next** |
+| 10 | **CLI-F01** | ndjson / debug stubs | Planned |
 
 ---
 

@@ -1,19 +1,39 @@
 import type { GameTraceEntry, TraceSink } from '@cardgame/core';
 import { NoopTraceSink, TRACE_SCHEMA_VERSION, TraceBuffer } from '@cardgame/core';
 
+import { runAppShell } from './app-shell.js';
+import { createNodeTerminalIO } from './terminal/terminal-io.js';
+
 export type TraceMode = 'off' | 'ndjson';
+export type CliRuntimeMode = 'trace' | 'battle' | 'debug';
 
 export type CliOptions = {
+  mode: CliRuntimeMode;
   trace: TraceMode;
   seed?: number;
   scenarioId?: string;
 };
 
 export function parseCliArgs(argv: string[]): CliOptions {
-  const options: CliOptions = { trace: 'off' };
+  const options: CliOptions = { mode: 'trace', trace: 'off' };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+
+    if (arg === '--mode') {
+      const value = argv[i + 1];
+      if (value !== 'trace' && value !== 'battle' && value !== 'debug') {
+        throw new Error(`Invalid --mode value: ${value ?? '(missing)'}. Use "trace", "battle", or "debug".`);
+      }
+      options.mode = value;
+      i += 1;
+      continue;
+    }
+
+    if (arg === 'battle' || arg === 'debug' || arg === 'trace') {
+      options.mode = arg;
+      continue;
+    }
 
     if (arg === '--trace') {
       const value = argv[i + 1];
@@ -86,4 +106,12 @@ export function runCli(options: CliOptions): { exitCode: number; stdout: string 
 
   const stdout = options.trace === 'ndjson' && buffer ? formatNdjsonTrace(buffer.entries) : '';
   return { exitCode: 0, stdout };
+}
+
+export async function runTuiCli(options: CliOptions): Promise<number> {
+  if (options.mode !== 'battle' && options.mode !== 'debug') {
+    throw new Error(`runTuiCli requires battle or debug mode, got ${options.mode}`);
+  }
+
+  return runAppShell(options, createNodeTerminalIO());
 }

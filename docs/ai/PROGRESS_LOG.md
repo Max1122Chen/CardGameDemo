@@ -10,6 +10,18 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-13 — CLI-F02 terminal gameplay UI shell
+
+- **Goal:** Terminal-first host with immediate key feedback, overlays, and in-game debug console.
+- **Main changes:**
+  - `@cardgame/cli` app shell with raw keypress routing, frame renderer, and session controller
+  - Runtime modes: `battle`, `debug`, and existing `trace`
+  - Global shortcuts: `Esc` settings, `B` inventory, `` ` `` console, immediate hand/enemy navigation
+  - Console overlay commands: `help`, `state`, `trace`, `event`, `attr`
+  - Spec: [CLI-F02-terminal-tui.md](./CLI/CLI-F02-terminal-tui.md)
+- **Validation done:** `npm run verify` (69 tests)
+- **Next step:** COMBAT-F01 battle-only vertical slice
+
 ### 2026-07-13 — CORE-F06/F07 implementation: Attribute, GE, event-driven Duration
 
 - **Goal:** Finish the first usable GFC gameplay-state layer with UE-style attributes, minimal GE lifecycle, and event-driven duration.

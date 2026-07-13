@@ -25,6 +25,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F06` | Attribute (UE-style) + minimal GE on GFC | Done | — | [CORE-F06-attribute-minimal-ge.md](./Core/CORE-F06-attribute-minimal-ge.md), [gameplay-framework.md](../design/systems/gameplay-framework.md), [attributes.md](../design/systems/attributes.md) |
 | `CORE-F07` | Event-driven Duration for GameplayEffect | Done | — | [CORE-F07-event-driven-duration.md](./Core/CORE-F07-event-driven-duration.md) |
 | `CLI-F01` | Host logging sink, ndjson trace output, debug console stubs | Planned | — | [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
+| `CLI-F02` | Terminal gameplay UI shell with overlays and immediate input | Done | — | [CLI-F02-terminal-tui.md](./CLI/CLI-F02-terminal-tui.md), [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Planned | — | [combat.md](../design/systems/combat.md) |
 
 ---
@@ -40,7 +41,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `DATA` | F01 | Schema, asset loading |
 | `EFFECT` | F01 | May fold into CORE-F06; register if split |
 | `ED` | F01 | Visual data editor |
-| `CLI` | F02 | After F01 host logging |
+| `CLI` | F03 | After F02 terminal TUI |
 | `UI` | F01 | Simple human UI |
 | `TEST` | F01 | Shared sim harness if split from verify |
 

@@ -3,26 +3,35 @@ import { describe, expect, it } from 'vitest';
 import { formatNdjsonTrace, parseCliArgs, runCli } from './cli.js';
 
 describe('parseCliArgs', () => {
-  it('defaults trace to off', () => {
-    expect(parseCliArgs([])).toEqual({ trace: 'off' });
+  it('defaults to trace mode with trace off', () => {
+    expect(parseCliArgs([])).toEqual({ mode: 'trace', trace: 'off' });
   });
 
-  it('parses trace, seed, and scenario', () => {
-    expect(parseCliArgs(['--trace', 'ndjson', '--seed', '42', '--scenario', 'basic-duel'])).toEqual({
+  it('parses mode, trace, seed, and scenario', () => {
+    expect(parseCliArgs(['battle', '--trace', 'ndjson', '--seed', '42', '--scenario', 'basic-duel'])).toEqual({
+      mode: 'battle',
       trace: 'ndjson',
       seed: 42,
       scenarioId: 'basic-duel',
     });
   });
 
+  it('parses --mode debug', () => {
+    expect(parseCliArgs(['--mode', 'debug'])).toEqual({ mode: 'debug', trace: 'off' });
+  });
+
   it('rejects invalid trace mode', () => {
     expect(() => parseCliArgs(['--trace', 'pretty'])).toThrow(/Invalid --trace/);
+  });
+
+  it('rejects invalid runtime mode', () => {
+    expect(() => parseCliArgs(['--mode', 'gui'])).toThrow(/Invalid --mode/);
   });
 });
 
 describe('runCli', () => {
   it('emits ndjson trace lines on stdout payload', () => {
-    const result = runCli({ trace: 'ndjson', seed: 7, scenarioId: 'probe' });
+    const result = runCli({ mode: 'trace', trace: 'ndjson', seed: 7, scenarioId: 'probe' });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toBe(
@@ -35,7 +44,7 @@ describe('runCli', () => {
   });
 
   it('returns empty stdout when trace is off', () => {
-    const result = runCli({ trace: 'off' });
+    const result = runCli({ mode: 'trace', trace: 'off' });
     expect(result.stdout).toBe('');
     expect(result.exitCode).toBe(0);
   });

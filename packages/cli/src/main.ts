@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 
-import { parseCliArgs, runCli } from './cli.js';
+import { parseCliArgs, runCli, runTuiCli } from './cli.js';
 
-function main(argv: string[]): number {
+async function main(argv: string[]): Promise<number> {
   try {
     const options = parseCliArgs(argv);
-    const result = runCli(options);
 
+    if (options.mode === 'battle' || options.mode === 'debug') {
+      return runTuiCli(options);
+    }
+
+    const result = runCli(options);
     if (result.stdout.length > 0) {
       process.stdout.write(result.stdout);
     }
-
     return result.exitCode;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -19,4 +22,12 @@ function main(argv: string[]): number {
   }
 }
 
-process.exit(main(process.argv.slice(2)));
+main(process.argv.slice(2))
+  .then((code) => {
+    process.exit(code);
+  })
+  .catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`cardgame: ${message}`);
+    process.exit(1);
+  });
