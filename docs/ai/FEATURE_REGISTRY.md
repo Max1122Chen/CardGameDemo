@@ -19,7 +19,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `WF-F01` | Documentation templates and AI collaboration governance | In Progress | — | [templates/](./templates/), [DOC_GOVERNANCE](./templates/DOC_GOVERNANCE.md) |
 | `CORE-F01` | Monorepo scaffold, verify pipeline, code standards | Done | — | [CORE-F01-monorepo-tooling-logging.md](./Core/CORE-F01-monorepo-tooling-logging.md) |
 | `CORE-F02` | GameplayTag Manager, Container, hierarchy matching | Done | — | [CORE-F02-gameplay-tag.md](./Core/CORE-F02-gameplay-tag.md) |
-| `CORE-F03` | GameplayEvent bus (tag-typed, payload, sync dispatch) | Planned | — | [gameplay-framework.md](../design/systems/gameplay-framework.md) |
+| `CORE-F03` | GameplayEvent System (tag-channel pub-sub) | Done | — | [CORE-F03-gameplay-event.md](./Core/CORE-F03-gameplay-event.md) |
 | `CORE-F04` | GFC skeleton (tags, attribute sets, event entry) | Planned | — | [gameplay-framework.md](../design/systems/gameplay-framework.md) |
 | `CORE-F05` | Attribute evaluation pipeline + minimal GE (Instant/Duration probe) | Planned | — | [gameplay-framework.md](../design/systems/gameplay-framework.md), [attributes.md](../design/systems/attributes.md) |
 | `CLI-F01` | Host logging sink, ndjson trace output, debug console stubs | Planned | — | [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |

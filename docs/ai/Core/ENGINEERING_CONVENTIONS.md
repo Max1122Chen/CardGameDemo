@@ -34,6 +34,9 @@ Align with [gameplay-framework.md](../../design/systems/gameplay-framework.md) a
 | Tag bag on entity | `GameplayTagContainer` | Mutable container on GFC / entities |
 | Tag tree + lookup | `GameplayTagManager` | Singleton per rules context (not `Registry` suffix) |
 | Framework host | `GameplayFrameworkComponent` or `Gfc` variable name | CORE-F04 |
+| Event record | `GameplayEvent` | `tags` + optional `payload`; no built-in src/target |
+| Event router | `GameplayEventSystem` | Channel-partitioned pub-sub (CORE-F03) |
+| Event bus label | `GameplayEventChannel` | Wrapper around a `GameplayTag` used as channel name |
 
 ---
 

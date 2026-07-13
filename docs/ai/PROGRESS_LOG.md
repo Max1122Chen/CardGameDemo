@@ -10,6 +10,18 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-13 — CORE-F03 GameplayEventSystem
+
+- **Goal:** Tag-labeled channel pub-sub; unrestricted event tags; optional payload only.
+- **Main changes:**
+  - `GameplayEventSystem`, `GameplayEvent`, `GameplayEventChannel`, `createGameplayEvent`
+  - Default channel `Channel.Default`; explicit channel isolation
+  - Listener filters, priority, re-entrancy depth guard
+  - Trace kind `event.dispatch`
+  - Spec: [CORE-F03-gameplay-event.md](./Core/CORE-F03-gameplay-event.md)
+- **Validation done:** `npm run verify` (30 tests)
+- **Next step:** CORE-F04 GFC skeleton
+
 ### 2026-07-13 — CORE-F02 GameplayTag Manager and Container
 
 - **Goal:** UE-aligned hierarchical tags with Manager/Container and trace integration.

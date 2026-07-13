@@ -3,6 +3,7 @@ export {
   TraceBuffer,
   NoopTraceSink,
   type DebugNoteEntry,
+  type EventDispatchEntry,
   type GameTraceEntry,
   type TagAddEntry,
   type TagRemoveEntry,
@@ -16,7 +17,20 @@ export {
   GameplayTagError,
   GameplayTagManager,
   NATIVE_GAMEPLAY_TAGS,
+  DEFAULT_CHANNEL_TAG,
   type GameplayTag,
   type GameplayTagContainerOptions,
   type TagDefinitionsInput,
 } from './tags/index.js';
+export {
+  GameplayEventError,
+  GameplayEventSystem,
+  createGameplayEvent,
+  createGameplayEventChannel,
+  type CreateGameplayEventInput,
+  type GameplayEvent,
+  type GameplayEventChannel,
+  type GameplayEventPayload,
+  type GameplayEventSubscribeOptions,
+  type GameplayEventSystemOptions,
+} from './events/index.js';

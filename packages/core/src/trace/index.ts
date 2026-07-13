@@ -3,6 +3,7 @@ export {
   TraceBuffer,
   NoopTraceSink,
   type DebugNoteEntry,
+  type EventDispatchEntry,
   type GameTraceEntry,
   type TagAddEntry,
   type TagRemoveEntry,

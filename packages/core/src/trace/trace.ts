@@ -35,19 +35,29 @@ export type TagRemoveEntry = {
   entity?: string;
 };
 
+export type EventDispatchEntry = {
+  kind: 'event.dispatch';
+  t: number;
+  channel: string;
+  tags: string[];
+  payloadKeys?: string[];
+};
+
 export type GameTraceEntry =
   | TraceStartEntry
   | TraceEndEntry
   | DebugNoteEntry
   | TagAddEntry
-  | TagRemoveEntry;
+  | TagRemoveEntry
+  | EventDispatchEntry;
 
 export type TraceEntryInput =
   | (Omit<TraceStartEntry, 't'> & { t?: number })
   | (Omit<TraceEndEntry, 't'> & { t?: number })
   | (Omit<DebugNoteEntry, 't'> & { t?: number })
   | (Omit<TagAddEntry, 't'> & { t?: number })
-  | (Omit<TagRemoveEntry, 't'> & { t?: number });
+  | (Omit<TagRemoveEntry, 't'> & { t?: number })
+  | (Omit<EventDispatchEntry, 't'> & { t?: number });
 
 export type TraceSink = {
   emit(entry: TraceEntryInput): void;

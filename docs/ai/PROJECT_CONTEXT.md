@@ -25,8 +25,8 @@ Hosts: CLI / Agent API / simple UI
 
 **Framework foundation (code)** — see [ACTIVE_WORK.md](./ACTIVE_WORK.md).
 
-- **Done:** Design split; CORE-F01 monorepo + trace; CORE-F02 GameplayTag Manager/Container
-- **In progress:** CORE-F03–F05 (Event, GFC, pipeline probe)
+- **Done:** Design split; CORE-F01–F03 (monorepo, tags, event system)
+- **In progress:** CORE-F04–F05 (GFC, pipeline probe)
 - **Later:** COMBAT-F01 BattleOnly slice after pipeline probe
 
 Agents: follow `ACTIVE_WORK.md` order; register slices in [FEATURE_REGISTRY.md](./FEATURE_REGISTRY.md).

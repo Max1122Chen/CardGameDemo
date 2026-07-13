@@ -14,8 +14,8 @@ Last updated: 2026-07-13
 |-------|---------|---------------|--------|
 | 1 | **CORE-F01** | Monorepo, TS/tooling, verify, logging trace model | **Done** ([spec](./Core/CORE-F01-monorepo-tooling-logging.md)) |
 | 2 | **CORE-F02** | `GameplayTagManager` + `GameplayTagContainer` | **Done** ([spec](./Core/CORE-F02-gameplay-tag.md)) |
-| 3 | **CORE-F03** | `GameplayEventSystem` | **Next** |
-| 4 | CORE-F04 | GFC skeleton | Planned |
+| 3 | **CORE-F03** | `GameplayEventSystem` | **Done** ([spec](./Core/CORE-F03-gameplay-event.md)) |
+| 4 | **CORE-F04** | GFC skeleton | **Next** |
 | 5 | CORE-F05 | Attribute pipeline + minimal GE probe | Planned |
 | 6 | CLI-F01 | ndjson host sink + debug console stubs | Planned |
 | 7 | COMBAT-F01 | BattleOnly vertical slice | Planned |
