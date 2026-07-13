@@ -20,8 +20,8 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F01` | Monorepo scaffold, verify pipeline, code standards | Done | — | [CORE-F01-monorepo-tooling-logging.md](./Core/CORE-F01-monorepo-tooling-logging.md) |
 | `CORE-F02` | GameplayTag Manager, Container, hierarchy matching | Done | — | [CORE-F02-gameplay-tag.md](./Core/CORE-F02-gameplay-tag.md) |
 | `CORE-F03` | GameplayEvent System (tag-channel pub-sub) | Done | — | [CORE-F03-gameplay-event.md](./Core/CORE-F03-gameplay-event.md) |
-| `CORE-F04` | RuleEngine and GameWorld (ECS skeleton) | Planned | — | [CORE-F04-rule-engine-gameworld.md](./Core/CORE-F04-rule-engine-gameworld.md) |
-| `CORE-F05` | GameplayFrameworkComponent skeleton (ASC on entity) | Planned | — | [CORE-F05-gfc-skeleton.md](./Core/CORE-F05-gfc-skeleton.md) |
+| `CORE-F04` | RuleEngine and GameWorld (ECS skeleton) | Done | — | [CORE-F04-rule-engine-gameworld.md](./Core/CORE-F04-rule-engine-gameworld.md) |
+| `CORE-F05` | GameplayFrameworkComponent skeleton (ASC on entity) | Done | — | [CORE-F05-gfc-skeleton.md](./Core/CORE-F05-gfc-skeleton.md) |
 | `CORE-F06` | Attribute (UE-style) + minimal GE on GFC | Planned | — | [gameplay-framework.md](../design/systems/gameplay-framework.md), [attributes.md](../design/systems/attributes.md) |
 | `CLI-F01` | Host logging sink, ndjson trace output, debug console stubs | Planned | — | [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Planned | — | [combat.md](../design/systems/combat.md) |

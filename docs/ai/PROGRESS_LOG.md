@@ -10,6 +10,13 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-13 — CORE-F04/F05 RuleEngine, GameWorld, GFC skeleton
+
+- **Goal:** Session root + ECS; ASC-shaped GFC per entity.
+- **Main changes:** `RuleEngine`, `GameWorld`, `GameplayFrameworkComponent`, probe tests (48 total).
+- **Validation done:** `npm run verify`
+- **Next step:** CORE-F06 Attribute + GE
+
 ### 2026-07-13 — CORE-F03 GameplayEventSystem
 
 - **Goal:** Tag-labeled channel pub-sub; unrestricted event tags; optional payload only.

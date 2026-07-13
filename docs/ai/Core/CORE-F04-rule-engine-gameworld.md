@@ -3,7 +3,7 @@
 ## Meta
 
 - **ID:** CORE-F04
-- **Status:** Accepted
+- **Status:** Done
 - **Owner:** 麦克斯大大
 - **Last updated:** 2026-07-13
 - **Related:** [gameplay-framework.md](../../design/systems/gameplay-framework.md), [CORE-F03-gameplay-event.md](./CORE-F03-gameplay-event.md), [ENGINEERING_CONVENTIONS.md](./ENGINEERING_CONVENTIONS.md)
@@ -220,11 +220,11 @@ packages/core/src/
 
 ## Acceptance (CORE-F04)
 
-- [ ] `RuleEngine` + `GameWorld` implemented
-- [ ] ECS component add/get/has/remove/destroy
-- [ ] Shared tagManager + eventSystem per engine
-- [ ] Probe tests 1–6 pass
-- [ ] No `Rule*` types except `RuleEngine` in new code
+- [x] `RuleEngine` + `GameWorld` implemented
+- [x] ECS component add/get/has/remove/destroy
+- [x] Shared tagManager + eventSystem per engine
+- [x] Probe tests 1–6 pass
+- [x] No `Rule*` types except `RuleEngine` in new code
 
 ---
 
@@ -232,4 +232,5 @@ packages/core/src/
 
 | Date | Change |
 |------|--------|
+| 2026-07-13 | Implemented S01–S03; verify green (48 tests total) |
 | 2026-07-13 | Initial accepted spec; RuleEngine + GameWorld ECS |

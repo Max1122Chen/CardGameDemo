@@ -3,7 +3,7 @@
 ## Meta
 
 - **ID:** CORE-F05
-- **Status:** Accepted
+- **Status:** Done
 - **Owner:** 麦克斯大大
 - **Last updated:** 2026-07-13
 - **Related:** [gameplay-framework.md](../../design/systems/gameplay-framework.md), [CORE-F04-rule-engine-gameworld.md](./CORE-F04-rule-engine-gameworld.md), [CORE-F02-gameplay-tag.md](./CORE-F02-gameplay-tag.md), [CORE-F03-gameplay-event.md](./CORE-F03-gameplay-event.md)
@@ -240,11 +240,11 @@ packages/core/src/
 
 ## Acceptance (CORE-F05)
 
-- [ ] GFC as single ECS component; one per entity
-- [ ] Tag + Event bridge working
-- [ ] Stubs throw clearly; grantAbility placeholder
-- [ ] toJSON tags only
-- [ ] Probe tests 1–7 pass
+- [x] GFC as single ECS component; one per entity
+- [x] Tag + Event bridge working
+- [x] Stubs throw clearly; grantAbility placeholder
+- [x] toJSON tags only
+- [x] Probe tests 1–7 pass
 
 ---
 
@@ -252,4 +252,5 @@ packages/core/src/
 
 | Date | Change |
 |------|--------|
+| 2026-07-13 | Implemented S01–S04 with CORE-F04 |
 | 2026-07-13 | Initial accepted spec; ASC-shaped GFC on GameWorld entities |

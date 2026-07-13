@@ -34,3 +34,22 @@ export {
   type GameplayEventSubscribeOptions,
   type GameplayEventSystemOptions,
 } from './events/index.js';
+export {
+  GameWorld,
+  RuleEngine,
+  defineComponentType,
+  ProbeComponentType,
+  type ComponentType,
+  type EntityId,
+  type ProbeComponent,
+  type RuleEngineOptions,
+} from './engine/index.js';
+export {
+  GameplayFrameworkComponent,
+  GameplayNotImplementedError,
+  GfcComponentType,
+  type AttributeChangeCallback,
+  type GameplayFrameworkComponentOptions,
+  type GfcSnapshot,
+  type GfcTagSnapshot,
+} from './gfc/index.js';

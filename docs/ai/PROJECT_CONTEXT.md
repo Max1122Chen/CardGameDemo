@@ -26,8 +26,8 @@ Hosts: CLI / Agent API / simple UI
 **Framework foundation (code)** — see [ACTIVE_WORK.md](./ACTIVE_WORK.md).
 
 - **Done:** Design split; CORE-F01–F03 (monorepo, tags, event system)
-- **Next:** CORE-F04 RuleEngine + GameWorld (ECS), CORE-F05 GFC skeleton
-- **Then:** CORE-F06 Attribute + GE; COMBAT-F01 after F06
+- **Done:** CORE-F01–F05 (through GFC skeleton)
+- **Next:** CORE-F06 Attribute + GE
 
 Agents: follow `ACTIVE_WORK.md` order; register slices in [FEATURE_REGISTRY.md](./FEATURE_REGISTRY.md).
 

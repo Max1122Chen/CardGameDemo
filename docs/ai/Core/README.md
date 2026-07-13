@@ -10,8 +10,8 @@ Engineering **how** for the rules machine. Gameplay **what** stays in [docs/desi
 | [CORE-F01-monorepo-tooling-logging.md](./CORE-F01-monorepo-tooling-logging.md) | CORE-F01 | Done |
 | [CORE-F02-gameplay-tag.md](./CORE-F02-gameplay-tag.md) | CORE-F02 | Done |
 | [CORE-F03-gameplay-event.md](./CORE-F03-gameplay-event.md) | CORE-F03 | Done |
-| [CORE-F04-rule-engine-gameworld.md](./CORE-F04-rule-engine-gameworld.md) | CORE-F04 | Accepted — ready to implement |
-| [CORE-F05-gfc-skeleton.md](./CORE-F05-gfc-skeleton.md) | CORE-F05 | Accepted — ready after F04 |
+| [CORE-F04-rule-engine-gameworld.md](./CORE-F04-rule-engine-gameworld.md) | CORE-F04 | Done |
+| [CORE-F05-gfc-skeleton.md](./CORE-F05-gfc-skeleton.md) | CORE-F05 | Done |
 
 ## Conventions
 
