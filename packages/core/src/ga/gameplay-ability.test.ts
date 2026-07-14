@@ -201,4 +201,112 @@ describe('GameplayAbility on GFC', () => {
     expect(player.endAbility(result.instanceId)).toBe(true);
     expect(player.listActiveAbilities()).toHaveLength(0);
   });
+
+  it('endPolicy manual keeps Active after Instant effects', () => {
+    const engine = RuleEngine.create();
+    const player = engine.createEntityWithGfc('player');
+    player.setAttributeBase('Strength', 10);
+    const handle = player.grantAbility(
+      activeAbility({
+        endPolicy: 'manual',
+        chargeCostOnActivate: false,
+        cost: { attribute: 'ActionPoints', amount: 1 },
+      }),
+    );
+    player.setAttributeBase('ActionPoints', 3);
+
+    const result = player.tryActivate(handle, { instigatorEntityId: 'player' });
+    expect(result.ok).toBe(true);
+    expect(player.getAttribute('Strength')?.baseValue).toBe(12);
+    expect(player.getAttribute('ActionPoints')?.baseValue).toBe(3);
+    expect(player.listActiveAbilities()).toHaveLength(1);
+    if (result.ok) {
+      expect(player.endAbility(result.instanceId)).toBe(true);
+    }
+    expect(player.listActiveAbilities()).toHaveLength(0);
+  });
+
+  it('listenWhileActive notifies host and unsubscribes on end', () => {
+    const matches: string[] = [];
+    const engine = RuleEngine.create();
+    const player = engine.createEntityWithGfc('player', {
+      onActiveAbilityEvent: (info) => {
+        matches.push(String(info.event.payload?.cardTag ?? ''));
+        player.endAbility(info.instanceId);
+      },
+    });
+
+    const handle = player.grantAbility(
+      activeAbility({
+        id: 'ga.card.preview',
+        endPolicy: 'manual',
+        effectsOnActivate: [],
+        listenWhileActive: {
+          eventTags: ['Status.Marked'],
+          payloadMatch: { cardTag: 'strike' },
+        },
+      }),
+    );
+
+    const activated = player.tryActivate(handle, { instigatorEntityId: 'player' });
+    expect(activated.ok).toBe(true);
+    expect(player.listActiveAbilities()).toHaveLength(1);
+
+    engine.eventSystem.dispatch(
+      createGameplayEvent(engine.tagManager, {
+        tags: [engine.tagManager.resolve('Status.Marked')],
+        payload: { cardTag: 'bash' },
+      }),
+    );
+    expect(matches).toEqual([]);
+    expect(player.listActiveAbilities()).toHaveLength(1);
+
+    engine.eventSystem.dispatch(
+      createGameplayEvent(engine.tagManager, {
+        tags: [engine.tagManager.resolve('Status.Marked')],
+        payload: { cardTag: 'strike' },
+      }),
+    );
+    expect(matches).toEqual(['strike']);
+    expect(player.listActiveAbilities()).toHaveLength(0);
+
+    engine.eventSystem.dispatch(
+      createGameplayEvent(engine.tagManager, {
+        tags: [engine.tagManager.resolve('Status.Marked')],
+        payload: { cardTag: 'strike' },
+      }),
+    );
+    expect(matches).toEqual(['strike']);
+  });
+
+  it('autoActivateOnGrant activates with listenWhileActive', () => {
+    let heard = false;
+    const engine = RuleEngine.create();
+    const player = engine.createEntityWithGfc('player', {
+      onActiveAbilityEvent: () => {
+        heard = true;
+      },
+    });
+    player.setAttributeBase('Armor', 0);
+
+    player.grantAbility({
+      id: 'ga.auto.listen',
+      kind: 'active',
+      tags: {},
+      autoActivateOnGrant: true,
+      endPolicy: 'manual',
+      effectsOnActivate: [{ target: 'self', effect: instantEffect('ge.auto.armor', 'Armor', 1) }],
+      listenWhileActive: { eventTags: ['Status.Marked'] },
+    });
+
+    expect(player.getAttribute('Armor')?.baseValue).toBe(1);
+    expect(player.listActiveAbilities()).toHaveLength(1);
+
+    engine.eventSystem.dispatch(
+      createGameplayEvent(engine.tagManager, {
+        tags: [engine.tagManager.resolve('Status.Marked')],
+      }),
+    );
+    expect(heard).toBe(true);
+  });
 });

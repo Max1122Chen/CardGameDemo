@@ -55,8 +55,10 @@
 #### 其他属性
 
 - 行动力
-- 伤害
+- 伤害(Damage/DamageToDeal)
+- 将要吸收的伤害(DamageToTake)
 - 格挡
+- 将要获取的格挡(BlockToGain)
 - 幸运
 - 护甲
 - XX属性倍率

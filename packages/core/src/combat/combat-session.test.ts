@@ -157,4 +157,20 @@ describe('CombatSession', () => {
     expect(kinds).toContain('combat.damage');
     expect(kinds).toContain('combat.draw');
   });
+
+  it('card preview sets DamageToTake and cancel clears meta without HP loss', () => {
+    const { engine, session } = createSession();
+    const enemy = engine.requireGfc(COMBAT_ENEMY_ID);
+    const beforeHp = enemy.getAttribute('Health')?.currentValue ?? 0;
+
+    session.beginCardPreview(handIndex(session, 'strike'), COMBAT_ENEMY_ID);
+
+    expect(enemy.getAttribute('DamageToTake')?.currentValue).toBe(6);
+    expect(enemy.getAttribute('Health')?.currentValue).toBe(beforeHp);
+
+    session.cancelCardPreview();
+
+    expect(enemy.getAttribute('DamageToTake')?.currentValue).toBe(0);
+    expect(enemy.getAttribute('Health')?.currentValue).toBe(beforeHp);
+  });
 });

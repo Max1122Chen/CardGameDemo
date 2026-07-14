@@ -15,7 +15,7 @@ Last updated: 2026-07-13
 | 1–9 | CORE-F01–F07, CLI-F02, COMBAT-F01 | Foundation + minimal battle | **Done** |
 | 10 | **CORE-F08** | GameplayAbility on GFC | **Done** ([spec](./Core/CORE-F08-gameplay-ability-framework.md)) |
 | 11 | **CORE-F09** | Staged GE evaluation & Attribute Based magnitudes | **Done** ([spec](./Core/CORE-F09-numeric-calculation-pipeline.md)) |
-| 12 | **COMBAT-F02** | Apply GA + pipeline to `CombatSession` | Planned ([stub](./Combat/COMBAT-F02-gfc-combat-integration.md)) |
+| 12 | **COMBAT-F02** | GFC combat (CORE gaps + Strike/Defend/Bash loop) | **Done** ([spec](./Combat/COMBAT-F02-gfc-combat-integration.md)) |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (not blocking F08–F02 chain) |
 
 ---

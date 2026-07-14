@@ -43,6 +43,16 @@ export type CardView = {
   cost: number;
 };
 
+export type CombatPreviewSnapshot = {
+  handIndex: number;
+  instanceId: string;
+  actionId: CardActionId;
+  targetEntityId: EntityId;
+  damage?: number;
+  damageToTake?: number;
+  blockToGain?: number;
+};
+
 export type CombatSnapshot = {
   phase: CombatPhase;
   turnOwner: CombatTurnOwner;
@@ -52,6 +62,7 @@ export type CombatSnapshot = {
   enemyIntent?: { entityId: EntityId; label: string };
   combatLog: string[];
   result?: CombatResult;
+  preview?: CombatPreviewSnapshot;
 };
 
 export type CombatSessionConfig = {

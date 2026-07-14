@@ -212,6 +212,15 @@ export type GaPassiveTriggerTraceEntry = {
   eventTags: string[];
 };
 
+export type GaListenMatchTraceEntry = {
+  kind: 'ga.listen.match';
+  t: number;
+  entity: string;
+  instanceId: string;
+  abilityDefId: string;
+  eventTags: string[];
+};
+
 export type GameTraceEntry =
   | TraceStartEntry
   | TraceEndEntry
@@ -238,7 +247,8 @@ export type GameTraceEntry =
   | GaActivateAttemptTraceEntry
   | GaActivateTraceEntry
   | GaEndTraceEntry
-  | GaPassiveTriggerTraceEntry;
+  | GaPassiveTriggerTraceEntry
+  | GaListenMatchTraceEntry;
 
 export type TraceEntryInput =
   | (Omit<TraceStartEntry, 't'> & { t?: number })
@@ -266,7 +276,8 @@ export type TraceEntryInput =
   | (Omit<GaActivateAttemptTraceEntry, 't'> & { t?: number })
   | (Omit<GaActivateTraceEntry, 't'> & { t?: number })
   | (Omit<GaEndTraceEntry, 't'> & { t?: number })
-  | (Omit<GaPassiveTriggerTraceEntry, 't'> & { t?: number });
+  | (Omit<GaPassiveTriggerTraceEntry, 't'> & { t?: number })
+  | (Omit<GaListenMatchTraceEntry, 't'> & { t?: number });
 
 export type TraceSink = {
   emit(entry: TraceEntryInput): void;

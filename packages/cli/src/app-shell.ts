@@ -38,7 +38,10 @@ export function createBootstrappedShell(options: Pick<CliOptions, 'mode' | 'seed
   });
   return {
     controller,
-    state: controller.syncViewState(initial),
+    state: (() => {
+      const synced = controller.syncViewState(initial);
+      return applyUiActions(synced, controller, [{ type: 'select_hand', index: synced.selectedHandIndex }]);
+    })(),
   };
 }
 

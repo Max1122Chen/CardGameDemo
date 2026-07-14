@@ -7,7 +7,7 @@ import {
 
 import { executeConsoleCommand } from '../console/console-executor.js';
 import { applyOverlayToggle } from '../input/input-router.js';
-import type { AppState, EnemyView, HandCard, UiAction } from '../types.js';
+import type { AppState, CombatPreviewView, EnemyView, HandCard, UiAction } from '../types.js';
 
 export type SessionController = {
   engine: RuleEngine;
@@ -50,11 +50,15 @@ export function createSessionController(options: {
         cost: card.cost,
       }));
 
+      const preview = snapshot.preview;
       const enemies: EnemyView[] = snapshot.enemies.map((enemy) => ({
         id: enemy.entityId,
         name: enemy.name,
         health: enemy.health,
+        block: enemy.block,
         intent: snapshot.enemyIntent?.label ?? 'Unknown',
+        previewDamageToTake:
+          preview && preview.targetEntityId === enemy.entityId ? preview.damageToTake : undefined,
       }));
 
       controller.traceLines = traceBuffer
@@ -62,6 +66,17 @@ export function createSessionController(options: {
         : controller.traceLines;
 
       const combatLog = snapshot.combatLog.length > 0 ? snapshot.combatLog : state.combatLog;
+
+      const previewView: CombatPreviewView | undefined = preview
+        ? {
+            handIndex: preview.handIndex,
+            actionId: preview.actionId,
+            targetEntityId: preview.targetEntityId,
+            damage: preview.damage,
+            damageToTake: preview.damageToTake,
+            blockToGain: preview.blockToGain,
+          }
+        : undefined;
 
       return {
         ...state,
@@ -76,6 +91,8 @@ export function createSessionController(options: {
         combatLog,
         selectedHandIndex: Math.min(state.selectedHandIndex, Math.max(0, hand.length - 1)),
         selectedEnemyIndex: Math.min(state.selectedEnemyIndex, Math.max(0, enemies.length - 1)),
+        previewActive: previewView !== undefined,
+        preview: previewView,
       };
     },
   };
@@ -102,6 +119,43 @@ function isCombatInteractive(state: AppState): boolean {
   return state.combatPhase === 'PlayerTurn' && !state.combatResult;
 }
 
+function previewStatusMessage(state: AppState): string {
+  const preview = state.preview;
+  if (!preview) {
+    return state.statusMessage;
+  }
+  const card = state.hand[preview.handIndex];
+  const name = card?.name ?? preview.actionId;
+  if (preview.blockToGain !== undefined && preview.blockToGain > 0) {
+    return `${name} preview: Block +${preview.blockToGain} (Space commit, Esc/x cancel)`;
+  }
+  if (preview.damageToTake !== undefined) {
+    return `${name} preview: deal ${preview.damage ?? '?'} → absorb ${preview.damageToTake} (Space commit, Esc/x cancel)`;
+  }
+  return `${name} preview active (Space commit, Esc/x cancel)`;
+}
+
+/** Recompute GFC preview from current UI selection. */
+function refreshCardPreview(state: AppState, controller: SessionController): AppState {
+  if (!isCombatInteractive(state) || state.hand.length === 0) {
+    controller.combatSession.cancelCardPreview();
+    return controller.syncViewState(state);
+  }
+
+  const enemy = state.enemies[state.selectedEnemyIndex];
+  const targetId = enemy?.id;
+  try {
+    controller.combatSession.beginCardPreview(state.selectedHandIndex, targetId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Preview failed.';
+    controller.combatSession.cancelCardPreview();
+    return { ...controller.syncViewState(state), statusMessage: message };
+  }
+
+  const synced = controller.syncViewState(state);
+  return { ...synced, statusMessage: previewStatusMessage(synced) };
+}
+
 export function applyUiAction(
   state: AppState,
   controller: SessionController,
@@ -124,36 +178,49 @@ export function applyUiAction(
       return { ...state, showTracePane: !state.showTracePane };
     case 'quit':
       return { ...state, shouldQuit: true };
-    case 'hand_prev':
-      return {
+    case 'hand_prev': {
+      const next = {
         ...state,
         selectedHandIndex: clampIndex(state.selectedHandIndex - 1, state.hand.length),
-        statusMessage: 'Selected previous card.',
       };
-    case 'hand_next':
-      return {
+      return refreshCardPreview(next, controller);
+    }
+    case 'hand_next': {
+      const next = {
         ...state,
         selectedHandIndex: clampIndex(state.selectedHandIndex + 1, state.hand.length),
-        statusMessage: 'Selected next card.',
       };
-    case 'enemy_prev':
-      return {
+      return refreshCardPreview(next, controller);
+    }
+    case 'enemy_prev': {
+      const next = {
         ...state,
         selectedEnemyIndex: clampIndex(state.selectedEnemyIndex - 1, state.enemies.length),
-        statusMessage: 'Selected previous enemy.',
       };
-    case 'enemy_next':
-      return {
+      return refreshCardPreview(next, controller);
+    }
+    case 'enemy_next': {
+      const next = {
         ...state,
         selectedEnemyIndex: clampIndex(state.selectedEnemyIndex + 1, state.enemies.length),
-        statusMessage: 'Selected next enemy.',
       };
-    case 'select_hand':
-      return {
+      return refreshCardPreview(next, controller);
+    }
+    case 'select_hand': {
+      const next = {
         ...state,
         selectedHandIndex: clampIndex(action.index, state.hand.length),
-        statusMessage: `Selected card slot ${action.index + 1}.`,
       };
+      return refreshCardPreview(next, controller);
+    }
+    case 'cancel_card_preview': {
+      if (!isCombatInteractive(state)) {
+        return state;
+      }
+      controller.combatSession.cancelCardPreview();
+      const synced = controller.syncViewState(state);
+      return { ...synced, statusMessage: 'Card preview cancelled.' };
+    }
     case 'play_selected_card': {
       if (!isCombatInteractive(state)) {
         return pushLog(state, state.combatResult ? `Combat ended: ${state.combatResult}.` : 'Not your turn.');
@@ -173,6 +240,9 @@ export function applyUiAction(
       }
 
       try {
+        // Ensure preview matches selection, then commit.
+        const enemy = state.enemies[state.selectedEnemyIndex];
+        controller.combatSession.beginCardPreview(state.selectedHandIndex, enemy?.id);
         controller.combatSession.applyAction({
           type: 'PlayCard',
           handIndex: state.selectedHandIndex,
@@ -184,7 +254,8 @@ export function applyUiAction(
 
       const synced = controller.syncViewState(state);
       const latestLog = synced.combatLog[synced.combatLog.length - 1] ?? `Played ${card.name}.`;
-      return { ...synced, statusMessage: latestLog };
+      // After play, re-preview the (possibly new) selection for continuous UX.
+      return refreshCardPreview({ ...synced, statusMessage: latestLog }, controller);
     }
     case 'end_turn': {
       if (!isCombatInteractive(state)) {
@@ -200,7 +271,7 @@ export function applyUiAction(
 
       const synced = controller.syncViewState(state);
       const latestLog = synced.combatLog[synced.combatLog.length - 1] ?? 'Ended turn.';
-      return { ...synced, statusMessage: latestLog };
+      return refreshCardPreview({ ...synced, statusMessage: latestLog }, controller);
     }
     case 'console_append':
       return { ...state, consoleInput: `${state.consoleInput}${action.char}` };

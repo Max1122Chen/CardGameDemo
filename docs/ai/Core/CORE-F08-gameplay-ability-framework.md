@@ -300,6 +300,18 @@ Do not start code until this doc is approved.
 
 ---
 
+## Follow-up correction (COMBAT-F02 Track A) — GA is one species
+
+F08 P0 used `kind: 'active' | 'passive'` and subscribed to events **only on grant for passives**. That was a convenient shim, **not** the intended long-term model (UE-aligned):
+
+- **Event listening belongs to an Active ability instance**, not to a separate “passive” species.
+- “Passive” abilities are normally **Granted → immediately Activated → listen while Active**.
+- Card abilities (select → preview → wait for `TryPlayCard`) use the **same** Activate + listen + End path; only the **timing of Activate** differs.
+
+See [COMBAT-F02](../Combat/COMBAT-F02-gfc-combat-integration.md) Track A for the correction plan (`endPolicy`, listen-on-Activate, `autoActivateOnGrant`).
+
+---
+
 ## Downstream features (registered, spec later)
 
 ### CORE-F09 — Numeric calculation pipeline

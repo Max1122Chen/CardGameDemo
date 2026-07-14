@@ -1,5 +1,5 @@
 import { GameplayEventSystem } from '../events/gameplay-event-system.js';
-import { GameplayFrameworkComponent } from '../gfc/gameplay-framework-component.js';
+import { GameplayFrameworkComponent, type GameplayFrameworkComponentOptions } from '../gfc/gameplay-framework-component.js';
 import { GfcComponentType } from '../gfc/gfc-component-type.js';
 import { NATIVE_GAMEPLAY_TAGS } from '../tags/native-tags.js';
 import { GameplayTagManager, type TagDefinitionsInput } from '../tags/gameplay-tag-manager.js';
@@ -58,7 +58,12 @@ export class RuleEngine {
     }
   }
 
-  createEntityWithGfc(entityId?: EntityId): GameplayFrameworkComponent {
+  createEntityWithGfc(
+    entityId?: EntityId,
+    options?: {
+      onActiveAbilityEvent?: GameplayFrameworkComponentOptions['onActiveAbilityEvent'];
+    },
+  ): GameplayFrameworkComponent {
     const id = this.gameWorld.createEntity(entityId);
 
     if (this.gameWorld.hasComponent(id, GfcComponentType)) {
@@ -71,6 +76,7 @@ export class RuleEngine {
       eventSystem: this.eventSystem,
       sink: this.traceSink,
       getGfc: (entity) => this.getGfc(entity),
+      onActiveAbilityEvent: options?.onActiveAbilityEvent,
     });
     this.gameWorld.addComponent(id, GfcComponentType, gfc);
     return gfc;

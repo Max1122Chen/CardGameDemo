@@ -13,8 +13,10 @@ import {
   type AbilityActivationContext,
   type ActivationFailureReason,
   type ActivationResult,
+  type ActiveAbilityEventInfo,
   type ActiveAbilitySnapshot,
   type GameplayAbilityDefinition,
+  type GameplayAbilityEventListen,
   type GrantedAbilitySnapshot,
 } from './types.js';
 
@@ -30,21 +32,30 @@ export type GameplayAbilityHost = {
     context?: GameplayEffectApplicationContext,
   ): string;
   resolveEntityTags(entityId: EntityId): GameplayTagContainer | undefined;
-  subscribePassive(channel: GameplayEventChannel, listenerId: string, handler: (event: GameplayEvent) => void): void;
-  unsubscribePassive(listenerId: string): void;
+  /** Subscribe while an ability is Active (or F08 grant-time passive shim). */
+  subscribeAbilityEvent(
+    channel: GameplayEventChannel,
+    listenerId: string,
+    handler: (event: GameplayEvent) => void,
+  ): void;
+  unsubscribeAbilityEvent(listenerId: string): void;
+  /** Optional host reaction when listenWhileActive matches (combat commit/cancel). */
+  onActiveAbilityEvent?(info: ActiveAbilityEventInfo): void;
   emitTrace(entry: TraceEntryInput): void;
 };
 
 type GrantedAbilityRecord = {
   handle: string;
   definition: GameplayAbilityDefinition;
-  passiveListenerId?: string;
+  /** F08 passive shim listener (grant-scoped). */
+  grantListenerId?: string;
 };
 
 type ActiveAbilityRecord = {
   instanceId: string;
   handle: string;
   abilityDefId: string;
+  listenerIds: string[];
 };
 
 let nextAbilityHandle = 0;
@@ -62,15 +73,17 @@ export class GameplayAbilityRuntime {
     const handle = `ability-${nextAbilityHandle++}`;
     const record: GrantedAbilityRecord = { handle, definition };
 
-    if (definition.kind === 'passive') {
-      const channelTag = definition.passiveTrigger!.channelTag ?? DEFAULT_CHANNEL_TAG;
+    // F08 passive shim: grant-scoped listen → tryActivate on match.
+    if (definition.kind === 'passive' && definition.passiveTrigger) {
+      const listen = definition.passiveTrigger;
+      const channelTag = listen.channelTag ?? DEFAULT_CHANNEL_TAG;
       const channel = createGameplayEventChannel(this.host.tagManager.resolve(channelTag));
-      const listenerId = `ga-passive:${this.host.entityId}:${handle}`;
+      const listenerId = `ga-grant-listen:${this.host.entityId}:${handle}`;
 
-      this.host.subscribePassive(channel, listenerId, (event) => {
-        this.onPassiveEvent(handle, event);
+      this.host.subscribeAbilityEvent(channel, listenerId, (event) => {
+        this.onGrantScopedPassiveEvent(handle, event);
       });
-      record.passiveListenerId = listenerId;
+      record.grantListenerId = listenerId;
     }
 
     this.granted.set(handle, record);
@@ -82,6 +95,10 @@ export class GameplayAbilityRuntime {
       kindAbility: definition.kind,
     });
 
+    if (definition.autoActivateOnGrant) {
+      this.tryActivate(handle, { instigatorEntityId: this.host.entityId });
+    }
+
     return handle;
   }
 
@@ -91,8 +108,8 @@ export class GameplayAbilityRuntime {
       return false;
     }
 
-    if (record.passiveListenerId) {
-      this.host.unsubscribePassive(record.passiveListenerId);
+    if (record.grantListenerId) {
+      this.host.unsubscribeAbilityEvent(record.grantListenerId);
     }
 
     this.granted.delete(handle);
@@ -124,22 +141,26 @@ export class GameplayAbilityRuntime {
     }
 
     const record = this.granted.get(handle)!;
+    const definition = record.definition;
     const instanceId = `ability-instance-${nextAbilityInstance++}`;
 
-    if (record.definition.cost) {
-      this.spendCost(record.definition.cost);
+    const chargeCost = definition.chargeCostOnActivate !== false;
+    if (chargeCost && definition.cost) {
+      this.spendCost(definition.cost);
     }
 
-    this.active.set(instanceId, {
+    const activeRecord: ActiveAbilityRecord = {
       instanceId,
       handle,
-      abilityDefId: record.definition.id,
-    });
+      abilityDefId: definition.id,
+      listenerIds: [],
+    };
+    this.active.set(instanceId, activeRecord);
 
-    for (const binding of record.definition.effectsOnActivate) {
+    for (const binding of definition.effectsOnActivate) {
       const targetId = binding.target === 'self' ? this.host.entityId : ctx.targetEntityId;
       if (!targetId) {
-        this.active.delete(instanceId);
+        this.endAbility(instanceId);
         return { ok: false, reason: 'missing_target' };
       }
       const geContext: GameplayEffectApplicationContext = {
@@ -151,23 +172,27 @@ export class GameplayAbilityRuntime {
       this.host.applyGameplayEffectTo(targetId, binding.effect, geContext);
     }
 
+    if (definition.listenWhileActive) {
+      this.attachActiveListeners(activeRecord, definition.listenWhileActive);
+    }
+
     this.host.emitTrace({
       kind: 'ga.activate.attempt',
       entity: this.host.entityId,
       handle,
-      abilityDefId: record.definition.id,
+      abilityDefId: definition.id,
       ok: true,
     });
     this.host.emitTrace({
       kind: 'ga.activate',
       entity: this.host.entityId,
       instanceId,
-      abilityDefId: record.definition.id,
+      abilityDefId: definition.id,
       sourceId: ctx.sourceEntityId,
       targetId: ctx.targetEntityId,
     });
 
-    if (this.shouldAutoEnd(record.definition)) {
+    if (this.shouldAutoEnd(definition)) {
       this.endAbility(instanceId);
     }
 
@@ -179,6 +204,11 @@ export class GameplayAbilityRuntime {
     if (!record) {
       return false;
     }
+
+    for (const listenerId of record.listenerIds) {
+      this.host.unsubscribeAbilityEvent(listenerId);
+    }
+    record.listenerIds.length = 0;
 
     this.active.delete(instanceId);
     this.host.emitTrace({
@@ -200,7 +230,11 @@ export class GameplayAbilityRuntime {
   }
 
   listActiveAbilities(): ActiveAbilitySnapshot[] {
-    return [...this.active.values()].map((entry) => ({ ...entry }));
+    return [...this.active.values()].map((entry) => ({
+      instanceId: entry.instanceId,
+      handle: entry.handle,
+      abilityDefId: entry.abilityDefId,
+    }));
   }
 
   dispose(): void {
@@ -210,13 +244,48 @@ export class GameplayAbilityRuntime {
     this.active.clear();
   }
 
-  private onPassiveEvent(handle: string, event: GameplayEvent): void {
+  private attachActiveListeners(
+    active: ActiveAbilityRecord,
+    listen: GameplayAbilityEventListen,
+  ): void {
+    const channelTag = listen.channelTag ?? DEFAULT_CHANNEL_TAG;
+    const channel = createGameplayEventChannel(this.host.tagManager.resolve(channelTag));
+    const listenerId = `ga-active-listen:${this.host.entityId}:${active.instanceId}`;
+
+    this.host.subscribeAbilityEvent(channel, listenerId, (event) => {
+      if (!this.active.has(active.instanceId)) {
+        return;
+      }
+      if (!this.eventMatchesListen(listen, event)) {
+        return;
+      }
+
+      this.host.emitTrace({
+        kind: 'ga.listen.match',
+        entity: this.host.entityId,
+        instanceId: active.instanceId,
+        abilityDefId: active.abilityDefId,
+        eventTags: [...listen.eventTags],
+      });
+
+      this.host.onActiveAbilityEvent?.({
+        instanceId: active.instanceId,
+        handle: active.handle,
+        abilityDefId: active.abilityDefId,
+        event,
+      });
+    });
+
+    active.listenerIds.push(listenerId);
+  }
+
+  private onGrantScopedPassiveEvent(handle: string, event: GameplayEvent): void {
     const record = this.granted.get(handle);
     if (!record || record.definition.kind !== 'passive' || !record.definition.passiveTrigger) {
       return;
     }
 
-    if (!this.eventMatchesTrigger(record.definition.passiveTrigger, event)) {
+    if (!this.eventMatchesListen(record.definition.passiveTrigger, event)) {
       return;
     }
 
@@ -239,20 +308,26 @@ export class GameplayAbilityRuntime {
     this.tryActivate(handle, ctx);
   }
 
-  private eventMatchesTrigger(
-    trigger: NonNullable<GameplayAbilityDefinition['passiveTrigger']>,
-    event: GameplayEvent,
-  ): boolean {
-    const tags = trigger.eventTags.map((name) => this.host.tagManager.resolve(name));
-    if (tags.length === 0) {
-      return true;
+  private eventMatchesListen(listen: GameplayAbilityEventListen, event: GameplayEvent): boolean {
+    const tags = listen.eventTags.map((name) => this.host.tagManager.resolve(name));
+    if (tags.length > 0) {
+      const tagOk =
+        listen.match === 'any' ? tags.some((tag) => event.tags.has(tag)) : tags.every((tag) => event.tags.has(tag));
+      if (!tagOk) {
+        return false;
+      }
     }
 
-    if (trigger.match === 'any') {
-      return tags.some((tag) => event.tags.has(tag));
+    if (listen.payloadMatch) {
+      const payload = event.payload ?? {};
+      for (const [key, expected] of Object.entries(listen.payloadMatch)) {
+        if (payload[key] !== expected) {
+          return false;
+        }
+      }
     }
 
-    return tags.every((tag) => event.tags.has(tag));
+    return true;
   }
 
   private evaluateActivation(
@@ -296,7 +371,8 @@ export class GameplayAbilityRuntime {
       return { ok: false, reason: 'missing_target', defId: def.id };
     }
 
-    if (def.cost && !this.canAffordCost(def.cost)) {
+    const chargeCost = def.chargeCostOnActivate !== false;
+    if (chargeCost && def.cost && !this.canAffordCost(def.cost)) {
       return { ok: false, reason: 'insufficient_cost', defId: def.id };
     }
 
@@ -320,6 +396,13 @@ export class GameplayAbilityRuntime {
   }
 
   private shouldAutoEnd(definition: GameplayAbilityDefinition): boolean {
+    if (definition.endPolicy === 'manual') {
+      return false;
+    }
+    if (definition.endPolicy === 'auto') {
+      return true;
+    }
+    // Default F08: Instant-only activate effects → auto end; otherwise stay.
     if (definition.effectsOnActivate.length === 0) {
       return true;
     }
@@ -331,12 +414,14 @@ export class GameplayAbilityRuntime {
       throw new GameplayAbilityError('GameplayAbilityDefinition.id is required');
     }
 
-    if (definition.kind === 'passive' && !definition.passiveTrigger) {
-      throw new GameplayAbilityError(`Passive ability ${definition.id} requires passiveTrigger`);
+    if (definition.kind === 'passive' && !definition.passiveTrigger && !definition.autoActivateOnGrant) {
+      throw new GameplayAbilityError(
+        `Passive ability ${definition.id} requires passiveTrigger or autoActivateOnGrant`,
+      );
     }
 
     if (definition.kind === 'active' && definition.passiveTrigger) {
-      throw new GameplayAbilityError(`Active ability ${definition.id} cannot have passiveTrigger`);
+      throw new GameplayAbilityError(`Active ability ${definition.id} cannot have passiveTrigger (use listenWhileActive)`);
     }
   }
 }

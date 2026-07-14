@@ -38,6 +38,9 @@ function gameplayActions(key: ParsedKey): UiAction[] {
       if (key.char === 'e' || key.char === 'E') {
         return [{ type: 'end_turn' }];
       }
+      if (key.char === 'x' || key.char === 'X') {
+        return [{ type: 'cancel_card_preview' }];
+      }
       const digit = Number(key.char);
       if (Number.isInteger(digit) && digit >= 1 && digit <= 9) {
         return [{ type: 'select_hand', index: digit - 1 }];
@@ -70,6 +73,9 @@ function globalActions(state: AppState, key: ParsedKey): UiAction[] {
   if (key.kind === 'escape') {
     if (state.overlay !== 'none') {
       return [{ type: 'close_overlay' }];
+    }
+    if (state.previewActive) {
+      return [{ type: 'cancel_card_preview' }];
     }
     return [{ type: 'toggle_settings' }];
   }
@@ -129,8 +135,10 @@ export function createInitialAppState(options: {
     combatLog: [],
     consoleInput: '',
     consoleScrollback: [],
-    statusMessage: 'Use hjkl / arrows to navigate. Space plays card. E ends turn.',
+    statusMessage: 'Select card/enemy to preview. Space commit | Esc/x cancel | E end turn.',
     shouldQuit: false,
+    previewActive: false,
+    preview: undefined,
   };
 }
 

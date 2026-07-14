@@ -15,6 +15,17 @@ export type EnemyView = {
   name: string;
   health: number;
   intent: string;
+  block?: number;
+  previewDamageToTake?: number;
+};
+
+export type CombatPreviewView = {
+  handIndex: number;
+  actionId: string;
+  targetEntityId: string;
+  damage?: number;
+  damageToTake?: number;
+  blockToGain?: number;
 };
 
 export type AppState = {
@@ -39,6 +50,8 @@ export type AppState = {
   consoleScrollback: string[];
   statusMessage: string;
   shouldQuit: boolean;
+  previewActive: boolean;
+  preview?: CombatPreviewView;
 };
 
 export type UiAction =
@@ -54,6 +67,7 @@ export type UiAction =
   | { type: 'enemy_next' }
   | { type: 'select_hand'; index: number }
   | { type: 'play_selected_card' }
+  | { type: 'cancel_card_preview' }
   | { type: 'end_turn' }
   | { type: 'console_append'; char: string }
   | { type: 'console_backspace' }

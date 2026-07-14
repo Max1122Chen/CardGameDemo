@@ -40,6 +40,7 @@ export type GameplayFrameworkComponentOptions = {
   eventSystem: GameplayEventSystem;
   sink?: TraceSink;
   getGfc?: (entityId: EntityId) => GameplayFrameworkComponent | undefined;
+  onActiveAbilityEvent?: (info: import('../ga/types.js').ActiveAbilityEventInfo) => void;
 };
 
 let nextEffectHandle = 0;
@@ -98,17 +99,18 @@ export class GameplayFrameworkComponent {
         return gfc.applyGameplayEffect(effect, geContext);
       },
       resolveEntityTags: (entityId) => this.resolveGfc(entityId)?.getTagContainer(),
-      subscribePassive: (channel, listenerId, handler) => {
+      subscribeAbilityEvent: (channel, listenerId, handler) => {
         this.eventSystem.subscribe({ channel, listenerId, handler });
         this.passiveListenerIds.push(listenerId);
       },
-      unsubscribePassive: (listenerId) => {
+      unsubscribeAbilityEvent: (listenerId) => {
         this.eventSystem.unsubscribe(listenerId);
         const index = this.passiveListenerIds.indexOf(listenerId);
         if (index >= 0) {
           this.passiveListenerIds.splice(index, 1);
         }
       },
+      onActiveAbilityEvent: options.onActiveAbilityEvent,
       emitTrace: (entry) => {
         this.sink?.emit(entry);
       },

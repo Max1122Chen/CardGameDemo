@@ -67,6 +67,7 @@ export {
   type CardView,
   type CombatAction,
   type CombatPhase,
+  type CombatPreviewSnapshot,
   type CombatResult,
   type CombatSessionConfig,
   type CombatSnapshot,

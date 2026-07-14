@@ -1,5 +1,8 @@
 export { CombatSession } from './combat-session.js';
 export { CombatError } from './errors.js';
+export { CombatAttributes } from './combat-attributes.js';
+export { settleTakeDamage, resetCombatMeta, bootstrapCombatAttributes } from './take-damage.js';
+export { createCardAbilityDefinition } from './card-abilities.js';
 export {
   CARD_CATALOG,
   getCardSpec,
@@ -15,6 +18,7 @@ export {
   type CardView,
   type CombatAction,
   type CombatPhase,
+  type CombatPreviewSnapshot,
   type CombatResult,
   type CombatSessionConfig,
   type CombatSnapshot,

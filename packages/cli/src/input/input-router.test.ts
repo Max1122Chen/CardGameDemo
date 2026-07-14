@@ -16,9 +16,20 @@ describe('routeInput', () => {
     expect(actions).toEqual([{ type: 'toggle_console' }]);
   });
 
-  it('opens settings on escape when no overlay is open', () => {
+  it('opens settings on escape when no overlay and no card preview', () => {
     const actions = routeInput(base, parseKeypress('\u001b'));
     expect(actions).toEqual([{ type: 'toggle_settings' }]);
+  });
+
+  it('cancels card preview on escape when preview is active', () => {
+    const withPreview = { ...base, previewActive: true };
+    const actions = routeInput(withPreview, parseKeypress('\u001b'));
+    expect(actions).toEqual([{ type: 'cancel_card_preview' }]);
+  });
+
+  it('routes x to cancel card preview in gameplay', () => {
+    const actions = routeInput(base, parseKeypress('x'));
+    expect(actions).toEqual([{ type: 'cancel_card_preview' }]);
   });
 
   it('closes overlay on escape when overlay is open', () => {

@@ -29,7 +29,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CLI-F01` | Host logging sink, ndjson trace output, debug console stubs | Planned | — | [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `CLI-F02` | Terminal gameplay UI shell with overlays and immediate input | Done | — | [CLI-F02-terminal-tui.md](./CLI/CLI-F02-terminal-tui.md), [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Done | — | [COMBAT-F01-minimal-battle-slice.md](./Combat/COMBAT-F01-minimal-battle-slice.md), [combat.md](../design/systems/combat.md) |
-| `COMBAT-F02` | GFC-backed combat (GA cards, damage event, DealDamage passive) | Planned | — | [COMBAT-F02-gfc-combat-integration.md](./Combat/COMBAT-F02-gfc-combat-integration.md) |
+| `COMBAT-F02` | GFC-language combat: CORE GA gaps + preview/commit card loop | Done | — | [COMBAT-F02-gfc-combat-integration.md](./Combat/COMBAT-F02-gfc-combat-integration.md), [combat.md](../design/systems/combat.md) §出牌、预计算与结算 |
 
 ---
 

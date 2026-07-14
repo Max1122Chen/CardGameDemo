@@ -10,6 +10,26 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-14 — COMBAT-F02: GFC combat + CLI full preview UX
+
+- **Goal:** Full select→preview meta→cancel/commit loop in terminal battle.
+- **Main changes:** CombatSnapshot.preview; CLI refresh on select; show DamageToTake/BlockToGain; Esc/x cancel.
+- **Verify:** 113 tests green.
+
+### 2026-07-14 — COMBAT-F02-A: stay-Active GA + listenWhileActive
+
+- **Goal:** UE-aligned GA listening on Active instances; endPolicy manual; F08 passive shim kept.
+- **Main changes:** endPolicy, listenWhileActive, chargeCostOnActivate, autoActivateOnGrant, onActiveAbilityEvent.
+- **Next:** Track B Strike preview/commit
+
+### 2026-07-14 — COMBAT-F02 spec: GFC combat + CORE gap track
+
+- **Goal:** Evolve combat numerics from F01 functions to GFC language; split Track A (CORE GA lifecycle/listen) vs Track B (preview/commit cards).
+- **Gameplay:** Extended [combat.md](../design/systems/combat.md) §出牌、预计算与结算 (card GA ≠ play action; TryPlayCard/CancelPlayCard).
+- **Impl doc:** [COMBAT-F02-gfc-combat-integration.md](./Combat/COMBAT-F02-gfc-combat-integration.md) Status Review
+- **GA correction:** Listening is Active-instance capability; passive ≈ grant then auto-Activate (UE-aligned).
+- **Next:** Implement A01 stay-Active + listen-on-Activate
+
 ### 2026-07-14 — CORE-F09: staged GE evaluation pipeline
 
 - **Goal:** Generic GE evaluation — Attribute Based magnitudes, GE ctx, EvaluationPipeline per character/attribute.

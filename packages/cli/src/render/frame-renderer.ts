@@ -26,7 +26,15 @@ function renderGameplay(state: AppState): string[] {
       : state.enemies.map((enemy, index) => {
           const selected = index === state.selectedEnemyIndex;
           const marker = selected ? theme.selected('>') : ' ';
-          const line = `${marker} [${index}] ${theme.enemyName(enemy.name)} ${theme.healthLabel('HP')}:${theme.healthValue(enemy.health)} ${theme.intent(`intent:${enemy.intent}`)}`;
+          const take =
+            enemy.previewDamageToTake !== undefined
+              ? ` ${theme.intent(`take:${enemy.previewDamageToTake}`)}`
+              : '';
+          const block =
+            enemy.block !== undefined && enemy.block > 0
+              ? ` ${theme.muted(`blk:${enemy.block}`)}`
+              : '';
+          const line = `${marker} [${index}] ${theme.enemyName(enemy.name)} ${theme.healthLabel('HP')}:${theme.healthValue(enemy.health)}${block} ${theme.intent(`intent:${enemy.intent}`)}${take}`;
           return selected ? theme.selected(line) : line;
         });
 
@@ -36,7 +44,15 @@ function renderGameplay(state: AppState): string[] {
       : state.hand.map((card, index) => {
           const selected = index === state.selectedHandIndex;
           const marker = selected ? theme.selected('>') : ' ';
-          const line = `${marker} [${index + 1}] ${theme.cardName(card.name)} (${theme.muted('cost')} ${theme.cardCost(card.cost)})`;
+          let effectHint = '';
+          if (selected && state.preview) {
+            if (state.preview.blockToGain !== undefined && state.preview.blockToGain > 0) {
+              effectHint = ` ${theme.intent(`=> blk+${state.preview.blockToGain}`)}`;
+            } else if (state.preview.damageToTake !== undefined) {
+              effectHint = ` ${theme.intent(`=> ${state.preview.damageToTake} dmg`)}`;
+            }
+          }
+          const line = `${marker} [${index + 1}] ${theme.cardName(card.name)} (${theme.muted('cost')} ${theme.cardCost(card.cost)})${effectHint}`;
           return selected ? theme.selected(line) : line;
         });
 
@@ -45,9 +61,17 @@ function renderGameplay(state: AppState): string[] {
       ? state.combatLog.map((line) => theme.log(line))
       : [theme.muted('Battle ready.')];
 
+  const playerPreview =
+    state.preview?.blockToGain !== undefined && state.preview.blockToGain > 0
+      ? ` ${theme.intent(`preview blk+${state.preview.blockToGain}`)}`
+      : '';
+
   return [
     phaseLine,
-    ...box('Player', [formatPlayerStats(state.playerHealth, state.playerBlock, state.actionPoints), theme.status(state.statusMessage)]),
+    ...box('Player', [
+      `${formatPlayerStats(state.playerHealth, state.playerBlock, state.actionPoints)}${playerPreview}`,
+      theme.status(state.statusMessage),
+    ]),
     ...box('Enemies', enemyLines),
     ...box('Hand', handLines),
     ...box('Combat Log', logLines),
@@ -96,7 +120,9 @@ export function renderFrame(state: AppState, controller: SessionController): str
   const header = theme.header(
     `CardGameDemo [${state.runtimeMode}] seed=${state.seed ?? '-'} scenario=${state.scenarioId ?? '-'}`,
   );
-  const footer = theme.footer('Space Play | E End Turn | Esc Settings | B Inventory | ~ Console | T Trace | Q Quit');
+  const footer = theme.footer(
+    'Space Commit | Esc/x Cancel preview | E End Turn | Esc Settings | B Inventory | ~ Console | Q Quit',
+  );
   const lines = [header, ...renderGameplay(state)];
 
   if (state.showTracePane) {

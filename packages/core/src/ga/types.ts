@@ -4,6 +4,9 @@ import type { GameplayEffectDefinition } from '../gfc/types.js';
 
 export type GameplayAbilityKind = 'active' | 'passive';
 
+/** Who ends an Active instance after activate effects run. */
+export type GameplayAbilityEndPolicy = 'auto' | 'manual';
+
 export type GameplayAbilityTagGates = {
   activationRequiredTags?: readonly string[];
   activationBlockedTags?: readonly string[];
@@ -26,11 +29,17 @@ export type GameplayAbilityEffectBinding = {
   effect: GameplayEffectDefinition;
 };
 
-export type GameplayAbilityPassiveTrigger = {
+/** Event filter shared by grant-time passive shim and Active-instance listening. */
+export type GameplayAbilityEventListen = {
   channelTag?: string;
   eventTags: readonly string[];
   match?: 'all' | 'any';
+  /** Soft equality against event.payload keys (missing payload key = no match). */
+  payloadMatch?: Readonly<Record<string, string | number | boolean>>;
 };
+
+/** @deprecated Prefer listenWhileActive + autoActivateOnGrant; kept as F08 passiveTrigger alias. */
+export type GameplayAbilityPassiveTrigger = GameplayAbilityEventListen;
 
 export type GameplayAbilityDefinition = {
   id: string;
@@ -38,7 +47,22 @@ export type GameplayAbilityDefinition = {
   name?: string;
   tags: GameplayAbilityTagGates;
   cost?: GameplayAbilityCost;
+  /** Default true. Set false when cost is paid on a later commit event (card preview). */
+  chargeCostOnActivate?: boolean;
+  /**
+   * `auto` (default): end after Instant-only activate effects (F08 behavior).
+   * `manual`: stay Active until `endAbility` (card preview / long-lived listens).
+   */
+  endPolicy?: GameplayAbilityEndPolicy;
   effectsOnActivate: readonly GameplayAbilityEffectBinding[];
+  /** While this activation is Active, subscribe and notify host on match. */
+  listenWhileActive?: GameplayAbilityEventListen;
+  /**
+   * After grant, immediately tryActivate with a minimal self context.
+   * Together with listenWhileActive, this is the UE-aligned “passive” shape.
+   */
+  autoActivateOnGrant?: boolean;
+  /** F08 shim: grant-time listen that tryActivates on match (kind === 'passive'). */
   passiveTrigger?: GameplayAbilityPassiveTrigger;
 };
 
@@ -72,6 +96,13 @@ export type ActiveAbilitySnapshot = {
   instanceId: string;
   handle: string;
   abilityDefId: string;
+};
+
+export type ActiveAbilityEventInfo = {
+  instanceId: string;
+  handle: string;
+  abilityDefId: string;
+  event: GameplayEvent;
 };
 
 export class GameplayAbilityError extends Error {
