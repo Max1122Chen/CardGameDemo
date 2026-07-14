@@ -1,0 +1,11 @@
+{
+  "id": "ge.template.damage-face",
+  "duration": { "kind": "Instant" },
+  "modifiers": [
+    {
+      "attribute": "Damage",
+      "op": "Override",
+      "magnitude": { "kind": "SetByCaller", "key": "Data.Damage" }
+    }
+  ]
+}

@@ -10,6 +10,12 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-14 — CORE-F11: Activation registry, SetByCaller, reusable assets
+
+- **Goal:** UE-aligned Activate (app TS handlers), full SetByCaller, thin card JSON via abilityRef/effectRef.
+- **Main changes:** `AbilityActivationRegistry`; CardPlay + TakeDamage handlers; `data/abilities` + `data/effects`; six cards thin + CommitMode; removed builtinActivation / card settle flags.
+- **Verify:** 136 tests green.
+
 ### 2026-07-14 — DATA-F01: card JSON assets + parse pipeline
 
 - **Goal:** Load CardDefinition graphs from `data/cards/*.json`; bootstrap combat from data.

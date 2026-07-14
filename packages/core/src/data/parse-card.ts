@@ -14,15 +14,27 @@ export type WireCardCommitEffect = {
   effect: WireGameplayEffectDefinition;
 };
 
+export type WireCardCommitEffectRef = {
+  target: CardCommitEffectTarget;
+  effectRef: string;
+};
+
 export type WireCardDefinition = {
   id: string;
   name: string;
   cost: number;
   targeting: CardTargeting;
-  ability: WireGameplayAbilityDefinition;
+  /** Inline ability (legacy) or omit when abilityRef is set. */
+  ability?: WireGameplayAbilityDefinition;
+  abilityRef?: string;
+  setByCaller?: Readonly<Record<string, number>>;
   commitEffects?: readonly WireCardCommitEffect[];
-  settleTakeDamageOnTarget?: boolean;
-  applyBlockFromPreview?: boolean;
+  commitEffectRefs?: readonly WireCardCommitEffectRef[];
+};
+
+export type DefinitionAssetCatalog = {
+  effects: Readonly<Record<string, WireGameplayEffectDefinition>>;
+  abilities: Readonly<Record<string, WireGameplayAbilityDefinition>>;
 };
 
 export type CombatCardBootstrap = {
@@ -37,58 +49,108 @@ function assertCardActionId(id: string): CardActionId {
   return id as CardActionId;
 }
 
+function resolveAbilityWire(
+  wire: WireCardDefinition,
+  catalog: DefinitionAssetCatalog | undefined,
+): WireGameplayAbilityDefinition {
+  if (wire.abilityRef) {
+    const fromCatalog = catalog?.abilities[wire.abilityRef];
+    if (!fromCatalog) {
+      throw new DefinitionParseError(`Unknown abilityRef: ${wire.abilityRef}`);
+    }
+    return fromCatalog;
+  }
+  if (wire.ability) {
+    return wire.ability;
+  }
+  throw new DefinitionParseError(`Card ${wire.id}: ability or abilityRef is required`);
+}
+
 export function parseCardDefinition(
   wire: WireCardDefinition,
   manager: GameplayTagManager,
+  catalog?: DefinitionAssetCatalog,
 ): CardDefinition {
   if (!wire.id) {
     throw new DefinitionParseError('CardDefinition.id is required');
   }
 
   const id = assertCardActionId(wire.id);
+  const abilityWire = resolveAbilityWire(wire, catalog);
+
+  const commitEffects: {
+    target: CardCommitEffectTarget;
+    effect: ReturnType<typeof parseGameplayEffectDefinition>;
+  }[] = [];
+
+  if (wire.commitEffects) {
+    for (const [index, binding] of wire.commitEffects.entries()) {
+      commitEffects.push({
+        target: binding.target,
+        effect: parseGameplayEffectDefinition(
+          binding.effect,
+          manager,
+          `commitEffects[${index}].effect`,
+        ),
+      });
+    }
+  }
+
+  if (wire.commitEffectRefs) {
+    for (const [index, binding] of wire.commitEffectRefs.entries()) {
+      const effectWire = catalog?.effects[binding.effectRef];
+      if (!effectWire) {
+        throw new DefinitionParseError(
+          `Unknown commitEffectRefs[${index}].effectRef: ${binding.effectRef}`,
+        );
+      }
+      commitEffects.push({
+        target: binding.target,
+        effect: parseGameplayEffectDefinition(
+          effectWire,
+          manager,
+          `commitEffectRefs[${index}].effect`,
+        ),
+      });
+    }
+  }
 
   return {
     id,
     name: wire.name,
     cost: wire.cost,
     targeting: wire.targeting,
-    ability: parseGameplayAbilityDefinition(wire.ability, manager),
-    commitEffects: wire.commitEffects?.map((binding, index) => ({
-      target: binding.target,
-      effect: parseGameplayEffectDefinition(
-        binding.effect,
-        manager,
-        `commitEffects[${index}].effect`,
-      ),
-    })),
-    settleTakeDamageOnTarget: wire.settleTakeDamageOnTarget,
-    applyBlockFromPreview: wire.applyBlockFromPreview,
+    ability: parseGameplayAbilityDefinition(abilityWire, manager),
+    setByCaller: wire.setByCaller,
+    commitEffects: commitEffects.length > 0 ? commitEffects : undefined,
   };
 }
 
 export function buildCardCatalog(
   wires: readonly WireCardDefinition[],
   manager: GameplayTagManager,
+  catalog?: DefinitionAssetCatalog,
 ): Record<CardActionId, CardDefinition> {
-  const catalog = {} as Record<CardActionId, CardDefinition>;
+  const cardCatalog = {} as Record<CardActionId, CardDefinition>;
 
   for (const wire of wires) {
-    const def = parseCardDefinition(wire, manager);
-    if (catalog[def.id]) {
+    const def = parseCardDefinition(wire, manager, catalog);
+    if (cardCatalog[def.id]) {
       throw new DefinitionParseError(`Duplicate card id in catalog: ${def.id}`);
     }
-    catalog[def.id] = def;
+    cardCatalog[def.id] = def;
   }
 
-  return catalog;
+  return cardCatalog;
 }
 
 export function buildCombatCardBootstrap(
   wires: readonly WireCardDefinition[],
   deckIds: readonly string[],
   manager: GameplayTagManager,
+  catalog?: DefinitionAssetCatalog,
 ): CombatCardBootstrap {
-  const cardCatalog = buildCardCatalog(wires, manager);
+  const cardCatalog = buildCardCatalog(wires, manager, catalog);
   const parsedDeck = deckIds.map((id, index) => {
     const cardId = assertCardActionId(id);
     if (!cardCatalog[cardId]) {

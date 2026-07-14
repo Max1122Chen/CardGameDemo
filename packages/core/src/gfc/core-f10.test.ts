@@ -8,6 +8,7 @@ import { parseGameplayEffectDefinition } from '../definitions/parse-definitions.
 import { createTakeDamageAbilityDefinition } from '../combat/take-damage-ability.js';
 import { CombatAttributes } from '../combat/combat-attributes.js';
 import { bootstrapCombatAttributes } from '../combat/take-damage.js';
+import { registerCombatAbilityHandlers } from '../combat/register-combat-abilities.js';
 
 describe('CORE-F10 — GFC gaps', () => {
   it('ongoing source/target gates disable modifiers until tag present', () => {
@@ -118,6 +119,7 @@ describe('CORE-F10 — GFC gaps', () => {
 
   it('TakeDamage GA settles Block then Health', () => {
     const engine = RuleEngine.create();
+    registerCombatAbilityHandlers(engine.activationRegistry);
     const target = engine.createEntityWithGfc('target');
     bootstrapCombatAttributes(target, { health: 20, block: 3 }, engine.tagManager);
     const handle = target.listGrantedAbilities().find((a) => a.abilityDefId === 'ga.combat.take-damage')?.handle;
@@ -141,7 +143,7 @@ describe('CORE-F10 — GFC gaps', () => {
 });
 
 describe('createTakeDamageAbilityDefinition', () => {
-  it('marks builtin activation', () => {
-    expect(createTakeDamageAbilityDefinition().builtinActivation).toBe('combat.takeDamage');
+  it('uses combat.takeDamage handlerId', () => {
+    expect(createTakeDamageAbilityDefinition().handlerId).toBe('combat.takeDamage');
   });
 });

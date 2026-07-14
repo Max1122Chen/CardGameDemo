@@ -3,45 +3,9 @@
   "name": "Weaken",
   "cost": 1,
   "targeting": "single_enemy",
-  "commitEffects": [
-    {
-      "target": "target",
-      "effect": {
-        "id": "ge.status.vulnerable",
-        "duration": {
-          "kind": "Duration",
-          "unitTag": "Timing.TurnEnd",
-          "magnitude": 1,
-          "channels": ["Combat"]
-        },
-        "grantedTags": ["Status.Vulnerable"],
-        "stacking": { "kind": "byEffectId", "onReapply": "addDuration" },
-        "modifiers": [
-          {
-            "attribute": "DamageToTake",
-            "op": "Multiply",
-            "magnitude": 1.25,
-            "evaluationStage": "EvaluationStage.DamageAbsorb"
-          }
-        ]
-      }
-    }
-  ],
-  "ability": {
-    "id": "ga.card.weaken",
-    "kind": "active",
-    "name": "Weaken",
-    "tags": { "abilityTags": ["Card.weaken"] },
-    "chargeCostOnActivate": false,
-    "endPolicy": "manual",
-    "effectsOnActivate": [],
-    "listenWhileActive": {
-      "channelTag": "Combat",
-      "eventTags": [
-        "GameplayEvent.Combat.TryPlayCard",
-        "GameplayEvent.Combat.CancelPlayCard"
-      ],
-      "match": "any"
-    }
-  }
+  "abilityRef": "ga.card.play",
+  "setByCaller": {
+    "Data.CommitMode": 0
+  },
+  "commitEffectRefs": [{ "target": "target", "effectRef": "ge.status.vulnerable" }]
 }

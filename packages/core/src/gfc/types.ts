@@ -26,6 +26,10 @@ export type GameplayModifierMagnitude =
       attribute: string;
       valueKind: 'Base' | 'Current';
       coefficient?: number;
+    }
+  | {
+      kind: 'SetByCaller';
+      key: string;
     };
 
 export type GameplayEffectModifier = {
@@ -35,11 +39,15 @@ export type GameplayEffectModifier = {
   evaluationStage?: GameplayTag;
 };
 
+/** Runtime caller magnitudes (UE SetByCaller); values are numbers in CORE-F11. */
+export type SetByCallerMap = Readonly<Record<string, number>>;
+
 export type GameplayEffectApplicationContext = {
   instigatorEntityId: EntityId;
   sourceEntityId?: EntityId;
   targetEntityId?: EntityId;
   payload?: Record<string, unknown>;
+  setByCaller?: SetByCallerMap;
 };
 
 export type AttributeEvaluationPipeline = {

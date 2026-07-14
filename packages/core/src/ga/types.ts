@@ -41,8 +41,6 @@ export type GameplayAbilityEventListen = {
 /** @deprecated Prefer listenWhileActive + autoActivateOnGrant; kept as F08 passiveTrigger alias. */
 export type GameplayAbilityPassiveTrigger = GameplayAbilityEventListen;
 
-export type GameplayAbilityBuiltinActivation = 'combat.takeDamage';
-
 export type GameplayAbilityDefinition = {
   id: string;
   kind: GameplayAbilityKind;
@@ -57,9 +55,12 @@ export type GameplayAbilityDefinition = {
    */
   endPolicy?: GameplayAbilityEndPolicy;
   effectsOnActivate: readonly GameplayAbilityEffectBinding[];
-  /** Core-resolved activation when effects alone are insufficient (e.g. TakeDamage sampling). */
-  builtinActivation?: GameplayAbilityBuiltinActivation;
-  /** While this activation is Active, subscribe and notify host on match. */
+  /**
+   * App-registered activation handler id (CORE-F11).
+   * Core dispatches via AbilityActivationRegistry; combat logic stays out of core.
+   */
+  handlerId?: string;
+  /** While this activation is Active, subscribe and notify host/handler on match. */
   listenWhileActive?: GameplayAbilityEventListen;
   /**
    * After grant, immediately tryActivate with a minimal self context.
@@ -76,6 +77,8 @@ export type AbilityActivationContext = {
   targetEntityId?: EntityId;
   event?: GameplayEvent;
   payload?: Record<string, unknown>;
+  /** SetByCaller map for GE magnitudes applied during this activation. */
+  setByCaller?: Readonly<Record<string, number>>;
 };
 
 export type ActivationFailureReason =
@@ -91,7 +94,11 @@ export type TakeDamageActivationData = {
 };
 
 export type ActivationResult =
-  | { ok: true; instanceId: string; activationData?: { takeDamage?: TakeDamageActivationData } }
+  | {
+      ok: true;
+      instanceId: string;
+      activationData?: Record<string, unknown> & { takeDamage?: TakeDamageActivationData };
+    }
   | { ok: false; reason: ActivationFailureReason };
 
 export type GrantedAbilitySnapshot = {

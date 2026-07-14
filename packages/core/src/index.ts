@@ -59,6 +59,9 @@ export {
   COMBAT_PLAYER_ID,
   DEFAULT_COMBAT_CONFIG,
   CARD_ACTION_IDS,
+  registerCombatAbilityHandlers,
+  SetByCallerKeys,
+  CommitMode,
   type CardActionId,
   type CardActionSpec,
   type CardInstance,
@@ -81,14 +84,21 @@ export {
   catalogToDisplaySpecs,
   type WireCardDefinition,
   type WireCardCommitEffect,
+  type WireCardCommitEffectRef,
   type CombatCardBootstrap,
+  type DefinitionAssetCatalog,
 } from './data/parse-card.js';
-export { DefinitionParseError } from './definitions/parse-definitions.js';
+export {
+  DefinitionParseError,
+  type WireGameplayAbilityDefinition,
+  type WireGameplayEffectDefinition,
+} from './definitions/parse-definitions.js';
 export {
   GameplayFrameworkComponent,
   GameplayNotImplementedError,
   GameplayEffectError,
   GfcComponentType,
+  AbilityActivationRegistry,
   type ActiveAbilitySnapshot,
   type ActiveGameplayEffect,
   type ActiveGameplayEffectSnapshot,
@@ -100,6 +110,8 @@ export {
   type GrantedAbilitySnapshot,
   type GameplayAbilityDefinition,
   type AbilityActivationContext,
+  type AbilityActivationHandler,
+  type AbilityHandlerContext,
   type ActivationResult,
   GameplayAbilityError,
   evaluateTagGates,
@@ -113,4 +125,5 @@ export {
   type GfcAttributeSnapshot,
   type GfcSnapshot,
   type GfcTagSnapshot,
+  type SetByCallerMap,
 } from './gfc/index.js';

@@ -1,0 +1,11 @@
+{
+  "id": "ge.template.block-to-gain",
+  "duration": { "kind": "Instant" },
+  "modifiers": [
+    {
+      "attribute": "BlockToGain",
+      "op": "Override",
+      "magnitude": { "kind": "SetByCaller", "key": "Data.BlockToGain" }
+    }
+  ]
+}

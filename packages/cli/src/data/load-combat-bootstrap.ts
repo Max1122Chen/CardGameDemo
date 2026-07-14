@@ -6,18 +6,12 @@ import {
   buildCombatCardBootstrap,
   type CombatCardBootstrap,
   type CombatSessionTuneables,
+  type DefinitionAssetCatalog,
   type RuleEngine,
   type WireCardDefinition,
+  type WireGameplayAbilityDefinition,
+  type WireGameplayEffectDefinition,
 } from '@cardgame/core';
-
-const CARD_FILE_NAMES = [
-  'strike.json',
-  'defend.json',
-  'bash.json',
-  'weaken.json',
-  'flex.json',
-  'wait.json',
-] as const;
 
 function findRepoRoot(startDir: string): string {
   let dir = startDir;
@@ -42,22 +36,30 @@ function readJsonFile<T>(path: string): T {
   return JSON.parse(readFileSync(path, 'utf8')) as T;
 }
 
+function loadJsonDir<T extends { id: string }>(dir: string): Record<string, T> {
+  if (!existsSync(dir)) {
+    return {};
+  }
+  const out: Record<string, T> = {};
+  for (const name of readdirSync(dir).filter((n) => n.endsWith('.json')).sort()) {
+    const wire = readJsonFile<T>(join(dir, name));
+    out[wire.id] = wire;
+  }
+  return out;
+}
+
+export function loadDefinitionAssetCatalog(dataRoot: string): DefinitionAssetCatalog {
+  return {
+    effects: loadJsonDir<WireGameplayEffectDefinition>(join(dataRoot, 'effects')),
+    abilities: loadJsonDir<WireGameplayAbilityDefinition>(join(dataRoot, 'abilities')),
+  };
+}
+
 export function loadCardWiresFromDir(cardsDir: string): WireCardDefinition[] {
   const files = readdirSync(cardsDir)
     .filter((name) => name.endsWith('.json'))
     .sort();
-
-  if (files.length === 0) {
-    for (const name of CARD_FILE_NAMES) {
-      const path = join(cardsDir, name);
-      if (!existsSync(path)) {
-        throw new Error(`Missing card asset: ${path}`);
-      }
-    }
-  }
-
-  const names = files.length > 0 ? files : [...CARD_FILE_NAMES];
-  return names.map((name) => readJsonFile<WireCardDefinition>(join(cardsDir, name)));
+  return files.map((name) => readJsonFile<WireCardDefinition>(join(cardsDir, name)));
 }
 
 export function loadDeckIds(decksDir: string, deckName = 'starter'): readonly string[] {
@@ -70,9 +72,10 @@ export function loadCombatBootstrapFromRepo(
   options: { dataRoot?: string; deckName?: string } = {},
 ): CombatCardBootstrap {
   const dataRoot = options.dataRoot ?? resolveRepoDataRoot();
+  const catalog = loadDefinitionAssetCatalog(dataRoot);
   const wires = loadCardWiresFromDir(join(dataRoot, 'cards'));
   const deckIds = loadDeckIds(join(dataRoot, 'decks'), options.deckName);
-  return buildCombatCardBootstrap(wires, deckIds, engine.tagManager);
+  return buildCombatCardBootstrap(wires, deckIds, engine.tagManager, catalog);
 }
 
 export function combatBootstrapConfig(

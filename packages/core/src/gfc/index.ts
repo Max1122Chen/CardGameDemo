@@ -24,6 +24,7 @@ export type {
   GfcSnapshot,
   GfcTagSnapshot,
   OngoingTagRequirements,
+  SetByCallerMap,
 } from './types.js';
 export {
   assignModifierStages,
@@ -40,13 +41,16 @@ export {
 export {
   GameplayAbilityRuntime,
   GameplayAbilityError,
+  AbilityActivationRegistry,
   evaluateTagGates,
   gatesNeedEntity,
   type AbilityActivationContext,
+  type AbilityActivationHandler,
+  type AbilityHandlerContext,
+  type AbilityHandlerResult,
   type ActivationFailureReason,
   type ActivationResult,
   type ActiveAbilityEventInfo,
-  type GameplayAbilityBuiltinActivation,
   type GameplayAbilityCost,
   type GameplayAbilityDefinition,
   type GameplayAbilityEffectBinding,
@@ -66,3 +70,4 @@ export {
   type WireGameplayAbilityDefinition,
   type WireGameplayEffectDefinition,
 } from '../definitions/parse-definitions.js';
+

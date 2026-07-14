@@ -42,6 +42,16 @@ export function resolveModifierMagnitude(
     return normalized.value;
   }
 
+  if (normalized.kind === 'SetByCaller') {
+    const value = ctx.setByCaller?.[normalized.key];
+    if (value === undefined) {
+      throw new GameplayEffectError(
+        `SetByCaller magnitude missing key "${normalized.key}" in GameplayEffectApplicationContext.setByCaller`,
+      );
+    }
+    return value;
+  }
+
   const entityId =
     normalized.captureFrom === 'Source' ? ctx.sourceEntityId : ctx.targetEntityId;
   if (!entityId) {

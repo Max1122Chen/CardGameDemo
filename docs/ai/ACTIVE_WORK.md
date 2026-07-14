@@ -8,17 +8,14 @@ Last updated: 2026-07-14
 
 ## In focus
 
-**Phase: Data-driven cards** — framework gaps ? combat expressiveness ? JSON cards ? equipment/deck.
+**Phase: Data-driven abilities** — CORE-F11 landed (handlers + SetByCaller + thin cards).
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–12 | CORE-F01–F09, COMBAT-F01–F02, CLI-F02 | GFC depth + GFC combat | **Done** |
-| **13** | **CORE-F10** | GFC gaps for JSON cards (Ongoing GE gates, serde) | **Done** ([spec](./Core/CORE-F10-data-driven-gfc-gaps.md)) |
-| **14** | **COMBAT-F03** | Describability probes (Vulnerable, buff, mark, …) | **Done** ([spec](./Combat/COMBAT-F03-combat-describability-probes.md)) |
-| **15** | **DATA-F01** | Card JSON schema + loader ? starter deck from data | **Done** ([spec](./Data/DATA-F01-card-asset-pipeline.md)) |
+| 1–16 | CORE-F01–F11, COMBAT-F01–F03, CLI-F02, DATA-F01 | GFC + JSON cards + AbilityActivationRegistry | **Done** |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel, not blocking) |
 
-**Execution rhythm:** Implement Feature ? stop for commit approval ? next Feature. User confirmed three Features back-to-back with one pause per Feature.
+**Next:** User may promote CORE-F12 (tech-debt polish) or EQUIP / COMBAT-F04 after review.
 
 ---
 
@@ -26,8 +23,9 @@ Last updated: 2026-07-14
 
 | Theme | Suggested ID | After |
 |-------|--------------|-------|
-| Equipment + equipment-driven deck | EQUIP-F01 | DATA-F01 |
-| Enemy data + AI | COMBAT-F04 | DATA-F01 |
+| F11 structural polish | CORE-F12 | After F11 commit |
+| Equipment + equipment-driven deck | EQUIP-F01 | Prefer after polish |
+| Enemy data + AI | COMBAT-F04 | Prefer after polish |
 | Dungeon / loot / events | DUNGEON-F01 | Combat + equipment data |
 
 ---
@@ -37,4 +35,5 @@ Last updated: 2026-07-14
 | File | Role |
 |------|------|
 | [FEATURE_REGISTRY.md](./FEATURE_REGISTRY.md) | Feature IDs |
+| [TECH_DEBT.md](./TECH_DEBT.md) | Open deferred items |
 | [ENGINEERING_CONVENTIONS.md](./Core/ENGINEERING_CONVENTIONS.md) | Naming |

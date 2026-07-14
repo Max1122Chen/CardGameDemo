@@ -11,11 +11,12 @@ import {
   loadCombatBootstrapFromRepo,
   loadCardWiresFromDir,
   loadDeckIds,
+  loadDefinitionAssetCatalog,
   resolveRepoDataRoot,
   combatBootstrapConfig,
 } from './combat-bootstrap.test-helper.js';
 
-describe('DATA-F01 card asset pipeline', () => {
+describe('DATA-F01 / CORE-F11 card asset pipeline', () => {
   it('loads starter deck from repo JSON', () => {
     const engine = RuleEngine.create();
     const { cardCatalog, deckIds } = loadCombatBootstrapFromRepo(engine.tagManager);
@@ -30,7 +31,9 @@ describe('DATA-F01 card asset pipeline', () => {
     ]);
     expect(deckIds).toHaveLength(12);
     expect(cardCatalog.strike.name).toBe('Strike');
-    expect(cardCatalog.strike.ability.effectsOnActivate).toHaveLength(2);
+    expect(cardCatalog.strike.ability.id).toBe('ga.card.play');
+    expect(cardCatalog.strike.ability.handlerId).toBe('combat.cardPlay');
+    expect(cardCatalog.strike.ability.effectsOnActivate).toHaveLength(0);
   });
 
   it('parses weaken vulnerable commit effect with duration channels', () => {
@@ -65,7 +68,9 @@ describe('DATA-F01 card asset pipeline', () => {
 
   it('rejects duplicate card ids in catalog build', () => {
     const engine = RuleEngine.create();
-    const [strikeWire] = loadCardWiresFromDir(`${resolveRepoDataRoot()}/cards`).filter(
+    const dataRoot = resolveRepoDataRoot();
+    const catalog = loadDefinitionAssetCatalog(dataRoot);
+    const [strikeWire] = loadCardWiresFromDir(`${dataRoot}/cards`).filter(
       (wire) => wire.id === 'strike',
     );
     if (!strikeWire) {
@@ -79,16 +84,19 @@ describe('DATA-F01 card asset pipeline', () => {
           { ...strikeWire, name: 'B' },
         ],
         engine.tagManager,
+        catalog,
       ),
     ).toThrow(/Duplicate card id/);
   });
 
   it('deck builder rejects unknown card references', () => {
     const engine = RuleEngine.create();
-    const wires = loadCardWiresFromDir(`${resolveRepoDataRoot()}/cards`);
+    const dataRoot = resolveRepoDataRoot();
+    const catalog = loadDefinitionAssetCatalog(dataRoot);
+    const wires = loadCardWiresFromDir(`${dataRoot}/cards`);
 
     expect(() =>
-      buildCombatCardBootstrap(wires, ['strike', 'missing'], engine.tagManager),
+      buildCombatCardBootstrap(wires, ['strike', 'missing'], engine.tagManager, catalog),
     ).toThrow(/Unknown card id/);
   });
 

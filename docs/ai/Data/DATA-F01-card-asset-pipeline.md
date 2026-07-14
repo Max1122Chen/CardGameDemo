@@ -170,6 +170,7 @@ See chat **拍板清单 Q7–Q8**. Defaults if “按建议”:
 
 | Feature | Notes |
 |---------|-------|
+| **CORE-F11** | Reusable GE/GA assets, SetByCaller, Activation registry; retires inline-as-end-state |
 | EQUIP-F01 | Equipment → inject card ids into deck |
 | COMBAT-F04 | Enemy defs / intent from data |
 | DUNGEON-F01 | Encounter tables |

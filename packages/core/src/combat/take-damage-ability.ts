@@ -10,6 +10,6 @@ export function createTakeDamageAbilityDefinition(): GameplayAbilityDefinition {
     tags: {},
     chargeCostOnActivate: false,
     effectsOnActivate: [],
-    builtinActivation: 'combat.takeDamage',
+    handlerId: 'combat.takeDamage',
   };
 }

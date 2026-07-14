@@ -1,3 +1,4 @@
+import { AbilityActivationRegistry } from '../ga/ability-activation-registry.js';
 import { GameplayEventSystem } from '../events/gameplay-event-system.js';
 import { GameplayFrameworkComponent, type GameplayFrameworkComponentOptions } from '../gfc/gameplay-framework-component.js';
 import { GfcComponentType } from '../gfc/gfc-component-type.js';
@@ -17,6 +18,7 @@ export class RuleEngine {
   readonly tagManager: GameplayTagManager;
   readonly eventSystem: GameplayEventSystem;
   readonly gameWorld: GameWorld;
+  readonly activationRegistry: AbilityActivationRegistry;
 
   private readonly traceSink?: TraceSink;
 
@@ -24,11 +26,13 @@ export class RuleEngine {
     tagManager: GameplayTagManager,
     eventSystem: GameplayEventSystem,
     gameWorld: GameWorld,
+    activationRegistry: AbilityActivationRegistry,
     traceSink?: TraceSink,
   ) {
     this.tagManager = tagManager;
     this.eventSystem = eventSystem;
     this.gameWorld = gameWorld;
+    this.activationRegistry = activationRegistry;
     this.traceSink = traceSink;
   }
 
@@ -43,8 +47,9 @@ export class RuleEngine {
       maxDispatchDepth: options.maxEventDispatchDepth,
     });
     const gameWorld = new GameWorld();
+    const activationRegistry = new AbilityActivationRegistry();
 
-    return new RuleEngine(tagManager, eventSystem, gameWorld, options.traceSink);
+    return new RuleEngine(tagManager, eventSystem, gameWorld, activationRegistry, options.traceSink);
   }
 
   get trace(): TraceSink | undefined {
@@ -78,6 +83,7 @@ export class RuleEngine {
       getGfc: (entity) => this.getGfc(entity),
       onEntityTagChange: (entityId) => this.notifyEntityTagChange(entityId),
       onActiveAbilityEvent: options?.onActiveAbilityEvent,
+      activationRegistry: this.activationRegistry,
     });
     this.gameWorld.addComponent(id, GfcComponentType, gfc);
     return gfc;

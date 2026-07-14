@@ -3,31 +3,9 @@
   "name": "Defend",
   "cost": 1,
   "targeting": "self",
-  "applyBlockFromPreview": true,
-  "ability": {
-    "id": "ga.card.defend",
-    "kind": "active",
-    "name": "Defend",
-    "tags": { "abilityTags": ["Card.defend"] },
-    "chargeCostOnActivate": false,
-    "endPolicy": "manual",
-    "effectsOnActivate": [
-      {
-        "target": "self",
-        "effect": {
-          "id": "ge.card.defend.block-to-gain",
-          "duration": { "kind": "Instant" },
-          "modifiers": [{ "attribute": "BlockToGain", "op": "Override", "magnitude": 5 }]
-        }
-      }
-    ],
-    "listenWhileActive": {
-      "channelTag": "Combat",
-      "eventTags": [
-        "GameplayEvent.Combat.TryPlayCard",
-        "GameplayEvent.Combat.CancelPlayCard"
-      ],
-      "match": "any"
-    }
+  "abilityRef": "ga.card.play",
+  "setByCaller": {
+    "Data.BlockToGain": 5,
+    "Data.CommitMode": 2
   }
 }

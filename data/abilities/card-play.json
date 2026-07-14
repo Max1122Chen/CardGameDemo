@@ -1,0 +1,18 @@
+{
+  "id": "ga.card.play",
+  "kind": "active",
+  "name": "CardPlay",
+  "tags": {},
+  "handlerId": "combat.cardPlay",
+  "chargeCostOnActivate": false,
+  "endPolicy": "manual",
+  "effectsOnActivate": [],
+  "listenWhileActive": {
+    "channelTag": "Combat",
+    "eventTags": [
+      "GameplayEvent.Combat.TryPlayCard",
+      "GameplayEvent.Combat.CancelPlayCard"
+    ],
+    "match": "any"
+  }
+}

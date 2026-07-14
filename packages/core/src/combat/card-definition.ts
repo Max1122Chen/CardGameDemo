@@ -12,12 +12,11 @@ export type CardDefinition = {
   cost: number;
   targeting: CardTargeting;
   ability: GameplayAbilityDefinition;
+  /** Runtime SetByCaller map (Damage, BlockToGain, CommitMode, …). */
+  setByCaller?: Readonly<Record<string, number>>;
+  /** Status / buff GEs applied on commit (resolved from asset refs at load). */
   commitEffects?: readonly {
     target: CardCommitEffectTarget;
     effect: GameplayEffectDefinition;
   }[];
-  /** After commitEffects, activate TakeDamage GA on the preview target entity. */
-  settleTakeDamageOnTarget?: boolean;
-  /** Commit Block from BlockToGain preview meta on self. */
-  applyBlockFromPreview?: boolean;
 };

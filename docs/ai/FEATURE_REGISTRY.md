@@ -33,6 +33,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `COMBAT-F03` | Combat describability probes (pre?JSON cards) | Done | ? | [COMBAT-F03-combat-describability-probes.md](./Combat/COMBAT-F03-combat-describability-probes.md) |
 | `CORE-F10` | GFC gaps for data-driven cards (Ongoing GE gates, serde) | Done | — | [CORE-F10-data-driven-gfc-gaps.md](./Core/CORE-F10-data-driven-gfc-gaps.md) |
 | `DATA-F01` | Card & effect JSON schema + loader | Done | ? | [DATA-F01-card-asset-pipeline.md](./Data/DATA-F01-card-asset-pipeline.md) |
+| `CORE-F11` | Extensible GA activation, SetByCaller, reusable GE/GA assets | Done | — | [CORE-F11-extensible-ga-assets.md](./Core/CORE-F11-extensible-ga-assets.md) |
 
 ---
 
@@ -41,7 +42,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | DOMAIN | Next Feature # | Notes |
 |--------|----------------|-------|
 | `WF` | F02 | Workflow / docs |
-| `CORE` | F11 | F10 data-driven GFC gaps registered |
+| `CORE` | F12 | F11 extensible GA + assets Done |
 | `COMBAT` | F04 | F03 describability probes registered |
 | `DUNGEON` | F01 | Map, encounters, loot |
 | `DATA` | F02 | F01 card asset pipeline registered |

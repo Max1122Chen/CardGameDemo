@@ -1,0 +1,5 @@
+{
+  "id": "ge.card.flex.strength",
+  "duration": { "kind": "Infinite" },
+  "modifiers": [{ "attribute": "Damage", "op": "Add", "magnitude": 2 }]
+}

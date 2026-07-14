@@ -1,4 +1,10 @@
 export { GameplayAbilityRuntime, type GameplayAbilityHost } from './gameplay-ability-runtime.js';
+export {
+  AbilityActivationRegistry,
+  type AbilityActivationHandler,
+  type AbilityHandlerContext,
+  type AbilityHandlerResult,
+} from './ability-activation-registry.js';
 export { evaluateTagGates, gatesNeedEntity } from './tag-gates.js';
 export {
   GameplayAbilityError,
@@ -7,7 +13,6 @@ export {
   type ActivationResult,
   type ActiveAbilityEventInfo,
   type ActiveAbilitySnapshot,
-  type GameplayAbilityBuiltinActivation,
   type GameplayAbilityCost,
   type GameplayAbilityDefinition,
   type GameplayAbilityEffectBinding,

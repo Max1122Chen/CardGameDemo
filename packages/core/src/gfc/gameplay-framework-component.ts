@@ -12,6 +12,7 @@ import type { GameplayTag } from '../tags/gameplay-tag.js';
 import { GameplayTagContainer } from '../tags/gameplay-tag-container.js';
 import type { GameplayTagManager } from '../tags/gameplay-tag-manager.js';
 import type { TraceEntryInput, TraceSink } from '../trace/trace.js';
+import type { AbilityActivationRegistry } from '../ga/ability-activation-registry.js';
 import type {
   ActiveGameplayEffect,
   AttributeChangeCallback,
@@ -28,7 +29,6 @@ import {
   evaluateOngoingTagRequirements,
   resolveOngoingEntityId,
 } from './ongoing-tag-requirements.js';
-import { settleTakeDamageOnEntity } from '../combat/settle-take-damage.js';
 import {
   assignModifierStages,
   evaluateFlatAttributeValue,
@@ -46,6 +46,7 @@ export type GameplayFrameworkComponentOptions = {
   sink?: TraceSink;
   getGfc?: (entityId: EntityId) => GameplayFrameworkComponent | undefined;
   onActiveAbilityEvent?: (info: import('../ga/types.js').ActiveAbilityEventInfo) => void;
+  activationRegistry?: AbilityActivationRegistry;
   /** Notifies when any entity's tags change (for cross-entity ongoing GE gates). */
   onEntityTagChange?: (entityId: EntityId) => void;
 };
@@ -120,12 +121,7 @@ export class GameplayFrameworkComponent {
         }
       },
       onActiveAbilityEvent: options.onActiveAbilityEvent,
-      runBuiltinActivation: (kind, _ctx) => {
-        if (kind === 'combat.takeDamage') {
-          return settleTakeDamageOnEntity(this);
-        }
-        throw new GameplayEffectError(`Unknown builtin activation: ${String(kind)}`);
-      },
+      activationRegistry: options.activationRegistry,
       emitTrace: (entry) => {
         this.sink?.emit(entry);
       },
@@ -969,13 +965,17 @@ export class GameplayFrameworkComponent {
       const normalized = normalizeModifierMagnitude(modifier.magnitude);
       if (normalized.kind === 'Scalable') {
         this.assertFiniteNumber(normalized.value, `modifier magnitude for ${modifier.attribute}`);
-      } else {
+      } else if (normalized.kind === 'AttributeBased') {
         this.assertAttributeKey(normalized.attribute);
         if (normalized.coefficient !== undefined) {
           this.assertFiniteNumber(
             normalized.coefficient,
             `modifier coefficient for ${modifier.attribute}`,
           );
+        }
+      } else if (normalized.kind === 'SetByCaller') {
+        if (!normalized.key) {
+          throw new Error(`SetByCaller magnitude key is required for ${modifier.attribute}`);
         }
       }
     }

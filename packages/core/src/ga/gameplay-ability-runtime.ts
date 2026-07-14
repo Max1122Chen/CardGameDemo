@@ -8,6 +8,7 @@ import { DEFAULT_CHANNEL_TAG } from '../tags/native-tags.js';
 import type { TraceEntryInput } from '../trace/trace.js';
 import type { AttributeValue, GameplayEffectApplicationContext, GameplayEffectDefinition } from '../gfc/types.js';
 import { evaluateTagGates, gatesNeedEntity } from './tag-gates.js';
+import type { AbilityActivationRegistry } from './ability-activation-registry.js';
 import {
   GameplayAbilityError,
   type AbilityActivationContext,
@@ -18,7 +19,6 @@ import {
   type GameplayAbilityDefinition,
   type GameplayAbilityEventListen,
   type GrantedAbilitySnapshot,
-  type TakeDamageActivationData,
 } from './types.js';
 
 export type GameplayAbilityHost = {
@@ -40,12 +40,10 @@ export type GameplayAbilityHost = {
     handler: (event: GameplayEvent) => void,
   ): void;
   unsubscribeAbilityEvent(listenerId: string): void;
-  /** Optional host reaction when listenWhileActive matches (combat commit/cancel). */
+  /** Optional host reaction when listenWhileActive matches (legacy / combat session). */
   onActiveAbilityEvent?(info: ActiveAbilityEventInfo): void;
-  runBuiltinActivation?(
-    kind: import('./types.js').GameplayAbilityBuiltinActivation,
-    ctx: import('./types.js').AbilityActivationContext,
-  ): import('./types.js').TakeDamageActivationData | void;
+  /** App-registered activation handlers (CORE-F11). */
+  activationRegistry?: AbilityActivationRegistry;
   emitTrace(entry: TraceEntryInput): void;
 };
 
@@ -173,25 +171,38 @@ export class GameplayAbilityRuntime {
         sourceEntityId: ctx.sourceEntityId,
         targetEntityId: ctx.targetEntityId,
         payload: ctx.payload,
+        setByCaller: ctx.setByCaller,
       };
       this.host.applyGameplayEffectTo(targetId, binding.effect, geContext);
     }
 
-    let activationData: { takeDamage?: TakeDamageActivationData } | undefined;
+    let activationData: (Record<string, unknown> & {
+      takeDamage?: import('./types.js').TakeDamageActivationData;
+    }) | undefined;
 
-    if (definition.builtinActivation) {
-      if (!this.host.runBuiltinActivation) {
+    if (definition.handlerId) {
+      const handler = this.host.activationRegistry?.get(definition.handlerId);
+      if (!handler) {
         this.endAbility(instanceId);
         return { ok: false, reason: 'cannot_activate' };
       }
-      const builtinResult = this.host.runBuiltinActivation(definition.builtinActivation, ctx);
-      if (definition.builtinActivation === 'combat.takeDamage' && builtinResult) {
-        activationData = { takeDamage: builtinResult };
+      const handlerResult = handler.onActivate({
+        host: this.host,
+        definition,
+        ctx,
+        instanceId,
+      });
+      if (!handlerResult.ok) {
+        this.endAbility(instanceId);
+        return { ok: false, reason: handlerResult.reason ?? 'cannot_activate' };
+      }
+      if (handlerResult.data) {
+        activationData = handlerResult.data as typeof activationData;
       }
     }
 
     if (definition.listenWhileActive) {
-      this.attachActiveListeners(activeRecord, definition.listenWhileActive);
+      this.attachActiveListeners(activeRecord, definition.listenWhileActive, definition);
     }
 
     this.host.emitTrace({
@@ -265,6 +276,7 @@ export class GameplayAbilityRuntime {
   private attachActiveListeners(
     active: ActiveAbilityRecord,
     listen: GameplayAbilityEventListen,
+    definition: GameplayAbilityDefinition,
   ): void {
     const channelTag = listen.channelTag ?? DEFAULT_CHANNEL_TAG;
     const channel = createGameplayEventChannel(this.host.tagManager.resolve(channelTag));
@@ -285,6 +297,27 @@ export class GameplayAbilityRuntime {
         abilityDefId: active.abilityDefId,
         eventTags: [...listen.eventTags],
       });
+
+      const handler =
+        definition.handlerId !== undefined
+          ? this.host.activationRegistry?.get(definition.handlerId)
+          : undefined;
+
+      if (handler?.onActiveEvent) {
+        const granted = this.granted.get(active.handle);
+        handler.onActiveEvent({
+          host: this.host,
+          definition: granted?.definition ?? definition,
+          ctx: {
+            instigatorEntityId: this.host.entityId,
+            event,
+            payload: event.payload,
+          },
+          instanceId: active.instanceId,
+          event,
+        });
+        return;
+      }
 
       this.host.onActiveAbilityEvent?.({
         instanceId: active.instanceId,
@@ -418,6 +451,10 @@ export class GameplayAbilityRuntime {
       return false;
     }
     if (definition.endPolicy === 'auto') {
+      return true;
+    }
+    // Handler-driven activate with no Instant effects: default auto-end after handler.
+    if (definition.handlerId && definition.effectsOnActivate.length === 0) {
       return true;
     }
     // Default F08: Instant-only activate effects → auto end; otherwise stay.

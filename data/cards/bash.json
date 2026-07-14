@@ -3,50 +3,9 @@
   "name": "Bash",
   "cost": 2,
   "targeting": "single_enemy",
-  "settleTakeDamageOnTarget": true,
-  "ability": {
-    "id": "ga.card.bash",
-    "kind": "active",
-    "name": "Bash",
-    "tags": { "abilityTags": ["Card.bash"] },
-    "chargeCostOnActivate": false,
-    "endPolicy": "manual",
-    "effectsOnActivate": [
-      {
-        "target": "self",
-        "effect": {
-          "id": "ge.card.bash.damage-face",
-          "duration": { "kind": "Instant" },
-          "modifiers": [{ "attribute": "Damage", "op": "Override", "magnitude": 8 }]
-        }
-      },
-      {
-        "target": "target",
-        "effect": {
-          "id": "ge.card.bash.feed-damage-to-take",
-          "duration": { "kind": "Instant" },
-          "modifiers": [
-            {
-              "attribute": "DamageToTake",
-              "op": "Override",
-              "magnitude": {
-                "kind": "AttributeBased",
-                "captureFrom": "Source",
-                "attribute": "Damage",
-                "valueKind": "Current"
-              }
-            }
-          ]
-        }
-      }
-    ],
-    "listenWhileActive": {
-      "channelTag": "Combat",
-      "eventTags": [
-        "GameplayEvent.Combat.TryPlayCard",
-        "GameplayEvent.Combat.CancelPlayCard"
-      ],
-      "match": "any"
-    }
+  "abilityRef": "ga.card.play",
+  "setByCaller": {
+    "Data.Damage": 8,
+    "Data.CommitMode": 1
   }
 }

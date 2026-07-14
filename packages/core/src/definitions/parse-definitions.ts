@@ -20,6 +20,10 @@ export type WireGameplayModifierMagnitude =
       attribute: string;
       valueKind: 'Base' | 'Current';
       coefficient?: number;
+    }
+  | {
+      kind: 'SetByCaller';
+      key: string;
     };
 
 export type WireGameplayEffectModifier = {
@@ -67,7 +71,7 @@ export type WireGameplayAbilityDefinition = {
   endPolicy?: GameplayAbilityDefinition['endPolicy'];
   effectsOnActivate: readonly WireGameplayAbilityEffectBinding[];
   listenWhileActive?: GameplayAbilityDefinition['listenWhileActive'];
-  builtinActivation?: GameplayAbilityDefinition['builtinActivation'];
+  handlerId?: string;
   autoActivateOnGrant?: boolean;
   passiveTrigger?: GameplayAbilityDefinition['passiveTrigger'];
 };
@@ -94,10 +98,10 @@ function parseMagnitude(
   if (typeof magnitude === 'number') {
     return magnitude;
   }
-  if (magnitude.kind !== 'AttributeBased') {
-    throw new DefinitionParseError(`Unsupported magnitude kind at ${path}`);
+  if (magnitude.kind === 'AttributeBased' || magnitude.kind === 'SetByCaller') {
+    return magnitude;
   }
-  return magnitude;
+  throw new DefinitionParseError(`Unsupported magnitude kind at ${path}`);
 }
 
 function parseModifier(
@@ -195,7 +199,7 @@ export function parseGameplayAbilityDefinition(
       ),
     })),
     listenWhileActive: wire.listenWhileActive,
-    builtinActivation: wire.builtinActivation,
+    handlerId: wire.handlerId,
     autoActivateOnGrant: wire.autoActivateOnGrant,
     passiveTrigger: wire.passiveTrigger,
   };

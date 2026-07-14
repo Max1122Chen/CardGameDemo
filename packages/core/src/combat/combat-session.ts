@@ -1,7 +1,7 @@
 import type { RuleEngine } from '../engine/rule-engine.js';
 import { createGameplayEvent } from '../events/gameplay-event.js';
 import { emitTurnEndTimingEvent } from '../events/timing-events.js';
-import type { ActiveAbilityEventInfo } from '../ga/types.js';
+import type { AbilityHandlerContext } from '../ga/ability-activation-registry.js';
 import type { GameplayFrameworkComponent } from '../gfc/gameplay-framework-component.js';
 import type { GameplayEffectApplicationContext } from '../gfc/types.js';
 import type { GameplayTag } from '../tags/gameplay-tag.js';
@@ -18,6 +18,9 @@ import {
 } from './deck-state.js';
 import { CombatError } from './errors.js';
 import { createSlimeScript } from './enemy-script.js';
+import { registerCombatAbilityHandlers } from './register-combat-abilities.js';
+import { readCommitMode } from './card-play-handler.js';
+import { CommitMode } from './set-by-caller-keys.js';
 import { bootstrapCombatAttributes, resetCombatMeta } from './take-damage.js';
 import {
   COMBAT_ENEMY_ID,
@@ -83,9 +86,13 @@ export class CombatSession {
         'CombatSession.bootstrap requires cardCatalog and deckIds (load from data/ via loadCombatBootstrapFromRepo)',
       );
     }
+    const registration = registerCombatAbilityHandlers(engine.activationRegistry);
     const cardDefinitions = merged.cardCatalog;
     const { deck, instances } = buildDeckInstances(merged.deckIds);
     const session = new CombatSession(engine, merged, deck, instances, cardDefinitions);
+    registration.setBridge({
+      handleCardPlayEvent: (args) => session.handleCardPlayEvent(args),
+    });
     session.runSetup();
     return session;
   }
@@ -124,7 +131,8 @@ export class CombatSession {
       instigatorEntityId: COMBAT_PLAYER_ID,
       sourceEntityId: COMBAT_PLAYER_ID,
       targetEntityId: targetId,
-      payload: { cardInstanceId: instanceId, actionId: instance.actionId },
+      setByCaller: def.setByCaller,
+      payload: { cardInstanceId: instanceId, actionId: instance.actionId, cost: def.cost },
     });
 
     if (!result.ok) {
@@ -267,9 +275,7 @@ export class CombatSession {
   private runSetup(): void {
     this.emitCombatTrace({ kind: 'combat.phase', before: 'Setup', after: 'Setup' });
 
-    this.engine.createEntityWithGfc(COMBAT_PLAYER_ID, {
-      onActiveAbilityEvent: (info) => this.onPlayerAbilityEvent(info),
-    });
+    this.engine.createEntityWithGfc(COMBAT_PLAYER_ID);
     this.engine.createEntityWithGfc(COMBAT_ENEMY_ID);
 
     const player = this.requirePlayer();
@@ -296,8 +302,13 @@ export class CombatSession {
       ),
     );
 
+    const grantedAbilityHandles = new Map<string, string>();
     for (const def of Object.values(this.cardDefinitions)) {
-      const handle = player.grantAbility(def.ability);
+      let handle = grantedAbilityHandles.get(def.ability.id);
+      if (!handle) {
+        handle = player.grantAbility(def.ability);
+        grantedAbilityHandles.set(def.ability.id, handle);
+      }
       this.cardAbilityHandles.set(def.id, handle);
     }
 
@@ -356,7 +367,10 @@ export class CombatSession {
     });
   }
 
-  private onPlayerAbilityEvent(info: ActiveAbilityEventInfo): void {
+  /** CardPlay GA listenWhileActive → commit/cancel (registered bridge). */
+  handleCardPlayEvent(
+    info: AbilityHandlerContext & { event: import('../events/gameplay-event.js').GameplayEvent },
+  ): void {
     const event = info.event;
     const tryTag = this.engine.tagManager.resolve('GameplayEvent.Combat.TryPlayCard');
     const cancelTag = this.engine.tagManager.resolve('GameplayEvent.Combat.CancelPlayCard');
@@ -395,6 +409,7 @@ export class CombatSession {
       instigatorEntityId: COMBAT_PLAYER_ID,
       sourceEntityId: COMBAT_PLAYER_ID,
       targetEntityId: preview.targetEntityId,
+      setByCaller: def.setByCaller,
     };
 
     player.applyGameplayEffect(spendActionPointsEffect(def.cost), {
@@ -412,7 +427,8 @@ export class CombatSession {
       targetGfc.applyGameplayEffect(binding.effect, geContext);
     }
 
-    if (def.settleTakeDamageOnTarget) {
+    const mode = readCommitMode(def.setByCaller);
+    if (mode === CommitMode.SettleTakeDamage) {
       const targetGfc =
         preview.targetEntityId === COMBAT_PLAYER_ID ? player : enemy;
       const amount = targetGfc.getAttribute(CombatAttributes.DamageToTake)?.currentValue ?? 0;
@@ -432,7 +448,7 @@ export class CombatSession {
         blocked: result.blocked,
       });
       this.log(`${def.name} dealt ${result.healthLost} damage (${result.blocked} blocked).`);
-    } else if (def.applyBlockFromPreview) {
+    } else if (mode === CommitMode.ApplyBlock) {
       const gain = player.getAttribute(CombatAttributes.BlockToGain)?.currentValue ?? 0;
       player.applyGameplayEffect(gainBlockFromPreviewEffect(), {
         instigatorEntityId: COMBAT_PLAYER_ID,

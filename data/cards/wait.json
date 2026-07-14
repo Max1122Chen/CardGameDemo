@@ -3,21 +3,8 @@
   "name": "Wait",
   "cost": 1,
   "targeting": "none",
-  "ability": {
-    "id": "ga.card.wait",
-    "kind": "active",
-    "name": "Wait",
-    "tags": { "abilityTags": ["Card.wait"] },
-    "chargeCostOnActivate": false,
-    "endPolicy": "manual",
-    "effectsOnActivate": [],
-    "listenWhileActive": {
-      "channelTag": "Combat",
-      "eventTags": [
-        "GameplayEvent.Combat.TryPlayCard",
-        "GameplayEvent.Combat.CancelPlayCard"
-      ],
-      "match": "any"
-    }
+  "abilityRef": "ga.card.play",
+  "setByCaller": {
+    "Data.CommitMode": 0
   }
 }

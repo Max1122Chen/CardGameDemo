@@ -1,0 +1,16 @@
+{
+  "id": "ge.template.feed-damage-to-take",
+  "duration": { "kind": "Instant" },
+  "modifiers": [
+    {
+      "attribute": "DamageToTake",
+      "op": "Override",
+      "magnitude": {
+        "kind": "AttributeBased",
+        "captureFrom": "Source",
+        "attribute": "Damage",
+        "valueKind": "Current"
+      }
+    }
+  ]
+}
