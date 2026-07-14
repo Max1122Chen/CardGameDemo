@@ -15,12 +15,24 @@ import type { TraceEntryInput, TraceSink } from '../trace/trace.js';
 import type {
   ActiveGameplayEffect,
   AttributeChangeCallback,
+  AttributeEvaluationPipeline,
   AttributeValue,
+  GameplayEffectApplicationContext,
   GameplayEffectDefinition,
   GameplayEffectDuration,
   GameplayModifierOp,
   GfcSnapshot,
 } from './types.js';
+import { GameplayEffectError } from './errors.js';
+import {
+  assignModifierStages,
+  evaluateFlatAttributeValue,
+  evaluateStagedAttributeValue,
+  modifierRequiresEntity,
+  normalizeModifierMagnitude,
+  resolveModifierMagnitude,
+  type StagedResolvedModifier,
+} from './attribute-evaluation.js';
 
 export type GameplayFrameworkComponentOptions = {
   entityId: EntityId;
@@ -45,6 +57,7 @@ export class GameplayFrameworkComponent {
   private readonly resolveGfc: (entityId: EntityId) => GameplayFrameworkComponent | undefined;
   private readonly attributeSets = new Map<string, unknown>();
   private readonly attributes = new Map<string, AttributeValue>();
+  private readonly evaluationPipelines = new Map<string, readonly GameplayTag[]>();
   private readonly activeEffects = new Map<string, ActiveGameplayEffect>();
   private readonly channelSubscriptions = new Map<
     number,
@@ -77,12 +90,12 @@ export class GameplayFrameworkComponent {
       setAttributeBase: (attribute, value) => {
         this.setAttributeBase(attribute, value);
       },
-      applyGameplayEffectTo: (entityId, effect) => {
+      applyGameplayEffectTo: (entityId, effect, geContext) => {
         const gfc = this.resolveGfc(entityId);
         if (!gfc) {
           throw new Error(`GameplayFrameworkComponent not found: ${entityId}`);
         }
-        return gfc.applyGameplayEffect(effect);
+        return gfc.applyGameplayEffect(effect, geContext);
       },
       resolveEntityTags: (entityId) => this.resolveGfc(entityId)?.getTagContainer(),
       subscribePassive: (channel, listenerId, handler) => {
@@ -193,12 +206,20 @@ export class GameplayFrameworkComponent {
       attribute,
       after: value,
     });
-    this.recomputeAttributes([attribute]);
+    const dependents = this.collectDependentAttributes(this.entityId, attribute);
+    this.recomputeAttributes([attribute, ...dependents]);
   }
 
-  applyGameplayEffect(effect: GameplayEffectDefinition, _context?: unknown): string {
+  applyGameplayEffect(
+    effect: GameplayEffectDefinition,
+    context?: GameplayEffectApplicationContext,
+  ): string {
     this.assertActive();
     this.validateEffect(effect);
+
+    const applicationContext = this.resolveApplicationContext(context);
+    this.validateApplicationContextForEffect(effect, applicationContext);
+    this.warnUnknownStagesForEffect(effect);
 
     const effectId = `effect-${nextEffectHandle++}`;
     this.emitTrace('ge.applied', {
@@ -206,9 +227,15 @@ export class GameplayFrameworkComponent {
       effectDefId: effect.id,
       durationKind: effect.duration.kind,
     });
+    this.emitTrace('ge.ctx', {
+      effectDefId: effect.id,
+      instigatorId: applicationContext.instigatorEntityId,
+      sourceId: applicationContext.sourceEntityId,
+      targetId: applicationContext.targetEntityId,
+    });
 
     if (effect.duration.kind === 'Instant') {
-      this.applyInstantEffect(effect);
+      this.applyInstantEffect(effect, applicationContext);
       return effectId;
     }
 
@@ -216,6 +243,7 @@ export class GameplayFrameworkComponent {
       id: effectId,
       definition: effect,
       applicationOrder: this.nextApplicationOrder++,
+      applicationContext,
       durationProgress: effect.duration.kind === 'Duration' ? 0 : undefined,
       durationChannels: this.resolveDurationChannels(effect.duration),
     };
@@ -302,6 +330,31 @@ export class GameplayFrameworkComponent {
     return this.abilityRuntime.listActiveAbilities();
   }
 
+  clearEvaluationPipeline(attribute: string): void {
+    this.assertActive();
+    this.assertAttributeKey(attribute);
+    if (!this.evaluationPipelines.delete(attribute)) {
+      return;
+    }
+    this.recomputeAttributes([attribute]);
+  }
+
+  bindEvaluationPipeline(pipeline: AttributeEvaluationPipeline): void {
+    this.assertActive();
+    this.assertAttributeKey(pipeline.attribute);
+    this.evaluationPipelines.set(pipeline.attribute, [...pipeline.stageOrder]);
+    this.recomputeAttributes([pipeline.attribute]);
+  }
+
+  getEvaluationPipeline(attribute: string): AttributeEvaluationPipeline | undefined {
+    this.assertActive();
+    const stageOrder = this.evaluationPipelines.get(attribute);
+    if (!stageOrder) {
+      return undefined;
+    }
+    return { attribute, stageOrder };
+  }
+
   onPreAttributeChange(callback: AttributeChangeCallback): () => void {
     this.assertActive();
     this.preAttributeChangeCallbacks.push(callback);
@@ -351,7 +404,36 @@ export class GameplayFrameworkComponent {
     };
   }
 
-  private applyInstantEffect(effect: GameplayEffectDefinition): void {
+  private collectDependentAttributes(
+    sourceEntityId: EntityId,
+    sourceAttribute: string,
+  ): string[] {
+    const dependents = new Set<string>();
+
+    for (const effect of this.activeEffects.values()) {
+      for (const modifier of effect.definition.modifiers) {
+        const normalized = normalizeModifierMagnitude(modifier.magnitude);
+        if (normalized.kind !== 'AttributeBased' || normalized.attribute !== sourceAttribute) {
+          continue;
+        }
+
+        const ctxEntityId =
+          normalized.captureFrom === 'Source'
+            ? effect.applicationContext.sourceEntityId
+            : effect.applicationContext.targetEntityId;
+        if (ctxEntityId === sourceEntityId) {
+          dependents.add(modifier.attribute);
+        }
+      }
+    }
+
+    return [...dependents];
+  }
+
+  private applyInstantEffect(
+    effect: GameplayEffectDefinition,
+    applicationContext: GameplayEffectApplicationContext,
+  ): void {
     if (effect.grantedTags && effect.grantedTags.length > 0) {
       throw new Error('Instant gameplay effects cannot grant tags');
     }
@@ -359,7 +441,17 @@ export class GameplayFrameworkComponent {
     const touched = new Set<string>();
     for (const modifier of effect.modifiers) {
       const state = this.ensureAttribute(modifier.attribute);
-      state.baseValue = this.applyModifierToValue(state.baseValue, modifier.op, modifier.magnitude);
+      const magnitude = resolveModifierMagnitude(
+        modifier.magnitude,
+        applicationContext,
+        (entityId, attribute) => this.readAttributeForEvaluation(entityId, attribute),
+      );
+      this.emitTrace('ge.magnitude.resolve', {
+        effectDefId: effect.id,
+        attribute: modifier.attribute,
+        captured: magnitude,
+      });
+      state.baseValue = this.applyModifierToValue(state.baseValue, modifier.op, magnitude);
       touched.add(modifier.attribute);
       this.emitTrace('attribute.base.set', {
         attribute: modifier.attribute,
@@ -421,38 +513,122 @@ export class GameplayFrameworkComponent {
   }
 
   private evaluateCurrentValue(attribute: string, baseValue: number): number {
-    const effects = this.getOrderedActiveEffects();
-    let addSum = 0;
-    let multiplyProduct = 1;
-    let overrideValue: number | undefined;
+    const pipeline = this.evaluationPipelines.get(attribute);
+    const modifiers = this.collectResolvedModifiers(attribute, pipeline);
 
-    for (const effect of effects) {
+    if (!pipeline || pipeline.length === 0) {
+      return evaluateFlatAttributeValue(baseValue, modifiers);
+    }
+
+    return evaluateStagedAttributeValue(baseValue, pipeline, modifiers, (stage, before, after) => {
+      if (stage === 'final') {
+        this.emitTrace('attr.pipeline.final', { attribute, before, after });
+        return;
+      }
+      this.emitTrace('attr.pipeline.stage', { attribute, stage, before, after });
+    });
+  }
+
+  private collectResolvedModifiers(
+    attribute: string,
+    pipeline: readonly GameplayTag[] | undefined,
+  ): StagedResolvedModifier[] {
+    const modifiers: StagedResolvedModifier[] = [];
+    let order = 0;
+
+    for (const effect of this.getOrderedActiveEffects()) {
       for (const modifier of effect.definition.modifiers) {
         if (modifier.attribute !== attribute) {
           continue;
         }
 
-        switch (modifier.op) {
-          case 'Add':
-            addSum += modifier.magnitude;
-            break;
-          case 'Multiply':
-            multiplyProduct *= modifier.magnitude;
-            break;
-          case 'Override':
-            overrideValue = modifier.magnitude;
-            break;
-          default:
-            break;
+        const magnitude = resolveModifierMagnitude(
+          modifier.magnitude,
+          effect.applicationContext,
+          (entityId, attr) => this.readAttributeForEvaluation(entityId, attr),
+        );
+        this.emitTrace('ge.magnitude.resolve', {
+          effectDefId: effect.definition.id,
+          attribute,
+          captured: magnitude,
+        });
+
+        let stageIndex: number | undefined;
+        if (pipeline && pipeline.length > 0) {
+          const assignment = assignModifierStages(pipeline, modifier.evaluationStage);
+          stageIndex = assignment.stageIndex;
         }
+
+        modifiers.push({
+          op: modifier.op,
+          magnitude,
+          order: order++,
+          stageIndex,
+        });
       }
     }
 
-    if (overrideValue !== undefined) {
-      return overrideValue;
-    }
+    return modifiers;
+  }
 
-    return (baseValue + addSum) * multiplyProduct;
+  private readAttributeForEvaluation(
+    entityId: EntityId,
+    attribute: string,
+  ): AttributeValue | undefined {
+    if (entityId === this.entityId) {
+      return this.attributes.get(attribute);
+    }
+    return this.resolveGfc(entityId)?.getAttribute(attribute);
+  }
+
+  private resolveApplicationContext(
+    context?: GameplayEffectApplicationContext,
+  ): GameplayEffectApplicationContext {
+    return context ?? { instigatorEntityId: this.entityId };
+  }
+
+  private validateApplicationContextForEffect(
+    effect: GameplayEffectDefinition,
+    context: GameplayEffectApplicationContext,
+  ): void {
+    for (const modifier of effect.modifiers) {
+      const requiredEntity = modifierRequiresEntity(modifier.magnitude);
+      if (!requiredEntity) {
+        continue;
+      }
+
+      const entityId =
+        requiredEntity === 'Source' ? context.sourceEntityId : context.targetEntityId;
+      if (!entityId) {
+        throw new GameplayEffectError(
+          `Gameplay effect ${effect.id} modifier on ${modifier.attribute} requires ${requiredEntity} entity in application context`,
+        );
+      }
+    }
+  }
+
+  private warnUnknownStagesForEffect(effect: GameplayEffectDefinition): void {
+    for (const modifier of effect.modifiers) {
+      if (!modifier.evaluationStage) {
+        continue;
+      }
+
+      const pipeline = this.evaluationPipelines.get(modifier.attribute);
+      if (!pipeline || pipeline.length === 0) {
+        continue;
+      }
+
+      const assignment = assignModifierStages(pipeline, modifier.evaluationStage);
+      if (!assignment.unknownStage) {
+        continue;
+      }
+
+      this.emitTrace('ge.modifier.stage.fallback', {
+        attribute: modifier.attribute,
+        stage: modifier.evaluationStage.name,
+        effectDefId: effect.id,
+      });
+    }
   }
 
   private handleDurationEvent(channel: GameplayEventChannel, event: GameplayEvent): void {
@@ -601,7 +777,18 @@ export class GameplayFrameworkComponent {
 
     for (const modifier of effect.modifiers) {
       this.assertAttributeKey(modifier.attribute);
-      this.assertFiniteNumber(modifier.magnitude, `modifier magnitude for ${modifier.attribute}`);
+      const normalized = normalizeModifierMagnitude(modifier.magnitude);
+      if (normalized.kind === 'Scalable') {
+        this.assertFiniteNumber(normalized.value, `modifier magnitude for ${modifier.attribute}`);
+      } else {
+        this.assertAttributeKey(normalized.attribute);
+        if (normalized.coefficient !== undefined) {
+          this.assertFiniteNumber(
+            normalized.coefficient,
+            `modifier coefficient for ${modifier.attribute}`,
+          );
+        }
+      }
     }
 
     if (effect.duration.kind === 'Duration') {
@@ -634,6 +821,11 @@ export class GameplayFrameworkComponent {
       | 'attribute.current.recompute'
       | 'ge.applied'
       | 'ge.removed'
+      | 'ge.ctx'
+      | 'ge.magnitude.resolve'
+      | 'ge.modifier.stage.fallback'
+      | 'attr.pipeline.stage'
+      | 'attr.pipeline.final'
       | 'ge.duration.progress'
       | 'ge.duration.expired'
       | 'gfc.channel.subscribe'

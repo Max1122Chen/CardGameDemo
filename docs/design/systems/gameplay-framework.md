@@ -379,14 +379,13 @@ for Stage in OrderedEvaluationStages:
 
 // Handle the modifiers that has no valid stage.
 Accumulator := 0;
-Multipiler := 0;
+Multipiler := 1;
 Divisor := 1;
 Overrider := 0;
 for Modifier in Modifiers:
-	if Modifier.Stage == Stage:
         switch Modifier.Op:
             Add: Accumlator += Modifier.Magnitude; break;
-            Multiply: Multiplier += Modifier.Magnitude; break; // Or *= depends on your need
+            Multiply: Multiplier *= Modifier.Magnitude; break; // Or += depends on your need
             Divide: Divisor *= Modifier.Magnitude; break;
             Override: Overrider := Modifier.Magnitude; break;
             default: break
@@ -421,6 +420,9 @@ Stage: DamageOffset:
 ```
 
 
+
+AttributeEvaluationPipeline在框架中有不同的含义，首先从名字上看，它描述了一个Attribute的计算管线，但本质上来讲，我们只需要一个描述性的数据结构，只需要描述几个Stage的排序顺序。实际上“Pipeline化”是框架本身在modifier计算上提供的服务，AttributeEvaluationPipeline只需要作为一种描述性的数据。Stage不应该是一个不可扩展的枚举，而可以用字符串或者GameplayTag，Tag是更优的选择。
+AttributeEvaluationPipeline的作用范围是某个Character的某个Attribute，换句话说，不同的Character的同一个Attribute可以绑定不同的Pipeline，来实现Character特色的计算管线。
 
 ### GameplayEffect,GameplayAbility & GameplayEvent
 
@@ -608,7 +610,7 @@ ParentTag：GameplayEvent.Combat
 
 1. `Multiply` 在 Stage 内默认是 `+=` 聚合后一次乘，还是连续乘算（`*=`）？  
 
-   A：对于一个通用的数值计算系统的话，按理说应该都支持，但我只需要按+=算
+   A：对于一个通用的数值计算系统的话，按理说应该都支持，但我只需要按*=算
 
 2. `Override` 的优先级是 Stage 内最后生效，还是按独立规则覆盖？  
 

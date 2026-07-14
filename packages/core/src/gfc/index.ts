@@ -1,4 +1,4 @@
-export { GameplayNotImplementedError } from './errors.js';
+export { GameplayNotImplementedError, GameplayEffectError } from './errors.js';
 export { GfcComponentType } from './gfc-component-type.js';
 export {
   GameplayFrameworkComponent,
@@ -10,16 +10,27 @@ export type {
   ActiveAbilitySnapshot,
   AttributeChangeCallback,
   AttributeChangeContext,
+  AttributeEvaluationPipeline,
   AttributeValue,
+  GameplayEffectApplicationContext,
   GameplayEffectDefinition,
   GameplayEffectDuration,
   GameplayEffectModifier,
+  GameplayModifierMagnitude,
   GameplayModifierOp,
   GrantedAbilitySnapshot,
   GfcAttributeSnapshot,
   GfcSnapshot,
   GfcTagSnapshot,
 } from './types.js';
+export {
+  assignModifierStages,
+  evaluateFlatAttributeValue,
+  evaluateStagedAttributeValue,
+  modifierRequiresEntity,
+  normalizeModifierMagnitude,
+  resolveModifierMagnitude,
+} from './attribute-evaluation.js';
 export {
   GameplayAbilityRuntime,
   GameplayAbilityError,

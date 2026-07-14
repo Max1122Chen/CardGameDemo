@@ -4,3 +4,10 @@ export class GameplayNotImplementedError extends Error {
     this.name = 'GameplayNotImplementedError';
   }
 }
+
+export class GameplayEffectError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GameplayEffectError';
+  }
+}

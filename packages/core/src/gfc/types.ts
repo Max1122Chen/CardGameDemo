@@ -18,10 +18,33 @@ export type AttributeChangeCallback = (ctx: AttributeChangeContext) => void;
 
 export type GameplayModifierOp = 'Add' | 'Multiply' | 'Override';
 
+export type GameplayModifierMagnitude =
+  | { kind: 'Scalable'; value: number }
+  | {
+      kind: 'AttributeBased';
+      captureFrom: 'Source' | 'Target';
+      attribute: string;
+      valueKind: 'Base' | 'Current';
+      coefficient?: number;
+    };
+
 export type GameplayEffectModifier = {
   attribute: string;
   op: GameplayModifierOp;
-  magnitude: number;
+  magnitude: number | GameplayModifierMagnitude;
+  evaluationStage?: GameplayTag;
+};
+
+export type GameplayEffectApplicationContext = {
+  instigatorEntityId: EntityId;
+  sourceEntityId?: EntityId;
+  targetEntityId?: EntityId;
+  payload?: Record<string, unknown>;
+};
+
+export type AttributeEvaluationPipeline = {
+  attribute: string;
+  stageOrder: readonly GameplayTag[];
 };
 
 export type GameplayEffectDuration =
@@ -45,6 +68,7 @@ export type ActiveGameplayEffect = {
   id: string;
   definition: GameplayEffectDefinition;
   applicationOrder: number;
+  applicationContext: GameplayEffectApplicationContext;
   durationProgress?: number;
   durationChannels: readonly GameplayEventChannel[];
 };

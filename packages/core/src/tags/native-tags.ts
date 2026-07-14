@@ -25,4 +25,7 @@ export const NATIVE_GAMEPLAY_TAGS = [
   'GameplayEvent.Combat.player.NPC',
   'GameplayEvent.Combat.player.NPC.StartTurn',
   'GameplayEvent.Combat.player.NPC.FinishTurn',
+  'EvaluationStage',
+  'EvaluationStage.CommonDamage',
+  'EvaluationStage.DamageOffset',
 ] as const;

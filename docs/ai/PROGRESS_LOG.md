@@ -10,6 +10,20 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-14 — CORE-F09: staged GE evaluation pipeline
+
+- **Goal:** Generic GE evaluation — Attribute Based magnitudes, GE ctx, EvaluationPipeline per character/attribute.
+- **Main changes:** ttribute-evaluation.ts, GFC pipeline binding, GameplayEffectApplicationContext, 11 probe tests (106 total green).
+- **Decisions:** Q1 throw on missing src/tgt; Q2 unknown stage → unstaged + warning; Q3 snapshot ctx + live attribute reads; D19 same-entity dependent invalidation.
+- **Next:** COMBAT-F02 spec / GFC combat integration.
+
+### 2026-07-13 — CORE-F09 spec: staged GE evaluation pipeline
+
+- **Goal:** Generic GE evaluation — Attribute Based magnitudes, GE ctx, EvaluationPipeline per character/attribute.
+- **Main changes:** [CORE-F09-numeric-calculation-pipeline.md](./Core/CORE-F09-numeric-calculation-pipeline.md) (Review)
+- **Aligned with:** gameplay-framework.md §AttributeEvaluationPipeline + user decisions (no meta attr, no evaluateOutgoingDamage, Multiply *=)
+- **Next step:** User review Q1–Q3 → implement S01
+
 ### 2026-07-13 — CORE-F08: GameplayAbility framework on GFC
 
 - **Goal:** Typed GA grant/activate/passive on GFC; cost check; owner/source/target tag gates.

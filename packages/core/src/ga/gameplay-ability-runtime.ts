@@ -6,7 +6,7 @@ import type { GameplayTagContainer } from '../tags/gameplay-tag-container.js';
 import type { GameplayTagManager } from '../tags/gameplay-tag-manager.js';
 import { DEFAULT_CHANNEL_TAG } from '../tags/native-tags.js';
 import type { TraceEntryInput } from '../trace/trace.js';
-import type { AttributeValue, GameplayEffectDefinition } from '../gfc/types.js';
+import type { AttributeValue, GameplayEffectApplicationContext, GameplayEffectDefinition } from '../gfc/types.js';
 import { evaluateTagGates, gatesNeedEntity } from './tag-gates.js';
 import {
   GameplayAbilityError,
@@ -24,7 +24,11 @@ export type GameplayAbilityHost = {
   getOwnerTags(): GameplayTagContainer;
   getAttribute(attribute: string): AttributeValue | undefined;
   setAttributeBase(attribute: string, value: number): void;
-  applyGameplayEffectTo(entityId: EntityId, effect: GameplayEffectDefinition): string;
+  applyGameplayEffectTo(
+    entityId: EntityId,
+    effect: GameplayEffectDefinition,
+    context?: GameplayEffectApplicationContext,
+  ): string;
   resolveEntityTags(entityId: EntityId): GameplayTagContainer | undefined;
   subscribePassive(channel: GameplayEventChannel, listenerId: string, handler: (event: GameplayEvent) => void): void;
   unsubscribePassive(listenerId: string): void;
@@ -138,7 +142,13 @@ export class GameplayAbilityRuntime {
         this.active.delete(instanceId);
         return { ok: false, reason: 'missing_target' };
       }
-      this.host.applyGameplayEffectTo(targetId, binding.effect);
+      const geContext: GameplayEffectApplicationContext = {
+        instigatorEntityId: ctx.instigatorEntityId,
+        sourceEntityId: ctx.sourceEntityId,
+        targetEntityId: ctx.targetEntityId,
+        payload: ctx.payload,
+      };
+      this.host.applyGameplayEffectTo(targetId, binding.effect, geContext);
     }
 
     this.host.emitTrace({
