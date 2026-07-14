@@ -1,6 +1,6 @@
 # Active work (agent backlog)
 
-Last updated: 2026-07-13
+Last updated: 2026-07-14
 
 > **Agent:** Primary backlog. Do not infer implementation from full design docs without promotion here.
 
@@ -8,15 +8,27 @@ Last updated: 2026-07-13
 
 ## In focus
 
-**Phase: GFC depth** â€” GA â†’ numeric pipeline â†’ combat integration.
+**Phase: Data-driven cards** — framework gaps ? combat expressiveness ? JSON cards ? equipment/deck.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1â€“9 | CORE-F01â€“F07, CLI-F02, COMBAT-F01 | Foundation + minimal battle | **Done** |
-| 10 | **CORE-F08** | GameplayAbility on GFC | **Done** ([spec](./Core/CORE-F08-gameplay-ability-framework.md)) |
-| 11 | **CORE-F09** | Staged GE evaluation & Attribute Based magnitudes | **Done** ([spec](./Core/CORE-F09-numeric-calculation-pipeline.md)) |
-| 12 | **COMBAT-F02** | GFC combat (CORE gaps + Strike/Defend/Bash loop) | **Done** ([spec](./Combat/COMBAT-F02-gfc-combat-integration.md)) |
-| â€” | **CLI-F01** | ndjson / debug stubs | Planned (not blocking F08â€“F02 chain) |
+| 1–12 | CORE-F01–F09, COMBAT-F01–F02, CLI-F02 | GFC depth + GFC combat | **Done** |
+| **13** | **CORE-F10** | GFC gaps for JSON cards (Ongoing GE gates, serde) | **In Progress** ([spec](./Core/CORE-F10-data-driven-gfc-gaps.md)) |
+| **14** | **COMBAT-F03** | Describability probes (Vulnerable, buff, mark, …) | **Review** ([spec](./Combat/COMBAT-F03-combat-describability-probes.md)) |
+| **15** | **DATA-F01** | Card JSON schema + loader ? starter deck from data | **Review** ([spec](./Data/DATA-F01-card-asset-pipeline.md)) |
+| — | **CLI-F01** | ndjson / debug stubs | Planned (parallel, not blocking) |
+
+**Execution rhythm:** Implement Feature ? stop for commit approval ? next Feature. User confirmed three Features back-to-back with one pause per Feature.
+
+---
+
+## Deferred (user roadmap — register when promoted)
+
+| Theme | Suggested ID | After |
+|-------|--------------|-------|
+| Equipment + equipment-driven deck | EQUIP-F01 | DATA-F01 |
+| Enemy data + AI | COMBAT-F04 | DATA-F01 |
+| Dungeon / loot / events | DUNGEON-F01 | Combat + equipment data |
 
 ---
 

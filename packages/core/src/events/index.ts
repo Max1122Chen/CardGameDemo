@@ -11,3 +11,4 @@ export {
   type GameplayEvent,
   type GameplayEventPayload,
 } from './gameplay-event.js';
+export { emitTurnEndTimingEvent, TIMING_TURN_END_TAG } from './timing-events.js';

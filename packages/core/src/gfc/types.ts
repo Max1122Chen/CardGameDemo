@@ -57,11 +57,28 @@ export type GameplayEffectDuration =
       channels?: readonly GameplayEventChannel[];
     };
 
+/** While applied, gates must pass on source/target tag containers for modifiers/tags to contribute. */
+export type OngoingTagRequirements = {
+  sourceRequiredTags?: readonly string[];
+  sourceBlockedTags?: readonly string[];
+  targetRequiredTags?: readonly string[];
+  targetBlockedTags?: readonly string[];
+};
+
+export type GameplayEffectStacking =
+  | { kind: 'none' }
+  | {
+      kind: 'byEffectId';
+      onReapply: 'addDuration' | 'refreshDuration' | 'addMagnitude';
+    };
+
 export type GameplayEffectDefinition = {
   id: string;
   modifiers: readonly GameplayEffectModifier[];
   duration: GameplayEffectDuration;
   grantedTags?: readonly GameplayTag[];
+  ongoingTagRequirements?: OngoingTagRequirements;
+  stacking?: GameplayEffectStacking;
 };
 
 export type ActiveGameplayEffect = {
@@ -70,6 +87,10 @@ export type ActiveGameplayEffect = {
   applicationOrder: number;
   applicationContext: GameplayEffectApplicationContext;
   durationProgress?: number;
+  /** Effective Duration magnitude after stack merges (`addDuration`). */
+  stackedDurationMagnitude?: number;
+  /** False when ongoing gates fail; modifiers and granted tags do not contribute. */
+  ongoingContributing: boolean;
   durationChannels: readonly GameplayEventChannel[];
 };
 
@@ -91,6 +112,8 @@ export type ActiveGameplayEffectSnapshot = {
   durationProgress?: number;
   durationTarget?: number;
   durationChannels: string[];
+  ongoingContributing?: boolean;
+  stackedDurationMagnitude?: number;
 };
 
 export type GfcSnapshot = {

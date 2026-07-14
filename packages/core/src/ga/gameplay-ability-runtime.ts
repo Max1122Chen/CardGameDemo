@@ -18,6 +18,7 @@ import {
   type GameplayAbilityDefinition,
   type GameplayAbilityEventListen,
   type GrantedAbilitySnapshot,
+  type TakeDamageActivationData,
 } from './types.js';
 
 export type GameplayAbilityHost = {
@@ -41,6 +42,10 @@ export type GameplayAbilityHost = {
   unsubscribeAbilityEvent(listenerId: string): void;
   /** Optional host reaction when listenWhileActive matches (combat commit/cancel). */
   onActiveAbilityEvent?(info: ActiveAbilityEventInfo): void;
+  runBuiltinActivation?(
+    kind: import('./types.js').GameplayAbilityBuiltinActivation,
+    ctx: import('./types.js').AbilityActivationContext,
+  ): import('./types.js').TakeDamageActivationData | void;
   emitTrace(entry: TraceEntryInput): void;
 };
 
@@ -172,6 +177,19 @@ export class GameplayAbilityRuntime {
       this.host.applyGameplayEffectTo(targetId, binding.effect, geContext);
     }
 
+    let activationData: { takeDamage?: TakeDamageActivationData } | undefined;
+
+    if (definition.builtinActivation) {
+      if (!this.host.runBuiltinActivation) {
+        this.endAbility(instanceId);
+        return { ok: false, reason: 'cannot_activate' };
+      }
+      const builtinResult = this.host.runBuiltinActivation(definition.builtinActivation, ctx);
+      if (definition.builtinActivation === 'combat.takeDamage' && builtinResult) {
+        activationData = { takeDamage: builtinResult };
+      }
+    }
+
     if (definition.listenWhileActive) {
       this.attachActiveListeners(activeRecord, definition.listenWhileActive);
     }
@@ -196,7 +214,7 @@ export class GameplayAbilityRuntime {
       this.endAbility(instanceId);
     }
 
-    return { ok: true, instanceId };
+    return { ok: true, instanceId, activationData };
   }
 
   endAbility(instanceId: string): boolean {

@@ -295,6 +295,8 @@ describe('GameplayFrameworkComponent', () => {
           durationProgress: undefined,
           durationTarget: undefined,
           durationChannels: [],
+          ongoingContributing: true,
+          stackedDurationMagnitude: undefined,
         },
       ],
       grantedAbilities: [],

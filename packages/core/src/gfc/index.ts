@@ -16,12 +16,14 @@ export type {
   GameplayEffectDefinition,
   GameplayEffectDuration,
   GameplayEffectModifier,
+  GameplayEffectStacking,
   GameplayModifierMagnitude,
   GameplayModifierOp,
   GrantedAbilitySnapshot,
   GfcAttributeSnapshot,
   GfcSnapshot,
   GfcTagSnapshot,
+  OngoingTagRequirements,
 } from './types.js';
 export {
   assignModifierStages,
@@ -32,6 +34,10 @@ export {
   resolveModifierMagnitude,
 } from './attribute-evaluation.js';
 export {
+  evaluateOngoingTagRequirements,
+  resolveOngoingEntityId,
+} from './ongoing-tag-requirements.js';
+export {
   GameplayAbilityRuntime,
   GameplayAbilityError,
   evaluateTagGates,
@@ -40,6 +46,7 @@ export {
   type ActivationFailureReason,
   type ActivationResult,
   type ActiveAbilityEventInfo,
+  type GameplayAbilityBuiltinActivation,
   type GameplayAbilityCost,
   type GameplayAbilityDefinition,
   type GameplayAbilityEffectBinding,
@@ -50,4 +57,12 @@ export {
   type GameplayAbilityPassiveTrigger,
   type GameplayAbilityTagGates,
   type GameplayAbilityHost,
+  type TakeDamageActivationData,
 } from '../ga/index.js';
+export {
+  DefinitionParseError,
+  parseGameplayAbilityDefinition,
+  parseGameplayEffectDefinition,
+  type WireGameplayAbilityDefinition,
+  type WireGameplayEffectDefinition,
+} from '../definitions/parse-definitions.js';

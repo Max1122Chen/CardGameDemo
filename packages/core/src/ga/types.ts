@@ -41,6 +41,8 @@ export type GameplayAbilityEventListen = {
 /** @deprecated Prefer listenWhileActive + autoActivateOnGrant; kept as F08 passiveTrigger alias. */
 export type GameplayAbilityPassiveTrigger = GameplayAbilityEventListen;
 
+export type GameplayAbilityBuiltinActivation = 'combat.takeDamage';
+
 export type GameplayAbilityDefinition = {
   id: string;
   kind: GameplayAbilityKind;
@@ -55,6 +57,8 @@ export type GameplayAbilityDefinition = {
    */
   endPolicy?: GameplayAbilityEndPolicy;
   effectsOnActivate: readonly GameplayAbilityEffectBinding[];
+  /** Core-resolved activation when effects alone are insufficient (e.g. TakeDamage sampling). */
+  builtinActivation?: GameplayAbilityBuiltinActivation;
   /** While this activation is Active, subscribe and notify host on match. */
   listenWhileActive?: GameplayAbilityEventListen;
   /**
@@ -81,8 +85,13 @@ export type ActivationFailureReason =
   | 'missing_source'
   | 'insufficient_cost';
 
+export type TakeDamageActivationData = {
+  blocked: number;
+  healthLost: number;
+};
+
 export type ActivationResult =
-  | { ok: true; instanceId: string }
+  | { ok: true; instanceId: string; activationData?: { takeDamage?: TakeDamageActivationData } }
   | { ok: false; reason: ActivationFailureReason };
 
 export type GrantedAbilitySnapshot = {

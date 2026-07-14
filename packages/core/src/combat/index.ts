@@ -2,6 +2,8 @@ export { CombatSession } from './combat-session.js';
 export { CombatError } from './errors.js';
 export { CombatAttributes } from './combat-attributes.js';
 export { settleTakeDamage, resetCombatMeta, bootstrapCombatAttributes } from './take-damage.js';
+export { createTakeDamageAbilityDefinition, TAKE_DAMAGE_ABILITY_ID } from './take-damage-ability.js';
+export { settleTakeDamageOnEntity } from './settle-take-damage.js';
 export { createCardAbilityDefinition } from './card-abilities.js';
 export {
   CARD_CATALOG,

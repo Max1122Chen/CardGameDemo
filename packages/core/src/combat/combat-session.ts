@@ -1,5 +1,6 @@
 import type { RuleEngine } from '../engine/rule-engine.js';
 import { createGameplayEvent } from '../events/gameplay-event.js';
+import { emitTurnEndTimingEvent } from '../events/timing-events.js';
 import type { ActiveAbilityEventInfo } from '../ga/types.js';
 import type { GameplayFrameworkComponent } from '../gfc/gameplay-framework-component.js';
 import type { GameplayTag } from '../tags/gameplay-tag.js';
@@ -20,7 +21,7 @@ import {
 } from './deck-state.js';
 import { CombatError } from './errors.js';
 import { createSlimeScript } from './enemy-script.js';
-import { bootstrapCombatAttributes, resetCombatMeta, settleTakeDamage } from './take-damage.js';
+import { bootstrapCombatAttributes, resetCombatMeta } from './take-damage.js';
 import {
   COMBAT_ENEMY_ID,
   COMBAT_PLAYER_ID,
@@ -56,6 +57,7 @@ export class CombatSession {
   private readonly enemyScript;
   private preview?: PreviewState;
   private readonly cardAbilityHandles = new Map<CardActionId, string>();
+  private readonly takeDamageHandles = new Map<string, string>();
 
   private constructor(
     private readonly engine: RuleEngine,
@@ -261,19 +263,25 @@ export class CombatSession {
     const player = this.requirePlayer();
     const enemy = this.requireEnemy();
 
-    bootstrapCombatAttributes(
-      player,
-      {
-        health: this.config.playerStartHealth,
-        block: 0,
-        actionPoints: this.config.actionPointsPerTurn,
-      },
-      this.engine.tagManager,
+    this.takeDamageHandles.set(
+      COMBAT_PLAYER_ID,
+      bootstrapCombatAttributes(
+        player,
+        {
+          health: this.config.playerStartHealth,
+          block: 0,
+          actionPoints: this.config.actionPointsPerTurn,
+        },
+        this.engine.tagManager,
+      ),
     );
-    bootstrapCombatAttributes(
-      enemy,
-      { health: this.config.enemyStartHealth, block: 0 },
-      this.engine.tagManager,
+    this.takeDamageHandles.set(
+      COMBAT_ENEMY_ID,
+      bootstrapCombatAttributes(
+        enemy,
+        { health: this.config.enemyStartHealth, block: 0 },
+        this.engine.tagManager,
+      ),
     );
 
     for (const actionId of ['strike', 'defend', 'bash'] as const) {
@@ -375,7 +383,19 @@ export class CombatSession {
 
     if (spec.damage !== undefined) {
       const amount = enemy.getAttribute(CombatAttributes.DamageToTake)?.currentValue ?? 0;
-      const result = settleTakeDamage(enemy);
+      const takeHandle = this.takeDamageHandles.get(COMBAT_ENEMY_ID);
+      if (!takeHandle) {
+        throw new CombatError('TakeDamage ability not granted to enemy');
+      }
+      const activation = enemy.tryActivate(takeHandle, {
+        instigatorEntityId: COMBAT_PLAYER_ID,
+        sourceEntityId: COMBAT_PLAYER_ID,
+        targetEntityId: COMBAT_ENEMY_ID,
+      });
+      if (!activation.ok) {
+        throw new CombatError(`TakeDamage failed: ${activation.reason}`);
+      }
+      const result = activation.activationData?.takeDamage ?? { blocked: 0, healthLost: 0 };
       this.emitCombatEvent('GameplayEvent.Combat.player.DealDamage', {
         sourceId: COMBAT_PLAYER_ID,
         targetId: COMBAT_ENEMY_ID,
@@ -435,6 +455,7 @@ export class CombatSession {
     this.emitCombatEvent('GameplayEvent.Combat.player.FinishTurn', {
       entityId: COMBAT_PLAYER_ID,
     });
+    this.emitTurnEndTiming(COMBAT_PLAYER_ID);
     this.log('Player ended turn.');
 
     if (this.result) {
@@ -465,7 +486,19 @@ export class CombatSession {
       { instigatorEntityId: COMBAT_ENEMY_ID, sourceEntityId: COMBAT_ENEMY_ID },
     );
 
-    const result = settleTakeDamage(player);
+    const takeHandle = this.takeDamageHandles.get(COMBAT_PLAYER_ID);
+    if (!takeHandle) {
+      throw new CombatError('TakeDamage ability not granted to player');
+    }
+    const activation = player.tryActivate(takeHandle, {
+      instigatorEntityId: COMBAT_ENEMY_ID,
+      sourceEntityId: COMBAT_ENEMY_ID,
+      targetEntityId: COMBAT_PLAYER_ID,
+    });
+    if (!activation.ok) {
+      throw new CombatError(`TakeDamage failed: ${activation.reason}`);
+    }
+    const result = activation.activationData?.takeDamage ?? { blocked: 0, healthLost: 0 };
     resetCombatMeta(player);
 
     this.emitCombatEvent('GameplayEvent.Combat.player.TakeDamage', {
@@ -492,6 +525,7 @@ export class CombatSession {
     this.emitCombatEvent('GameplayEvent.Combat.player.NPC.FinishTurn', {
       entityId: COMBAT_ENEMY_ID,
     });
+    this.emitTurnEndTiming(COMBAT_ENEMY_ID);
 
     this.beginPlayerTurn();
   }
@@ -559,6 +593,10 @@ export class CombatSession {
       cardId,
       handSize: this.deck.hand.length,
     });
+  }
+
+  private emitTurnEndTiming(entityId: string): void {
+    emitTurnEndTimingEvent(this.engine, this.combatChannel, { entityId });
   }
 
   private emitCombatEvent(tagName: string, payload?: Record<string, unknown>): void {

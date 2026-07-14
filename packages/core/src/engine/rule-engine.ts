@@ -76,6 +76,7 @@ export class RuleEngine {
       eventSystem: this.eventSystem,
       sink: this.traceSink,
       getGfc: (entity) => this.getGfc(entity),
+      onEntityTagChange: (entityId) => this.notifyEntityTagChange(entityId),
       onActiveAbilityEvent: options?.onActiveAbilityEvent,
     });
     this.gameWorld.addComponent(id, GfcComponentType, gfc);
@@ -88,6 +89,12 @@ export class RuleEngine {
 
   requireGfc(entityId: EntityId): GameplayFrameworkComponent {
     return this.gameWorld.requireComponent(entityId, GfcComponentType);
+  }
+
+  notifyEntityTagChange(changedEntityId: EntityId): void {
+    for (const entityId of this.gameWorld.listEntities()) {
+      this.getGfc(entityId)?.refreshOngoingForTagChange(changedEntityId);
+    }
   }
 }
 

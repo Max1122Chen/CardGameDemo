@@ -1,45 +1,15 @@
 import type { GameplayTagManager } from '../tags/gameplay-tag-manager.js';
 import type { GameplayFrameworkComponent } from '../gfc/gameplay-framework-component.js';
-import type { GameplayEffectDefinition } from '../gfc/types.js';
 import { CombatAttributes } from './combat-attributes.js';
+import { createTakeDamageAbilityDefinition } from './take-damage-ability.js';
+import { settleTakeDamageOnEntity } from './settle-take-damage.js';
 
 /** Settle Block then Health from DamageToTake using Instant GE only. */
 export function settleTakeDamage(target: GameplayFrameworkComponent): {
   blocked: number;
   healthLost: number;
 } {
-  const take = target.getAttribute(CombatAttributes.DamageToTake)?.currentValue ?? 0;
-  const block = target.getAttribute(CombatAttributes.Block)?.currentValue ?? 0;
-  const health = target.getAttribute(CombatAttributes.Health)?.currentValue ?? 0;
-
-  if (take <= 0) {
-    return { blocked: 0, healthLost: 0 };
-  }
-
-  if (block >= take) {
-    target.applyGameplayEffect({
-      id: 'ge.combat.take.block-only',
-      duration: { kind: 'Instant' },
-      modifiers: [{ attribute: CombatAttributes.Block, op: 'Add', magnitude: -take }],
-    });
-    return { blocked: take, healthLost: 0 };
-  }
-
-  const healthLost = take - block;
-  const effects: GameplayEffectDefinition = {
-    id: 'ge.combat.take.overflow',
-    duration: { kind: 'Instant' },
-    modifiers: [
-      { attribute: CombatAttributes.Block, op: 'Override', magnitude: 0 },
-      {
-        attribute: CombatAttributes.Health,
-        op: 'Override',
-        magnitude: Math.max(0, health - healthLost),
-      },
-    ],
-  };
-  target.applyGameplayEffect(effects);
-  return { blocked: block, healthLost };
+  return settleTakeDamageOnEntity(target);
 }
 
 export function resetCombatMeta(entity: GameplayFrameworkComponent): void {
@@ -58,7 +28,7 @@ export function bootstrapCombatAttributes(
   gfc: GameplayFrameworkComponent,
   options: { health: number; block?: number; actionPoints?: number },
   tagManager: GameplayTagManager,
-): void {
+): string {
   gfc.setAttributeBase(CombatAttributes.Health, options.health);
   gfc.setAttributeBase(CombatAttributes.Block, options.block ?? 0);
   if (options.actionPoints !== undefined) {
@@ -74,7 +44,6 @@ export function bootstrapCombatAttributes(
     stageOrder: [absorbStage],
   });
 
-  // Identity absorption GE — pipeline stays ready for later absorb multipliers.
   gfc.applyGameplayEffect({
     id: 'ge.combat.damage-to-take.identity',
     duration: { kind: 'Infinite' },
@@ -87,4 +56,6 @@ export function bootstrapCombatAttributes(
       },
     ],
   });
+
+  return gfc.grantAbility(createTakeDamageAbilityDefinition());
 }

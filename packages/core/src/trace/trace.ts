@@ -100,6 +100,25 @@ export type GameplayEffectDurationExpiredEntry = {
   finalProgress: number;
 };
 
+export type GameplayEffectOngoingStateEntry = {
+  kind: 'ge.ongoing.state';
+  t: number;
+  entity: string;
+  effectId: string;
+  effectDefId: string;
+  contributing: boolean;
+};
+
+export type GameplayEffectStackedEntry = {
+  kind: 'ge.stacked';
+  t: number;
+  entity: string;
+  effectId: string;
+  effectDefId: string;
+  policy: string;
+  stackedDurationMagnitude?: number;
+};
+
 export type GfcChannelSubscribeEntry = {
   kind: 'gfc.channel.subscribe';
   t: number;
@@ -234,6 +253,8 @@ export type GameTraceEntry =
   | GameplayEffectRemovedEntry
   | GameplayEffectDurationProgressEntry
   | GameplayEffectDurationExpiredEntry
+  | GameplayEffectOngoingStateEntry
+  | GameplayEffectStackedEntry
   | GfcChannelSubscribeEntry
   | GfcChannelUnsubscribeEntry
   | CombatPhaseTraceEntry
@@ -263,6 +284,8 @@ export type TraceEntryInput =
   | (Omit<GameplayEffectRemovedEntry, 't'> & { t?: number })
   | (Omit<GameplayEffectDurationProgressEntry, 't'> & { t?: number })
   | (Omit<GameplayEffectDurationExpiredEntry, 't'> & { t?: number })
+  | (Omit<GameplayEffectOngoingStateEntry, 't'> & { t?: number })
+  | (Omit<GameplayEffectStackedEntry, 't'> & { t?: number })
   | (Omit<GfcChannelSubscribeEntry, 't'> & { t?: number })
   | (Omit<GfcChannelUnsubscribeEntry, 't'> & { t?: number })
   | (Omit<CombatPhaseTraceEntry, 't'> & { t?: number })

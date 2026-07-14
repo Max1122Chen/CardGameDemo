@@ -7,6 +7,7 @@ export {
   type ActivationResult,
   type ActiveAbilityEventInfo,
   type ActiveAbilitySnapshot,
+  type GameplayAbilityBuiltinActivation,
   type GameplayAbilityCost,
   type GameplayAbilityDefinition,
   type GameplayAbilityEffectBinding,
@@ -17,4 +18,5 @@ export {
   type GameplayAbilityPassiveTrigger,
   type GameplayAbilityTagGates,
   type GrantedAbilitySnapshot,
+  type TakeDamageActivationData,
 } from './types.js';

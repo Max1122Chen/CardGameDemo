@@ -23,7 +23,12 @@ import type {
   GameplayModifierOp,
   GfcSnapshot,
 } from './types.js';
-import { GameplayEffectError } from './errors.js';
+import { GameplayEffectError, GameplayNotImplementedError } from './errors.js';
+import {
+  evaluateOngoingTagRequirements,
+  resolveOngoingEntityId,
+} from './ongoing-tag-requirements.js';
+import { settleTakeDamageOnEntity } from '../combat/settle-take-damage.js';
 import {
   assignModifierStages,
   evaluateFlatAttributeValue,
@@ -41,6 +46,8 @@ export type GameplayFrameworkComponentOptions = {
   sink?: TraceSink;
   getGfc?: (entityId: EntityId) => GameplayFrameworkComponent | undefined;
   onActiveAbilityEvent?: (info: import('../ga/types.js').ActiveAbilityEventInfo) => void;
+  /** Notifies when any entity's tags change (for cross-entity ongoing GE gates). */
+  onEntityTagChange?: (entityId: EntityId) => void;
 };
 
 let nextEffectHandle = 0;
@@ -56,6 +63,7 @@ export class GameplayFrameworkComponent {
   private readonly passiveListenerIds: string[] = [];
   private readonly abilityRuntime: GameplayAbilityRuntime;
   private readonly resolveGfc: (entityId: EntityId) => GameplayFrameworkComponent | undefined;
+  private readonly onEntityTagChange?: (entityId: EntityId) => void;
   private readonly attributeSets = new Map<string, unknown>();
   private readonly attributes = new Map<string, AttributeValue>();
   private readonly evaluationPipelines = new Map<string, readonly GameplayTag[]>();
@@ -80,6 +88,7 @@ export class GameplayFrameworkComponent {
       sink: options.sink,
     });
     this.resolveGfc = options.getGfc ?? (() => undefined);
+    this.onEntityTagChange = options.onEntityTagChange;
     this.abilityRuntime = new GameplayAbilityRuntime({
       entityId: this.entityId,
       tagManager: this.tagManager,
@@ -111,6 +120,12 @@ export class GameplayFrameworkComponent {
         }
       },
       onActiveAbilityEvent: options.onActiveAbilityEvent,
+      runBuiltinActivation: (kind, _ctx) => {
+        if (kind === 'combat.takeDamage') {
+          return settleTakeDamageOnEntity(this);
+        }
+        throw new GameplayEffectError(`Unknown builtin activation: ${String(kind)}`);
+      },
       emitTrace: (entry) => {
         this.sink?.emit(entry);
       },
@@ -120,11 +135,13 @@ export class GameplayFrameworkComponent {
   addTag(tag: GameplayTag, count = 1): void {
     this.assertActive();
     this.tags.add(tag, count);
+    this.notifyTagChange();
   }
 
   removeTag(tag: GameplayTag, count = 1): void {
     this.assertActive();
     this.tags.remove(tag, count);
+    this.notifyTagChange();
   }
 
   hasTag(query: GameplayTag): boolean {
@@ -241,17 +258,32 @@ export class GameplayFrameworkComponent {
       return effectId;
     }
 
+    const stacking = effect.stacking ?? { kind: 'none' };
+    if (stacking.kind === 'byEffectId') {
+      const existing = this.findActiveEffectByDefId(effect.id);
+      if (existing) {
+        return this.reapplyStackedEffect(existing, effect, stacking, applicationContext);
+      }
+    }
+
+    const ongoingContributing = this.evaluateOngoingContributing(effect, applicationContext);
+
     const activeEffect: ActiveGameplayEffect = {
       id: effectId,
       definition: effect,
       applicationOrder: this.nextApplicationOrder++,
       applicationContext,
       durationProgress: effect.duration.kind === 'Duration' ? 0 : undefined,
+      stackedDurationMagnitude:
+        effect.duration.kind === 'Duration' ? effect.duration.magnitude : undefined,
+      ongoingContributing,
       durationChannels: this.resolveDurationChannels(effect.duration),
     };
 
     this.activeEffects.set(effectId, activeEffect);
-    this.applyGrantedTags(effect.grantedTags);
+    if (ongoingContributing) {
+      this.applyGrantedTags(effect.grantedTags);
+    }
 
     if (effect.duration.kind === 'Duration') {
       this.addDurationSubscriptions(activeEffect);
@@ -259,6 +291,37 @@ export class GameplayFrameworkComponent {
 
     this.recomputeAttributes(this.collectModifiedAttributes(effect));
     return effectId;
+  }
+
+  /** Re-evaluate ongoing gates when tags change on a related entity. */
+  refreshOngoingForTagChange(changedEntityId: EntityId): void {
+    this.assertActive();
+
+    let touched = false;
+    for (const activeEffect of this.getOrderedActiveEffects()) {
+      if (!activeEffect.definition.ongoingTagRequirements) {
+        continue;
+      }
+
+      const context = activeEffect.applicationContext;
+      const sourceId = resolveOngoingEntityId('source', context, this.entityId);
+      const targetId = resolveOngoingEntityId('target', context, this.entityId);
+      if (
+        changedEntityId !== this.entityId &&
+        changedEntityId !== sourceId &&
+        changedEntityId !== targetId
+      ) {
+        continue;
+      }
+
+      if (this.updateEffectOngoingState(activeEffect)) {
+        touched = true;
+      }
+    }
+
+    if (touched) {
+      this.recomputeAttributes(this.collectAllModifiedAttributesFromActiveEffects());
+    }
   }
 
   removeGameplayEffect(effectId: string): boolean {
@@ -269,7 +332,9 @@ export class GameplayFrameworkComponent {
     }
 
     this.activeEffects.delete(effectId);
-    this.removeGrantedTags(effect.definition.grantedTags);
+    if (effect.ongoingContributing) {
+      this.removeGrantedTags(effect.definition.grantedTags);
+    }
 
     if (effect.definition.duration.kind === 'Duration') {
       this.removeDurationSubscriptions(effect);
@@ -292,6 +357,10 @@ export class GameplayFrameworkComponent {
         ...effect.definition,
         modifiers: [...effect.definition.modifiers],
         grantedTags: effect.definition.grantedTags ? [...effect.definition.grantedTags] : undefined,
+        ongoingTagRequirements: effect.definition.ongoingTagRequirements
+          ? { ...effect.definition.ongoingTagRequirements }
+          : undefined,
+        stacking: effect.definition.stacking ? { ...effect.definition.stacking } : undefined,
       },
       durationChannels: [...effect.durationChannels],
     }));
@@ -398,8 +467,12 @@ export class GameplayFrameworkComponent {
         durationKind: effect.definition.duration.kind,
         durationProgress: effect.durationProgress,
         durationTarget:
-          effect.definition.duration.kind === 'Duration' ? effect.definition.duration.magnitude : undefined,
+          effect.definition.duration.kind === 'Duration'
+            ? this.getEffectiveDurationMagnitude(effect)
+            : undefined,
         durationChannels: effect.durationChannels.map((channel) => channel.name),
+        ongoingContributing: effect.ongoingContributing,
+        stackedDurationMagnitude: effect.stackedDurationMagnitude,
       })),
       grantedAbilities: this.abilityRuntime.listGrantedAbilities(),
       activeAbilities: this.abilityRuntime.listActiveAbilities(),
@@ -539,6 +612,10 @@ export class GameplayFrameworkComponent {
     let order = 0;
 
     for (const effect of this.getOrderedActiveEffects()) {
+      if (!effect.ongoingContributing) {
+        continue;
+      }
+
       for (const modifier of effect.definition.modifiers) {
         if (modifier.attribute !== attribute) {
           continue;
@@ -659,10 +736,10 @@ export class GameplayFrameworkComponent {
         unitTag: effect.definition.duration.unitTag.name,
         before,
         after,
-        target: effect.definition.duration.magnitude,
+        target: this.getEffectiveDurationMagnitude(effect),
       });
 
-      if (after >= effect.definition.duration.magnitude) {
+      if (after >= this.getEffectiveDurationMagnitude(effect)) {
         this.emitTrace('ge.duration.expired', {
           effectId: effect.id,
           effectDefId: effect.definition.id,
@@ -761,15 +838,125 @@ export class GameplayFrameworkComponent {
   }
 
   private applyGrantedTags(tags: readonly GameplayTag[] | undefined): void {
-    for (const tag of tags ?? []) {
+    if (!tags || tags.length === 0) {
+      return;
+    }
+    for (const tag of tags) {
       this.tags.add(tag);
     }
+    this.notifyTagChange();
   }
 
   private removeGrantedTags(tags: readonly GameplayTag[] | undefined): void {
-    for (const tag of tags ?? []) {
+    if (!tags || tags.length === 0) {
+      return;
+    }
+    for (const tag of tags) {
       this.tags.remove(tag);
     }
+    this.notifyTagChange();
+  }
+
+  private notifyTagChange(): void {
+    this.onEntityTagChange?.(this.entityId);
+  }
+
+  private evaluateOngoingContributing(
+    effect: GameplayEffectDefinition,
+    context: GameplayEffectApplicationContext,
+  ): boolean {
+    return evaluateOngoingTagRequirements(
+      this.tagManager,
+      effect.ongoingTagRequirements,
+      context,
+      this.entityId,
+      (entityId) => this.resolveGfc(entityId)?.getTagContainer(),
+    );
+  }
+
+  private updateEffectOngoingState(activeEffect: ActiveGameplayEffect): boolean {
+    const next = this.evaluateOngoingContributing(
+      activeEffect.definition,
+      activeEffect.applicationContext,
+    );
+    const previous = activeEffect.ongoingContributing;
+    if (previous === next) {
+      return false;
+    }
+
+    activeEffect.ongoingContributing = next;
+    if (next) {
+      this.applyGrantedTags(activeEffect.definition.grantedTags);
+    } else {
+      this.removeGrantedTags(activeEffect.definition.grantedTags);
+    }
+
+    this.emitTrace('ge.ongoing.state', {
+      effectId: activeEffect.id,
+      effectDefId: activeEffect.definition.id,
+      contributing: next,
+    });
+    return true;
+  }
+
+  private findActiveEffectByDefId(definitionId: string): ActiveGameplayEffect | undefined {
+    for (const effect of this.activeEffects.values()) {
+      if (effect.definition.id === definitionId) {
+        return effect;
+      }
+    }
+    return undefined;
+  }
+
+  private reapplyStackedEffect(
+    existing: ActiveGameplayEffect,
+    incoming: GameplayEffectDefinition,
+    stacking: Extract<import('./types.js').GameplayEffectStacking, { kind: 'byEffectId' }>,
+    applicationContext: GameplayEffectApplicationContext,
+  ): string {
+    existing.applicationContext = applicationContext;
+
+    if (incoming.duration.kind === 'Duration') {
+      const base =
+        existing.stackedDurationMagnitude ?? incoming.duration.magnitude;
+      if (stacking.onReapply === 'addDuration') {
+        existing.stackedDurationMagnitude = base + incoming.duration.magnitude;
+      } else if (stacking.onReapply === 'refreshDuration') {
+        existing.stackedDurationMagnitude = incoming.duration.magnitude;
+        existing.durationProgress = 0;
+      }
+    }
+
+    if (stacking.onReapply === 'addMagnitude') {
+      throw new GameplayNotImplementedError('GameplayEffect stacking addMagnitude');
+    }
+
+    this.updateEffectOngoingState(existing);
+    this.recomputeAttributes(this.collectModifiedAttributes(incoming));
+    this.emitTrace('ge.stacked', {
+      effectId: existing.id,
+      effectDefId: incoming.id,
+      policy: stacking.onReapply,
+      stackedDurationMagnitude: existing.stackedDurationMagnitude,
+    });
+    return existing.id;
+  }
+
+  private getEffectiveDurationMagnitude(effect: ActiveGameplayEffect): number {
+    if (effect.definition.duration.kind !== 'Duration') {
+      return 0;
+    }
+    return effect.stackedDurationMagnitude ?? effect.definition.duration.magnitude;
+  }
+
+  private collectAllModifiedAttributesFromActiveEffects(): string[] {
+    const attributes = new Set<string>();
+    for (const effect of this.activeEffects.values()) {
+      for (const modifier of effect.definition.modifiers) {
+        attributes.add(modifier.attribute);
+      }
+    }
+    return [...attributes];
   }
 
   private validateEffect(effect: GameplayEffectDefinition): void {
@@ -830,6 +1017,8 @@ export class GameplayFrameworkComponent {
       | 'attr.pipeline.final'
       | 'ge.duration.progress'
       | 'ge.duration.expired'
+      | 'ge.ongoing.state'
+      | 'ge.stacked'
       | 'gfc.channel.subscribe'
       | 'gfc.channel.unsubscribe',
     payload: Record<string, unknown>,
