@@ -3,15 +3,14 @@ import { createGameplayEvent } from '../events/gameplay-event.js';
 import { emitTurnEndTimingEvent } from '../events/timing-events.js';
 import type { ActiveAbilityEventInfo } from '../ga/types.js';
 import type { GameplayFrameworkComponent } from '../gfc/gameplay-framework-component.js';
+import type { GameplayEffectApplicationContext } from '../gfc/types.js';
 import type { GameplayTag } from '../tags/gameplay-tag.js';
 import type { TraceEntryInput } from '../trace/trace.js';
-import {
-  createCardAbilityDefinition,
-  gainBlockFromPreviewEffect,
-  spendActionPointsEffect,
-} from './card-abilities.js';
+import { gainBlockFromPreviewEffect, spendActionPointsEffect } from './card-abilities.js';
+import type { CardDefinition } from './card-definition.js';
+import { createCardDefinitions } from './card-definitions.js';
+import { STARTER_DECK } from './card-catalog.js';
 import { CombatAttributes } from './combat-attributes.js';
-import { getCardSpec, STARTER_DECK } from './card-catalog.js';
 import { getEntityActionPoints, getEntityBlock, getEntityHealth } from './combat-damage.js';
 import {
   buildDeckInstances,
@@ -55,6 +54,7 @@ export class CombatSession {
   private readonly combatLog: string[] = [];
   private readonly combatChannel;
   private readonly enemyScript;
+  private readonly cardDefinitions: Record<CardActionId, CardDefinition>;
   private preview?: PreviewState;
   private readonly cardAbilityHandles = new Map<CardActionId, string>();
   private readonly takeDamageHandles = new Map<string, string>();
@@ -64,9 +64,11 @@ export class CombatSession {
     private readonly config: CombatSessionConfig,
     deck: DeckState,
     instances: Map<string, CardInstance>,
+    cardDefinitions: Record<CardActionId, CardDefinition>,
   ) {
     this.deck = deck;
     this.instances = instances;
+    this.cardDefinitions = cardDefinitions;
     this.combatChannel = engine.eventSystem.channel(engine.tagManager.resolve('Combat'));
     this.enemyScript = createSlimeScript(config.enemyAttackDamage);
   }
@@ -76,10 +78,16 @@ export class CombatSession {
     config: Partial<CombatSessionConfig> = {},
   ): CombatSession {
     const merged = { ...DEFAULT_COMBAT_CONFIG, ...config };
+    const combatChannel = engine.eventSystem.channel(engine.tagManager.resolve('Combat'));
+    const cardDefinitions = createCardDefinitions(engine.tagManager, combatChannel);
     const { deck, instances } = buildDeckInstances(STARTER_DECK);
-    const session = new CombatSession(engine, merged, deck, instances);
+    const session = new CombatSession(engine, merged, deck, instances, cardDefinitions);
     session.runSetup();
     return session;
+  }
+
+  getCardDefinition(actionId: CardActionId): CardDefinition {
+    return this.cardDefinitions[actionId];
   }
 
   /** Select card + target: GFC preview meta; cancel previous preview. */
@@ -99,14 +107,14 @@ export class CombatSession {
       throw new CombatError(`Unknown card instance: ${instanceId}`);
     }
 
+    const def = this.cardDefinitions[instance.actionId];
     const player = this.requirePlayer();
     const handle = this.cardAbilityHandles.get(instance.actionId);
     if (!handle) {
       throw new CombatError(`No ability granted for card ${instance.actionId}`);
     }
 
-    const needsTarget = getCardSpec(instance.actionId).damage !== undefined;
-    const targetId = needsTarget ? targetEntityId : COMBAT_PLAYER_ID;
+    const targetId = this.resolvePreviewTarget(def, targetEntityId);
 
     const result = player.tryActivate(handle, {
       instigatorEntityId: COMBAT_PLAYER_ID,
@@ -156,8 +164,8 @@ export class CombatSession {
       if (!instance) {
         return;
       }
-      const spec = getCardSpec(instance.actionId);
-      if (ap >= spec.cost) {
+      const def = this.cardDefinitions[instance.actionId];
+      if (ap >= def.cost) {
         actions.push({ type: 'PlayCard', handIndex });
       }
     });
@@ -192,12 +200,12 @@ export class CombatSession {
         if (!instance) {
           return undefined;
         }
-        const spec = getCardSpec(instance.actionId);
+        const def = this.cardDefinitions[instance.actionId];
         return {
           instanceId,
           actionId: instance.actionId,
-          name: spec.name,
-          cost: spec.cost,
+          name: def.name,
+          cost: def.cost,
         };
       })
       .filter((card): card is NonNullable<typeof card> => card !== undefined);
@@ -284,12 +292,14 @@ export class CombatSession {
       ),
     );
 
-    for (const actionId of ['strike', 'defend', 'bash'] as const) {
-      const handle = player.grantAbility(createCardAbilityDefinition(actionId));
-      this.cardAbilityHandles.set(actionId, handle);
+    for (const def of Object.values(this.cardDefinitions)) {
+      const handle = player.grantAbility(def.ability);
+      this.cardAbilityHandles.set(def.id, handle);
     }
 
-    const drawn = drawCards(this.deck, this.config.openingDraw);
+    const drawn = this.config.openingHand
+      ? this.drawOpeningHand(this.config.openingHand)
+      : drawCards(this.deck, this.config.openingDraw);
     for (const instanceId of drawn) {
       const instance = this.instances.get(instanceId);
       if (instance) {
@@ -317,11 +327,11 @@ export class CombatSession {
       throw new CombatError(`Unknown card instance: ${instanceId}`);
     }
 
-    const spec = getCardSpec(instance.actionId);
+    const def = this.cardDefinitions[instance.actionId];
     const player = this.requirePlayer();
     const ap = getEntityActionPoints(player);
-    if (ap < spec.cost) {
-      throw new CombatError(`Insufficient AP for ${spec.name}`);
+    if (ap < def.cost) {
+      throw new CombatError(`Insufficient AP for ${def.name}`);
     }
 
     if (
@@ -329,7 +339,9 @@ export class CombatSession {
       this.preview.instanceId !== instanceId ||
       this.preview.handIndex !== handIndex
     ) {
-      this.beginCardPreview(handIndex, COMBAT_ENEMY_ID);
+      const defaultTarget =
+        def.targeting === 'single_enemy' ? COMBAT_ENEMY_ID : COMBAT_PLAYER_ID;
+      this.beginCardPreview(handIndex, defaultTarget);
     }
 
     this.emitCombatEvent('GameplayEvent.Combat.TryPlayCard', {
@@ -374,31 +386,36 @@ export class CombatSession {
 
     const player = this.requirePlayer();
     const enemy = this.requireEnemy();
-    const spec = getCardSpec(preview.actionId);
+    const def = this.cardDefinitions[preview.actionId];
+    const geContext: GameplayEffectApplicationContext = {
+      instigatorEntityId: COMBAT_PLAYER_ID,
+      sourceEntityId: COMBAT_PLAYER_ID,
+      targetEntityId: preview.targetEntityId,
+    };
 
-    player.applyGameplayEffect(spendActionPointsEffect(spec.cost), {
+    player.applyGameplayEffect(spendActionPointsEffect(def.cost), {
       instigatorEntityId: COMBAT_PLAYER_ID,
       sourceEntityId: COMBAT_PLAYER_ID,
     });
 
-    if (spec.damage !== undefined) {
-      const amount = enemy.getAttribute(CombatAttributes.DamageToTake)?.currentValue ?? 0;
-      const takeHandle = this.takeDamageHandles.get(COMBAT_ENEMY_ID);
-      if (!takeHandle) {
-        throw new CombatError('TakeDamage ability not granted to enemy');
-      }
-      const activation = enemy.tryActivate(takeHandle, {
-        instigatorEntityId: COMBAT_PLAYER_ID,
-        sourceEntityId: COMBAT_PLAYER_ID,
-        targetEntityId: COMBAT_ENEMY_ID,
-      });
-      if (!activation.ok) {
-        throw new CombatError(`TakeDamage failed: ${activation.reason}`);
-      }
-      const result = activation.activationData?.takeDamage ?? { blocked: 0, healthLost: 0 };
+    for (const binding of def.commitEffects ?? []) {
+      const targetGfc =
+        binding.target === 'self'
+          ? player
+          : preview.targetEntityId === COMBAT_PLAYER_ID
+            ? player
+            : enemy;
+      targetGfc.applyGameplayEffect(binding.effect, geContext);
+    }
+
+    if (def.settleTakeDamageOnTarget) {
+      const targetGfc =
+        preview.targetEntityId === COMBAT_PLAYER_ID ? player : enemy;
+      const amount = targetGfc.getAttribute(CombatAttributes.DamageToTake)?.currentValue ?? 0;
+      const result = this.activateTakeDamage(targetGfc.entityId, geContext);
       this.emitCombatEvent('GameplayEvent.Combat.player.DealDamage', {
         sourceId: COMBAT_PLAYER_ID,
-        targetId: COMBAT_ENEMY_ID,
+        targetId: preview.targetEntityId,
         amount,
         blocked: result.blocked,
         healthLost: result.healthLost,
@@ -406,18 +423,20 @@ export class CombatSession {
       this.emitCombatTrace({
         kind: 'combat.damage',
         sourceId: COMBAT_PLAYER_ID,
-        targetId: COMBAT_ENEMY_ID,
+        targetId: preview.targetEntityId,
         amount,
         blocked: result.blocked,
       });
-      this.log(`${spec.name} dealt ${result.healthLost} damage (${result.blocked} blocked).`);
-    } else if (spec.block !== undefined) {
+      this.log(`${def.name} dealt ${result.healthLost} damage (${result.blocked} blocked).`);
+    } else if (def.applyBlockFromPreview) {
       const gain = player.getAttribute(CombatAttributes.BlockToGain)?.currentValue ?? 0;
       player.applyGameplayEffect(gainBlockFromPreviewEffect(), {
         instigatorEntityId: COMBAT_PLAYER_ID,
         sourceEntityId: COMBAT_PLAYER_ID,
       });
-      this.log(`${spec.name} gained ${gain} block.`);
+      this.log(`${def.name} gained ${gain} block.`);
+    } else {
+      this.log(`${def.name} played.`);
     }
 
     const handIndex = this.deck.hand.indexOf(preview.instanceId);
@@ -433,16 +452,68 @@ export class CombatSession {
     this.emitCombatEvent('GameplayEvent.Combat.player.PlayACard', {
       entityId: COMBAT_PLAYER_ID,
       cardId: preview.actionId,
-      cost: spec.cost,
+      cost: def.cost,
     });
     this.emitCombatTrace({
       kind: 'combat.play_card',
       entityId: COMBAT_PLAYER_ID,
       cardId: preview.actionId,
-      cost: spec.cost,
+      cost: def.cost,
     });
 
     this.checkEndConditions();
+  }
+
+  private activateTakeDamage(
+    entityId: string,
+    ctx: GameplayEffectApplicationContext,
+  ): { blocked: number; healthLost: number } {
+    const gfc = this.engine.requireGfc(entityId);
+    const takeHandle = this.takeDamageHandles.get(entityId);
+    if (!takeHandle) {
+      throw new CombatError(`TakeDamage ability not granted to ${entityId}`);
+    }
+    const activation = gfc.tryActivate(takeHandle, {
+      instigatorEntityId: ctx.instigatorEntityId,
+      sourceEntityId: ctx.sourceEntityId,
+      targetEntityId: ctx.targetEntityId ?? entityId,
+    });
+    if (!activation.ok) {
+      throw new CombatError(`TakeDamage failed: ${activation.reason}`);
+    }
+    return activation.activationData?.takeDamage ?? { blocked: 0, healthLost: 0 };
+  }
+
+  private resolvePreviewTarget(def: CardDefinition, requestedTarget: string): string {
+    switch (def.targeting) {
+      case 'single_enemy':
+        return requestedTarget;
+      case 'self':
+      case 'none':
+        return COMBAT_PLAYER_ID;
+    }
+  }
+
+  private drawOpeningHand(actionIds: readonly CardActionId[]): string[] {
+    this.deck.hand.length = 0;
+    const drawn: string[] = [];
+
+    for (const actionId of actionIds) {
+      const pileIndex = this.deck.drawPile.findIndex(
+        (instanceId) => this.instances.get(instanceId)?.actionId === actionId,
+      );
+      if (pileIndex < 0) {
+        throw new CombatError(`Cannot arrange opening hand: ${actionId} not in draw pile`);
+      }
+      const [instanceId] = this.deck.drawPile.splice(pileIndex, 1);
+      if (!instanceId) {
+        throw new CombatError(`Cannot arrange opening hand: ${actionId} missing instance`);
+      }
+      this.deck.hand.push(instanceId);
+      drawn.push(instanceId);
+    }
+
+    return drawn;
   }
 
   private endPlayerTurn(): void {
@@ -486,19 +557,11 @@ export class CombatSession {
       { instigatorEntityId: COMBAT_ENEMY_ID, sourceEntityId: COMBAT_ENEMY_ID },
     );
 
-    const takeHandle = this.takeDamageHandles.get(COMBAT_PLAYER_ID);
-    if (!takeHandle) {
-      throw new CombatError('TakeDamage ability not granted to player');
-    }
-    const activation = player.tryActivate(takeHandle, {
+    const result = this.activateTakeDamage(COMBAT_PLAYER_ID, {
       instigatorEntityId: COMBAT_ENEMY_ID,
       sourceEntityId: COMBAT_ENEMY_ID,
       targetEntityId: COMBAT_PLAYER_ID,
     });
-    if (!activation.ok) {
-      throw new CombatError(`TakeDamage failed: ${activation.reason}`);
-    }
-    const result = activation.activationData?.takeDamage ?? { blocked: 0, healthLost: 0 };
     resetCombatMeta(player);
 
     this.emitCombatEvent('GameplayEvent.Combat.player.TakeDamage', {

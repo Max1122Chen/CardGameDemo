@@ -33,7 +33,7 @@ export function settleTakeDamageOnEntity(target: TakeDamageEntity): {
     return { blocked: take, healthLost: 0 };
   }
 
-  const healthLost = take - block;
+  const healthLost = Math.floor(take - block);
   target.applyGameplayEffect({
     id: 'ge.combat.take.overflow',
     duration: { kind: 'Instant' },

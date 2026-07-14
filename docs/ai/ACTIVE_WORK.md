@@ -13,8 +13,8 @@ Last updated: 2026-07-14
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
 | 1–12 | CORE-F01–F09, COMBAT-F01–F02, CLI-F02 | GFC depth + GFC combat | **Done** |
-| **13** | **CORE-F10** | GFC gaps for JSON cards (Ongoing GE gates, serde) | **In Progress** ([spec](./Core/CORE-F10-data-driven-gfc-gaps.md)) |
-| **14** | **COMBAT-F03** | Describability probes (Vulnerable, buff, mark, …) | **Review** ([spec](./Combat/COMBAT-F03-combat-describability-probes.md)) |
+| **13** | **CORE-F10** | GFC gaps for JSON cards (Ongoing GE gates, serde) | **Done** ([spec](./Core/CORE-F10-data-driven-gfc-gaps.md)) |
+| **14** | **COMBAT-F03** | Describability probes (Vulnerable, buff, mark, …) | **In Progress** ([spec](./Combat/COMBAT-F03-combat-describability-probes.md)) |
 | **15** | **DATA-F01** | Card JSON schema + loader ? starter deck from data | **Review** ([spec](./Data/DATA-F01-card-asset-pipeline.md)) |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel, not blocking) |
 

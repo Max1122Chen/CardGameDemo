@@ -5,13 +5,17 @@ import { TraceBuffer } from '../trace/trace.js';
 import { CombatError, CombatSession } from './combat-session.js';
 import { drawCards, buildDeckInstances } from './deck-state.js';
 import { STARTER_DECK } from './card-catalog.js';
-import type { CardActionId } from './types.js';
+import type { CardActionId, CombatSessionConfig } from './types.js';
 import { COMBAT_ENEMY_ID, COMBAT_PLAYER_ID } from './types.js';
 
-function createSession(trace = false): { engine: RuleEngine; session: CombatSession; traceBuffer?: TraceBuffer } {
+function createSession(
+  options: Partial<CombatSessionConfig> | boolean = {},
+): { engine: RuleEngine; session: CombatSession; traceBuffer?: TraceBuffer } {
+  const trace = typeof options === 'boolean' ? options : false;
+  const config = typeof options === 'boolean' ? {} : options;
   const traceBuffer = trace ? new TraceBuffer() : undefined;
   const engine = RuleEngine.create({ traceSink: traceBuffer });
-  const session = CombatSession.bootstrap(engine);
+  const session = CombatSession.bootstrap(engine, config);
   return { engine, session, traceBuffer };
 }
 
@@ -109,9 +113,9 @@ describe('CombatSession', () => {
   });
 
   it('victory when enemy HP reaches 0', () => {
-    const { session } = createSession();
+    const { session } = createSession({ openingHand: ['bash', 'strike'] });
 
-    playCard(session, 'strike');
+    playCard(session, 'bash');
     playCard(session, 'strike');
 
     const snapshot = session.getSnapshot();

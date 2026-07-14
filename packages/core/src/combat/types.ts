@@ -6,7 +6,7 @@ export const COMBAT_ENEMY_ID = 'enemy-1' as const;
 export type CombatPhase = 'Setup' | 'PlayerTurn' | 'EnemyTurn' | 'Victory' | 'Defeat';
 export type CombatTurnOwner = 'player' | 'enemy';
 export type CombatResult = 'victory' | 'defeat';
-export type CardActionId = 'strike' | 'defend' | 'bash';
+export type CardActionId = 'strike' | 'defend' | 'bash' | 'weaken' | 'flex' | 'wait';
 
 export type CombatAction =
   | { type: 'PlayCard'; handIndex: number }
@@ -72,11 +72,13 @@ export type CombatSessionConfig = {
   playerStartHealth: number;
   enemyStartHealth: number;
   enemyAttackDamage: number;
+  /** Scenario hook: force opening hand (ignores openingDraw count). */
+  openingHand?: readonly CardActionId[];
 };
 
 export const DEFAULT_COMBAT_CONFIG: CombatSessionConfig = {
   openingDraw: 5,
-  turnDraw: 1,
+  turnDraw: 5,
   actionPointsPerTurn: 3,
   playerStartHealth: 30,
   enemyStartHealth: 12,
