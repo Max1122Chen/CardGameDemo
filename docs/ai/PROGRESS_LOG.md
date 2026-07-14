@@ -10,6 +10,18 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-14 — DATA-F01: card JSON assets + parse pipeline
+
+- **Goal:** Load CardDefinition graphs from `data/cards/*.json`; bootstrap combat from data.
+- **Main changes:** `parseCardDefinition` / `buildCardCatalog`; six card JSON files + `data/decks/starter.json`; CLI fs loader; removed TS card factories; CombatSession requires injected catalog + deck.
+- **Verify:** 131 tests green.
+
+### 2026-07-14 — COMBAT-F03: CardDefinition probes + expanded starter deck
+
+- **Goal:** Prove GFC expressiveness before JSON migration.
+- **Main changes:** Weaken/Flex/Wait probes; `commitEffects`; expanded starter deck; CLI manual probes OK.
+- **Verify:** 124 tests green.
+
 ### 2026-07-14 — CORE-F10: GE stacking, ongoing gates, TakeDamage GA, timing
 
 - **Goal:** Close GFC gaps for data-driven cards.

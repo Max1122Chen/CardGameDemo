@@ -7,6 +7,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/node_modules/**',
       '**/*.test.ts',
+      'packages/core/src/data/**/*.test-helper.ts',
       '**/*.js',
       '**/*.mjs',
       '**/*.cjs',

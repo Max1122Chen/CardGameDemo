@@ -52,7 +52,25 @@ export type WireGameplayEffectDefinition = {
   stacking?: WireGameplayEffectStacking;
 };
 
-export type WireGameplayAbilityDefinition = GameplayAbilityDefinition;
+export type WireGameplayAbilityEffectBinding = {
+  target: 'self' | 'target';
+  effect: WireGameplayEffectDefinition;
+};
+
+export type WireGameplayAbilityDefinition = {
+  id: string;
+  kind: 'active' | 'passive';
+  name?: string;
+  tags: GameplayAbilityDefinition['tags'];
+  cost?: GameplayAbilityDefinition['cost'];
+  chargeCostOnActivate?: boolean;
+  endPolicy?: GameplayAbilityDefinition['endPolicy'];
+  effectsOnActivate: readonly WireGameplayAbilityEffectBinding[];
+  listenWhileActive?: GameplayAbilityDefinition['listenWhileActive'];
+  builtinActivation?: GameplayAbilityDefinition['builtinActivation'];
+  autoActivateOnGrant?: boolean;
+  passiveTrigger?: GameplayAbilityDefinition['passiveTrigger'];
+};
 
 export class DefinitionParseError extends Error {
   constructor(message: string) {
@@ -86,8 +104,9 @@ function parseModifier(
   manager: GameplayTagManager,
   modifier: WireGameplayEffectModifier,
   index: number,
+  pathPrefix = 'modifiers',
 ): GameplayEffectModifier {
-  const path = `modifiers[${index}]`;
+  const path = `${pathPrefix}[${index}]`;
   return {
     attribute: modifier.attribute,
     op: modifier.op,
@@ -101,6 +120,7 @@ function parseModifier(
 function parseDuration(
   manager: GameplayTagManager,
   duration: WireGameplayEffectDuration,
+  pathPrefix = 'duration',
 ): GameplayEffectDuration {
   if (duration.kind === 'Instant' || duration.kind === 'Infinite') {
     return duration;
@@ -108,11 +128,11 @@ function parseDuration(
 
   return {
     kind: 'Duration',
-    unitTag: resolveTagName(manager, duration.unitTag, 'duration.unitTag'),
+    unitTag: resolveTagName(manager, duration.unitTag, `${pathPrefix}.unitTag`),
     magnitude: duration.magnitude,
     channels: duration.channels?.map((channelTag, index) =>
       createGameplayEventChannel(
-        resolveTagName(manager, channelTag, `duration.channels[${index}]`),
+        resolveTagName(manager, channelTag, `${pathPrefix}.channels[${index}]`),
       ),
     ),
   };
@@ -121,18 +141,21 @@ function parseDuration(
 export function parseGameplayEffectDefinition(
   wire: WireGameplayEffectDefinition,
   manager: GameplayTagManager,
+  pathPrefix = 'effect',
 ): GameplayEffectDefinition {
   if (!wire.id) {
-    throw new DefinitionParseError('GameplayEffectDefinition.id is required');
+    throw new DefinitionParseError(`${pathPrefix}: GameplayEffectDefinition.id is required`);
   }
 
   try {
     return {
       id: wire.id,
-      modifiers: wire.modifiers.map((modifier, index) => parseModifier(manager, modifier, index)),
-      duration: parseDuration(manager, wire.duration),
+      modifiers: wire.modifiers.map((modifier, index) =>
+        parseModifier(manager, modifier, index, `${pathPrefix}.modifiers`),
+      ),
+      duration: parseDuration(manager, wire.duration, pathPrefix),
       grantedTags: wire.grantedTags?.map((tag, index) =>
-        resolveTagName(manager, tag, `grantedTags[${index}]`),
+        resolveTagName(manager, tag, `${pathPrefix}.grantedTags[${index}]`),
       ),
       ongoingTagRequirements: wire.ongoingTagRequirements,
       stacking: wire.stacking,
@@ -149,9 +172,31 @@ export function parseGameplayEffectDefinition(
 
 export function parseGameplayAbilityDefinition(
   wire: WireGameplayAbilityDefinition,
+  manager: GameplayTagManager,
 ): GameplayAbilityDefinition {
   if (!wire.id) {
     throw new DefinitionParseError('GameplayAbilityDefinition.id is required');
   }
-  return { ...wire };
+
+  return {
+    id: wire.id,
+    kind: wire.kind,
+    name: wire.name,
+    tags: wire.tags,
+    cost: wire.cost,
+    chargeCostOnActivate: wire.chargeCostOnActivate,
+    endPolicy: wire.endPolicy,
+    effectsOnActivate: wire.effectsOnActivate.map((binding, index) => ({
+      target: binding.target,
+      effect: parseGameplayEffectDefinition(
+        binding.effect,
+        manager,
+        `effectsOnActivate[${index}].effect`,
+      ),
+    })),
+    listenWhileActive: wire.listenWhileActive,
+    builtinActivation: wire.builtinActivation,
+    autoActivateOnGrant: wire.autoActivateOnGrant,
+    passiveTrigger: wire.passiveTrigger,
+  };
 }

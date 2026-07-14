@@ -5,6 +5,8 @@ import {
   type CombatSnapshot,
 } from '@cardgame/core';
 
+import { combatBootstrapConfig } from '../data/load-combat-bootstrap.js';
+
 import { executeConsoleCommand } from '../console/console-executor.js';
 import { applyOverlayToggle } from '../input/input-router.js';
 import type { AppState, CombatPreviewView, EnemyView, HandCard, UiAction } from '../types.js';
@@ -28,14 +30,14 @@ export function createSessionController(options: {
     traceSink: traceBuffer,
   });
 
-  let combatSession = CombatSession.bootstrap(engine);
+  let combatSession = CombatSession.bootstrap(engine, combatBootstrapConfig(engine));
 
   const controller: SessionController = {
     engine,
     combatSession,
     traceLines: [],
     bootstrapBattle() {
-      combatSession = CombatSession.bootstrap(engine);
+      combatSession = CombatSession.bootstrap(engine, combatBootstrapConfig(engine));
       controller.combatSession = combatSession;
     },
     getCombatSnapshot() {

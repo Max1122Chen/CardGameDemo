@@ -30,9 +30,9 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CLI-F02` | Terminal gameplay UI shell with overlays and immediate input | Done | ? | [CLI-F02-terminal-tui.md](./CLI/CLI-F02-terminal-tui.md), [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Done | ? | [COMBAT-F01-minimal-battle-slice.md](./Combat/COMBAT-F01-minimal-battle-slice.md), [combat.md](../design/systems/combat.md) |
 | `COMBAT-F02` | GFC-language combat: CORE GA gaps + preview/commit card loop | Done | ? | [COMBAT-F02-gfc-combat-integration.md](./Combat/COMBAT-F02-gfc-combat-integration.md), [combat.md](../design/systems/combat.md) ?????????? |
-| `COMBAT-F03` | Combat describability probes (pre?JSON cards) | Review | ? | [COMBAT-F03-combat-describability-probes.md](./Combat/COMBAT-F03-combat-describability-probes.md) |
+| `COMBAT-F03` | Combat describability probes (pre?JSON cards) | Done | ? | [COMBAT-F03-combat-describability-probes.md](./Combat/COMBAT-F03-combat-describability-probes.md) |
 | `CORE-F10` | GFC gaps for data-driven cards (Ongoing GE gates, serde) | Done | — | [CORE-F10-data-driven-gfc-gaps.md](./Core/CORE-F10-data-driven-gfc-gaps.md) |
-| `DATA-F01` | Card & effect JSON schema + loader | Review | ? | [DATA-F01-card-asset-pipeline.md](./Data/DATA-F01-card-asset-pipeline.md) |
+| `DATA-F01` | Card & effect JSON schema + loader | Done | ? | [DATA-F01-card-asset-pipeline.md](./Data/DATA-F01-card-asset-pipeline.md) |
 
 ---
 

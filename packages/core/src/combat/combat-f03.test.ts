@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
+import { combatBootstrapConfig } from '../data/combat-bootstrap.test-helper.js';
 import { RuleEngine } from '../engine/rule-engine.js';
 import { CombatSession } from './combat-session.js';
 import type { CardActionId } from './types.js';
 import { COMBAT_ENEMY_ID } from './types.js';
 
 function createSession(openingHand: readonly CardActionId[]): CombatSession {
-  return CombatSession.bootstrap(RuleEngine.create(), { openingHand });
+  const engine = RuleEngine.create();
+  return CombatSession.bootstrap(engine, combatBootstrapConfig(engine, { openingHand }));
 }
 
 function handIndex(session: CombatSession, actionId: CardActionId): number {
@@ -71,7 +73,10 @@ describe('COMBAT-F03 probes', () => {
 
   it('Weaken duration stacks on second apply', () => {
     const engine = RuleEngine.create();
-    const session = CombatSession.bootstrap(engine, { openingHand: ['weaken', 'weaken'] });
+    const session = CombatSession.bootstrap(
+      engine,
+      combatBootstrapConfig(engine, { openingHand: ['weaken', 'weaken'] }),
+    );
     const enemy = engine.requireGfc(COMBAT_ENEMY_ID);
 
     previewAndPlay(session, 'weaken');

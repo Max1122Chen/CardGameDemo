@@ -8,6 +8,15 @@ export type CombatTurnOwner = 'player' | 'enemy';
 export type CombatResult = 'victory' | 'defeat';
 export type CardActionId = 'strike' | 'defend' | 'bash' | 'weaken' | 'flex' | 'wait';
 
+export const CARD_ACTION_IDS = [
+  'strike',
+  'defend',
+  'bash',
+  'weaken',
+  'flex',
+  'wait',
+] as const satisfies readonly CardActionId[];
+
 export type CombatAction =
   | { type: 'PlayCard'; handIndex: number }
   | { type: 'EndTurn' };
@@ -65,7 +74,15 @@ export type CombatSnapshot = {
   preview?: CombatPreviewSnapshot;
 };
 
-export type CombatSessionConfig = {
+import type { CardDefinition } from './card-definition.js';
+
+export type CardActionSpec = {
+  id: CardActionId;
+  name: string;
+  cost: number;
+};
+
+export type CombatSessionTuneables = {
   openingDraw: number;
   turnDraw: number;
   actionPointsPerTurn: number;
@@ -76,7 +93,12 @@ export type CombatSessionConfig = {
   openingHand?: readonly CardActionId[];
 };
 
-export const DEFAULT_COMBAT_CONFIG: CombatSessionConfig = {
+export type CombatSessionConfig = CombatSessionTuneables & {
+  cardCatalog: Record<CardActionId, CardDefinition>;
+  deckIds: readonly CardActionId[];
+};
+
+export const DEFAULT_COMBAT_CONFIG: CombatSessionTuneables = {
   openingDraw: 5,
   turnDraw: 5,
   actionPointsPerTurn: 3,

@@ -1,0 +1,52 @@
+{
+  "id": "strike",
+  "name": "Strike",
+  "cost": 1,
+  "targeting": "single_enemy",
+  "settleTakeDamageOnTarget": true,
+  "ability": {
+    "id": "ga.card.strike",
+    "kind": "active",
+    "name": "Strike",
+    "tags": { "abilityTags": ["Card.strike"] },
+    "chargeCostOnActivate": false,
+    "endPolicy": "manual",
+    "effectsOnActivate": [
+      {
+        "target": "self",
+        "effect": {
+          "id": "ge.card.strike.damage-face",
+          "duration": { "kind": "Instant" },
+          "modifiers": [{ "attribute": "Damage", "op": "Override", "magnitude": 6 }]
+        }
+      },
+      {
+        "target": "target",
+        "effect": {
+          "id": "ge.card.strike.feed-damage-to-take",
+          "duration": { "kind": "Instant" },
+          "modifiers": [
+            {
+              "attribute": "DamageToTake",
+              "op": "Override",
+              "magnitude": {
+                "kind": "AttributeBased",
+                "captureFrom": "Source",
+                "attribute": "Damage",
+                "valueKind": "Current"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "listenWhileActive": {
+      "channelTag": "Combat",
+      "eventTags": [
+        "GameplayEvent.Combat.TryPlayCard",
+        "GameplayEvent.Combat.CancelPlayCard"
+      ],
+      "match": "any"
+    }
+  }
+}

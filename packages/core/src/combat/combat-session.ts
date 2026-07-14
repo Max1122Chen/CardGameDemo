@@ -8,8 +8,6 @@ import type { GameplayTag } from '../tags/gameplay-tag.js';
 import type { TraceEntryInput } from '../trace/trace.js';
 import { gainBlockFromPreviewEffect, spendActionPointsEffect } from './card-abilities.js';
 import type { CardDefinition } from './card-definition.js';
-import { createCardDefinitions } from './card-definitions.js';
-import { STARTER_DECK } from './card-catalog.js';
 import { CombatAttributes } from './combat-attributes.js';
 import { getEntityActionPoints, getEntityBlock, getEntityHealth } from './combat-damage.js';
 import {
@@ -31,6 +29,7 @@ import {
   type CombatPhase,
   type CombatResult,
   type CombatSessionConfig,
+  type CombatSessionTuneables,
   type CombatSnapshot,
   type CombatTurnOwner,
   type DeckState,
@@ -75,12 +74,17 @@ export class CombatSession {
 
   static bootstrap(
     engine: RuleEngine,
-    config: Partial<CombatSessionConfig> = {},
+    config: Partial<CombatSessionTuneables> &
+      Pick<CombatSessionConfig, 'cardCatalog' | 'deckIds'>,
   ): CombatSession {
     const merged = { ...DEFAULT_COMBAT_CONFIG, ...config };
-    const combatChannel = engine.eventSystem.channel(engine.tagManager.resolve('Combat'));
-    const cardDefinitions = createCardDefinitions(engine.tagManager, combatChannel);
-    const { deck, instances } = buildDeckInstances(STARTER_DECK);
+    if (!merged.cardCatalog || !merged.deckIds) {
+      throw new CombatError(
+        'CombatSession.bootstrap requires cardCatalog and deckIds (load from data/ via loadCombatBootstrapFromRepo)',
+      );
+    }
+    const cardDefinitions = merged.cardCatalog;
+    const { deck, instances } = buildDeckInstances(merged.deckIds);
     const session = new CombatSession(engine, merged, deck, instances, cardDefinitions);
     session.runSetup();
     return session;

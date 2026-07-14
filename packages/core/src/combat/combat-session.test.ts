@@ -3,19 +3,19 @@ import { describe, expect, it } from 'vitest';
 import { RuleEngine } from '../engine/rule-engine.js';
 import { TraceBuffer } from '../trace/trace.js';
 import { CombatError, CombatSession } from './combat-session.js';
+import { combatBootstrapConfig } from '../data/combat-bootstrap.test-helper.js';
 import { drawCards, buildDeckInstances } from './deck-state.js';
-import { STARTER_DECK } from './card-catalog.js';
-import type { CardActionId, CombatSessionConfig } from './types.js';
+import type { CardActionId, CombatSessionTuneables } from './types.js';
 import { COMBAT_ENEMY_ID, COMBAT_PLAYER_ID } from './types.js';
 
 function createSession(
-  options: Partial<CombatSessionConfig> | boolean = {},
+  options: Partial<CombatSessionTuneables> | boolean = {},
 ): { engine: RuleEngine; session: CombatSession; traceBuffer?: TraceBuffer } {
   const trace = typeof options === 'boolean' ? options : false;
-  const config = typeof options === 'boolean' ? {} : options;
+  const tuneables = typeof options === 'boolean' ? {} : options;
   const traceBuffer = trace ? new TraceBuffer() : undefined;
   const engine = RuleEngine.create({ traceSink: traceBuffer });
-  const session = CombatSession.bootstrap(engine, config);
+  const session = CombatSession.bootstrap(engine, combatBootstrapConfig(engine, tuneables));
   return { engine, session, traceBuffer };
 }
 
@@ -56,8 +56,8 @@ describe('CombatSession', () => {
     expect(session.getSnapshot().hand).toHaveLength(5);
   });
 
-  it('turn start refills AP and draws 1 card', () => {
-    const { session } = createSession();
+  it('turn start refills AP and draws turnDraw cards', () => {
+    const { session } = createSession({ turnDraw: 1 });
 
     playCard(session, 'strike');
     expect(session.getSnapshot().player.actionPoints).toBe(2);
@@ -89,7 +89,7 @@ describe('CombatSession', () => {
   });
 
   it('EndTurn discards hand and switches to enemy turn before returning to player', () => {
-    const { session } = createSession();
+    const { session } = createSession({ turnDraw: 1 });
     const handBefore = session.getSnapshot().hand.length;
     expect(handBefore).toBeGreaterThan(0);
 
@@ -138,7 +138,9 @@ describe('CombatSession', () => {
   });
 
   it('empty draw pile triggers shuffle-from-discard', () => {
-    const { deck } = buildDeckInstances(STARTER_DECK);
+    const engine = RuleEngine.create();
+    const { deckIds } = combatBootstrapConfig(engine);
+    const { deck } = buildDeckInstances(deckIds);
     deck.drawPile.length = 0;
     deck.discardPile.push('card-1', 'card-3', 'card-5');
 

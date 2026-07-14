@@ -1,0 +1,33 @@
+{
+  "id": "flex",
+  "name": "Flex",
+  "cost": 1,
+  "targeting": "self",
+  "commitEffects": [
+    {
+      "target": "self",
+      "effect": {
+        "id": "ge.card.flex.strength",
+        "duration": { "kind": "Infinite" },
+        "modifiers": [{ "attribute": "Damage", "op": "Add", "magnitude": 2 }]
+      }
+    }
+  ],
+  "ability": {
+    "id": "ga.card.flex",
+    "kind": "active",
+    "name": "Flex",
+    "tags": { "abilityTags": ["Card.flex"] },
+    "chargeCostOnActivate": false,
+    "endPolicy": "manual",
+    "effectsOnActivate": [],
+    "listenWhileActive": {
+      "channelTag": "Combat",
+      "eventTags": [
+        "GameplayEvent.Combat.TryPlayCard",
+        "GameplayEvent.Combat.CancelPlayCard"
+      ],
+      "match": "any"
+    }
+  }
+}

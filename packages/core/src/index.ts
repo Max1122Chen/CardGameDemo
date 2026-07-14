@@ -55,12 +55,10 @@ export {
 export {
   CombatSession,
   CombatError,
-  CARD_CATALOG,
   COMBAT_ENEMY_ID,
   COMBAT_PLAYER_ID,
   DEFAULT_COMBAT_CONFIG,
-  STARTER_DECK,
-  getCardSpec,
+  CARD_ACTION_IDS,
   type CardActionId,
   type CardActionSpec,
   type CardInstance,
@@ -70,11 +68,22 @@ export {
   type CombatPreviewSnapshot,
   type CombatResult,
   type CombatSessionConfig,
+  type CombatSessionTuneables,
   type CombatSnapshot,
   type CombatTurnOwner,
   type DeckState,
   type EnemyIntent,
 } from './combat/index.js';
+export {
+  parseCardDefinition,
+  buildCardCatalog,
+  buildCombatCardBootstrap,
+  catalogToDisplaySpecs,
+  type WireCardDefinition,
+  type WireCardCommitEffect,
+  type CombatCardBootstrap,
+} from './data/parse-card.js';
+export { DefinitionParseError } from './definitions/parse-definitions.js';
 export {
   GameplayFrameworkComponent,
   GameplayNotImplementedError,
