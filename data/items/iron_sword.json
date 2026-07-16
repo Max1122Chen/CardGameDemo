@@ -9,7 +9,7 @@
       "kind": "equipment",
       "slots": ["Hand.Main", "Hand.Off"],
       "twoHandMode": "optional",
-      "cards": [{ "cardId": "strike", "count": 2 }]
+      "cards": [{ "cardId": "heavy_blow", "count": 2 }]
     },
     { "kind": "durability", "max": 20 },
     { "kind": "inventory_shape", "width": 1, "height": 3 }

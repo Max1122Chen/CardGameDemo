@@ -427,6 +427,40 @@ export function discardInventoryEntry(inventory: InventoryState, entryId: string
   return true;
 }
 
+/** Remove and return a placed entry (does not destroy payload). */
+export function takeInventoryEntry(
+  inventory: InventoryState,
+  entryId: string,
+): PlacedInventoryEntry | undefined {
+  const index = inventory.entries.findIndex((entry) => entry.entryId === entryId);
+  if (index < 0) {
+    return undefined;
+  }
+  const [removed] = inventory.entries.splice(index, 1);
+  return removed;
+}
+
+/** Place an existing payload via auto-fit (keeps entryId when provided). */
+export function placePayloadInInventory(
+  inventory: InventoryState,
+  catalog: Record<ItemId, ItemDefinition>,
+  payload: InventoryPayload,
+  entryId = createEntryId(),
+): PlaceResult {
+  const fit = findFirstFit(inventory, catalog, payload.itemId);
+  if (!fit) {
+    return { ok: false, reason: 'inventory_full' };
+  }
+  inventory.entries.push({
+    entryId,
+    payload,
+    x: fit.x,
+    y: fit.y,
+    rotation: fit.rotation,
+  });
+  return { ok: true };
+}
+
 /** @deprecated Prefer discardInventoryEntry by entryId. */
 export function discardInventorySlot(inventory: InventoryState, slotIndex: number): boolean {
   const entry = inventory.entries[slotIndex];

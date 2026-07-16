@@ -36,6 +36,12 @@ function inventoryActions(key: ParsedKey): UiAction[] {
       if (key.char === 't' || key.char === 'T') {
         return [{ type: 'tidy_inventory' }];
       }
+      if (key.char === 'e' || key.char === 'E') {
+        return [{ type: 'equip_selected_item' }];
+      }
+      if (key.char === 'u' || key.char === 'U') {
+        return [{ type: 'unequip_selected_slot' }];
+      }
       if (key.char === '\t') {
         return [{ type: 'inventory_toggle_focus' }];
       }
@@ -193,21 +199,34 @@ export function createInitialAppState(options: {
     inventorySlots: [],
     inventoryGrid: [],
     pendingLoot: [],
+    equipmentSlots: [],
     inventoryFocus: 'backpack',
     selectedLootIndex: 0,
     selectedInventorySlot: 0,
+    selectedEquipmentSlot: 0,
     inventoryPlaceInput: '',
   };
 }
 
 export function routeInput(state: AppState, key: ParsedKey): UiAction[] {
+  // Console owns the keyboard while open: do not let B/Q/T/etc. steal keystrokes.
+  // Escape / backtick still close; Ctrl+C still quits.
+  if (state.focusLayer === 'console') {
+    if (key.kind === 'ctrl_c') {
+      return [{ type: 'quit' }];
+    }
+    if (key.kind === 'escape') {
+      return [{ type: 'close_overlay' }];
+    }
+    if (key.kind === 'char' && isConsoleToggle(key.char)) {
+      return [{ type: 'toggle_console' }];
+    }
+    return consoleActions(key);
+  }
+
   const globals = globalActions(state, key);
   if (globals.length > 0) {
     return globals;
-  }
-
-  if (state.focusLayer === 'console') {
-    return consoleActions(key);
   }
 
   if (state.focusLayer === 'inventory') {
@@ -232,6 +251,7 @@ export function applyOverlayToggle(state: AppState, overlay: AppState['overlay']
     inventoryFocus,
     selectedLootIndex: 0,
     selectedInventorySlot: 0,
+    selectedEquipmentSlot: 0,
     inventoryPlaceInput: '',
   };
 }

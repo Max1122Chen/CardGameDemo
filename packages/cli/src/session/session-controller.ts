@@ -4,11 +4,15 @@ import {
   TraceBuffer,
 } from '@cardgame/core';
 import {
+  buildDeckIdsFromLoadout,
+  createEquipmentLoadout,
   createInventory,
   createPendingLootFromTable,
   DEFAULT_GRID_HEIGHT,
   DEFAULT_GRID_WIDTH,
   discardInventoryEntry,
+  equipFromInventory,
+  listEquipmentSlots,
   listInventorySlots,
   listPendingLoot,
   loadBattleRewards,
@@ -18,13 +22,15 @@ import {
   placePendingLootEntry,
   renderInventoryGrid,
   tidyInventory,
+  unequipToInventory,
+  type EquipmentLoadout,
   type InventoryState,
   type ItemDefinition,
   type PendingLootState,
   type Rotation,
 } from '@cardgame/items';
 
-import { combatBootstrapConfig } from '../data/load-combat-bootstrap.js';
+import { combatBootstrapConfig, loadDeckIds, resolveRepoDataRoot as resolveCliDataRoot } from '../data/load-combat-bootstrap.js';
 import { loadItemBootstrap, loadItemTagDefinitions } from '../data/load-items-bootstrap.js';
 
 import { executeConsoleCommand } from '../console/console-executor.js';
@@ -74,6 +80,8 @@ export type SessionController = {
   combatSession: CombatSession;
   itemCatalog: Record<string, ItemDefinition>;
   inventory: InventoryState;
+  loadout: EquipmentLoadout;
+  baseDeckIds: readonly string[];
   pendingLoot: PendingLootState;
   lootSpawned: boolean;
   traceLines: string[];
@@ -81,6 +89,22 @@ export type SessionController = {
   syncViewState: (state: AppState) => AppState;
   getCombatSnapshot: () => CombatSnapshot;
 };
+
+function nextInventoryFocus(
+  current: AppState['inventoryFocus'],
+  hasLoot: boolean,
+): AppState['inventoryFocus'] {
+  if (hasLoot) {
+    if (current === 'loot') {
+      return 'backpack';
+    }
+    if (current === 'backpack') {
+      return 'equipment';
+    }
+    return 'loot';
+  }
+  return current === 'backpack' ? 'equipment' : 'backpack';
+}
 
 function syncInventoryViews(
   state: AppState,
@@ -92,24 +116,26 @@ function syncInventoryViews(
   | 'inventorySlots'
   | 'inventoryGrid'
   | 'pendingLoot'
+  | 'equipmentSlots'
   | 'selectedLootIndex'
   | 'selectedInventorySlot'
+  | 'selectedEquipmentSlot'
   | 'inventoryFocus'
 > {
   const inventorySlots = listInventorySlots(controller.inventory, controller.itemCatalog);
   const pendingLoot = listPendingLoot(controller.pendingLoot, controller.itemCatalog);
+  const equipmentSlots = listEquipmentSlots(controller.loadout, controller.itemCatalog);
   const selectedSlot = inventorySlots[clampIndex(state.selectedInventorySlot, inventorySlots.length)];
   const inventoryGrid = renderInventoryGrid(
     controller.inventory,
     controller.itemCatalog,
     selectedSlot?.entryId,
   );
-  const inventoryFocus =
-    pendingLoot.length > 0 && state.inventoryFocus === 'loot'
-      ? 'loot'
-      : pendingLoot.length === 0
-        ? 'backpack'
-        : state.inventoryFocus;
+
+  let inventoryFocus = state.inventoryFocus;
+  if (pendingLoot.length === 0 && inventoryFocus === 'loot') {
+    inventoryFocus = 'backpack';
+  }
 
   return {
     inventoryWidth: controller.inventory.width,
@@ -117,9 +143,11 @@ function syncInventoryViews(
     inventorySlots,
     inventoryGrid,
     pendingLoot,
+    equipmentSlots,
     inventoryFocus,
     selectedLootIndex: clampIndex(state.selectedLootIndex, pendingLoot.length),
     selectedInventorySlot: clampIndex(state.selectedInventorySlot, inventorySlots.length),
+    selectedEquipmentSlot: clampIndex(state.selectedEquipmentSlot, equipmentSlots.length),
   };
 }
 
@@ -132,7 +160,7 @@ function maybeSpawnVictoryLoot(controller: SessionController, snapshot: CombatSn
   const rewards = loadBattleRewards(dataRoot);
   controller.pendingLoot = createPendingLootFromTable(rewards);
   controller.lootSpawned = true;
-  return 'Victory! Loot available — press B for backpack.';
+  return 'Victory! Loot available — press B. Equip after battle, then console: battle';
 }
 
 export function createSessionController(options: {
@@ -148,29 +176,37 @@ export function createSessionController(options: {
   });
 
   const itemCatalog = loadItemBootstrap(engine.tagManager);
-  let inventory = createInventory(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT);
+  const baseDeckIds = loadDeckIds(`${resolveCliDataRoot()}/decks`, 'starter');
+  const inventory = createInventory(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT);
+  const loadout = createEquipmentLoadout();
   let pendingLoot: PendingLootState = { entries: [] };
   let lootSpawned = false;
 
-  let combatSession = CombatSession.bootstrap(engine, combatBootstrapConfig(engine));
+  const startCombat = () => {
+    const deckIds = buildDeckIdsFromLoadout(baseDeckIds, loadout, itemCatalog);
+    return CombatSession.bootstrap(engine, combatBootstrapConfig(engine, { deckIds }));
+  };
+
+  let combatSession = startCombat();
 
   const controller: SessionController = {
     engine,
     combatSession,
     itemCatalog,
     inventory,
+    loadout,
+    baseDeckIds,
     pendingLoot,
     lootSpawned,
     traceLines: [],
     bootstrapBattle() {
-      combatSession = CombatSession.bootstrap(engine, combatBootstrapConfig(engine));
-      controller.combatSession = combatSession;
-      inventory = createInventory(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT);
+      // Persist inventory + loadout across battles; only reset combat + loot spawn flag.
       pendingLoot = { entries: [] };
       lootSpawned = false;
-      controller.inventory = inventory;
       controller.pendingLoot = pendingLoot;
       controller.lootSpawned = lootSpawned;
+      combatSession = startCombat();
+      controller.combatSession = combatSession;
     },
     getCombatSnapshot() {
       return combatSession.getSnapshot();
@@ -178,6 +214,7 @@ export function createSessionController(options: {
     syncViewState(state) {
       const snapshot = combatSession.getSnapshot();
       const lootHint = maybeSpawnVictoryLoot(controller, snapshot);
+
 
       const hand: HandCard[] = snapshot.hand.map((card) => ({
         id: card.actionId,
@@ -389,6 +426,19 @@ export function applyUiAction(
           state.statusMessage,
         );
       }
+      if (state.inventoryFocus === 'equipment') {
+        return syncAfterInventoryAction(
+          {
+            ...state,
+            selectedEquipmentSlot: clampIndex(
+              state.selectedEquipmentSlot - 1,
+              state.equipmentSlots.length,
+            ),
+          },
+          controller,
+          state.statusMessage,
+        );
+      }
       return syncAfterInventoryAction(
         {
           ...state,
@@ -409,6 +459,19 @@ export function applyUiAction(
           state.statusMessage,
         );
       }
+      if (state.inventoryFocus === 'equipment') {
+        return syncAfterInventoryAction(
+          {
+            ...state,
+            selectedEquipmentSlot: clampIndex(
+              state.selectedEquipmentSlot + 1,
+              state.equipmentSlots.length,
+            ),
+          },
+          controller,
+          state.statusMessage,
+        );
+      }
       return syncAfterInventoryAction(
         {
           ...state,
@@ -419,13 +482,11 @@ export function applyUiAction(
       );
     }
     case 'inventory_toggle_focus': {
-      if (state.pendingLoot.length === 0) {
-        return state;
-      }
       return syncAfterInventoryAction(
         {
           ...state,
-          inventoryFocus: state.inventoryFocus === 'loot' ? 'backpack' : 'loot',
+          inventoryFocus: nextInventoryFocus(state.inventoryFocus, state.pendingLoot.length > 0),
+          inventoryPlaceInput: '',
         },
         controller,
         state.statusMessage,
@@ -487,6 +548,72 @@ export function applyUiAction(
         return syncAfterInventoryAction(state, controller, 'Tidy failed — restored previous layout.');
       }
       return syncAfterInventoryAction(state, controller, 'Backpack tidied.');
+    }
+    case 'equip_selected_item': {
+      if (state.combatResult === undefined) {
+        return syncAfterInventoryAction(
+          state,
+          controller,
+          'Equip only after combat ends. Use console: battle',
+        );
+      }
+      const slot = state.inventorySlots[state.selectedInventorySlot];
+      if (!slot) {
+        return syncAfterInventoryAction(state, controller, 'No backpack item selected.');
+      }
+      const result = equipFromInventory(
+        controller.loadout,
+        controller.inventory,
+        controller.itemCatalog,
+        slot.entryId,
+      );
+      if (!result.ok) {
+        const reason =
+          result.reason === 'not_equipment'
+            ? 'Not equipment.'
+            : result.reason === 'no_free_slot'
+              ? 'No free compatible slot.'
+              : result.reason === 'hands_busy'
+                ? 'Both hands required but busy.'
+                : result.reason === 'not_instance'
+                  ? 'Cannot equip stacks.'
+                  : 'Could not equip.';
+        return syncAfterInventoryAction(state, controller, reason);
+      }
+      return syncAfterInventoryAction(
+        { ...state, inventoryFocus: 'equipment' },
+        controller,
+        `Equipped ${slot.name}. Deck updates on next battle.`,
+      );
+    }
+    case 'unequip_selected_slot': {
+      if (state.combatResult === undefined) {
+        return syncAfterInventoryAction(
+          state,
+          controller,
+          'Unequip only after combat ends. Use console: battle',
+        );
+      }
+      const equipment = state.equipmentSlots[state.selectedEquipmentSlot];
+      if (!equipment?.entryId) {
+        return syncAfterInventoryAction(state, controller, 'No equipped item in selected slot.');
+      }
+      const result = unequipToInventory(
+        controller.loadout,
+        controller.inventory,
+        controller.itemCatalog,
+        equipment.entryId,
+      );
+      if (!result.ok) {
+        const reason =
+          result.reason === 'inventory_full' ? 'Backpack full — cannot unequip.' : 'Could not unequip.';
+        return syncAfterInventoryAction(state, controller, reason);
+      }
+      return syncAfterInventoryAction(
+        { ...state, inventoryFocus: 'backpack' },
+        controller,
+        `Unequipped ${equipment.name ?? equipment.slotId}. Deck updates on next battle.`,
+      );
     }
     case 'inventory_place_append':
       return { ...state, inventoryPlaceInput: `${state.inventoryPlaceInput}${action.char}` };

@@ -1,0 +1,17 @@
+{
+  "id": "wooden_shield",
+  "name": "Wooden Shield",
+  "tags": ["Item.Category.Equipment", "Item.Slot.Hand", "Item.Rarity.Common", "Item.Drop.BattleReward"],
+  "maxStack": 1,
+  "sellValue": 12,
+  "fragments": [
+    {
+      "kind": "equipment",
+      "slots": ["Hand.Off"],
+      "twoHandMode": "forbidden",
+      "cards": [{ "cardId": "mend", "count": 2 }]
+    },
+    { "kind": "durability", "max": 15 },
+    { "kind": "inventory_shape", "width": 2, "height": 2 }
+  ]
+}

@@ -94,6 +94,14 @@ export class CombatSession {
     this.enemyScript = createSlimeScript(config.enemyAttackDamage);
   }
 
+  /** Tear down prior combat entities so the shared RuleEngine can host another battle. */
+  static clearCombatEntities(engine: RuleEngine): void {
+    for (const entityId of [COMBAT_PLAYER_ID, COMBAT_ENEMY_ID]) {
+      engine.getGfc(entityId)?.dispose();
+      engine.gameWorld.destroyEntity(entityId);
+    }
+  }
+
   static bootstrap(
     engine: RuleEngine,
     config: Partial<CombatSessionTuneables> &
@@ -105,6 +113,7 @@ export class CombatSession {
         'CombatSession.bootstrap requires cardCatalog and deckIds (load from data/ via loadCombatBootstrapFromRepo)',
       );
     }
+    CombatSession.clearCombatEntities(engine);
     const registration = registerCombatAbilityHandlers(engine.activationRegistry);
     const cardDefinitions = merged.cardCatalog;
     const { deck, instances } = buildDeckInstances(merged.deckIds);

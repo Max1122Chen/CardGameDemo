@@ -24,4 +24,16 @@ describe('executeConsoleCommand', () => {
     const health = controller.engine.getGfc('player')?.getAttribute('Health')?.baseValue;
     expect(health).toBe(99);
   });
+
+  it('battle command restarts combat on the same engine', () => {
+    const controller = createSessionController({ traceToBuffer: true });
+    const before = controller.getCombatSnapshot();
+    const result = executeConsoleCommand(controller, 'battle');
+    const after = controller.getCombatSnapshot();
+
+    expect(result.statusMessage).toMatch(/battle/i);
+    expect(after.phase).toBe('PlayerTurn');
+    expect(after.player.health).toBe(before.player.health);
+    expect(after.enemies[0]?.health).toBe(before.enemies[0]?.health);
+  });
 });

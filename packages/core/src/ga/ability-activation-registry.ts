@@ -58,6 +58,14 @@ export class AbilityActivationRegistry {
     this.handlers.set(handlerId, handler);
   }
 
+  /** Install or replace a handler (used when re-binding combat bridges on battle restart). */
+  set(handlerId: string, handler: AbilityActivationHandler): void {
+    if (!handlerId) {
+      throw new Error('AbilityActivationRegistry.set: handlerId is required');
+    }
+    this.handlers.set(handlerId, handler);
+  }
+
   get(handlerId: string): AbilityActivationHandler | undefined {
     return this.handlers.get(handlerId);
   }

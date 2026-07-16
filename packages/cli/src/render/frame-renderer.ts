@@ -154,19 +154,32 @@ function renderInventoryOverlay(state: AppState): string[] {
           return selected ? theme.selected(line) : line;
         });
 
+  const equipmentLines =
+    state.equipmentSlots.length === 0
+      ? [theme.muted('(no slots)')]
+      : state.equipmentSlots.map((slot, index) => {
+          const selected = state.inventoryFocus === 'equipment' && index === state.selectedEquipmentSlot;
+          const marker = selected ? theme.selected('>') : ' ';
+          const line = `${marker} ${slot.label}`;
+          return selected ? theme.selected(line) : line;
+        });
+
   const placePrompt = theme.consolePrompt(`place> ${state.inventoryPlaceInput}_`);
   const lootHint =
     state.pendingLoot.length > 0
-      ? theme.status('Loot: P auto | Enter place at x y [rot] | A all | Tab panel')
+      ? theme.status('Loot: P auto | Enter place | A all | Tab panel')
       : theme.muted('No pending loot.');
 
   return [
     ...box('Loot', lootLines),
     ...box(`Grid ${state.inventoryWidth}x${state.inventoryHeight}`, gridLines),
     ...box('Backpack', backpackLines),
+    ...box('Equipment', equipmentLines),
     placePrompt,
     lootHint,
-    theme.muted('Bag: ↑↓ select | Enter x y [0|90] | T tidy | D discard | Esc close'),
+    theme.muted(
+      'Bag: Tab panel | E equip | U unequip | T tidy | D discard | Enter x y [rot] | Esc',
+    ),
   ];
 }
 

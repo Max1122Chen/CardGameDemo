@@ -8,20 +8,13 @@ Last updated: 2026-07-16
 
 ## In focus
 
-**Phase: ITEM-F02 Done** — next: EQUIP-F01 when promoted.
+**Phase: EQUIP-F01 Done** — next: EQUIP-F02 / COMBAT-F05 when promoted.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–20 | … through ITEM-F01 | Item foundation | **Done** |
-| 21 | **ITEM-F02** | 4×6 grid bag, auto/manual place, move, tidy | **Done** ([spec](./Items/ITEM-F02-grid-backpack.md)) |
+| 1–21 | … through ITEM-F02 | Grid backpack | **Done** |
+| 22 | **EQUIP-F01** | Slots, equip/unequip, base+gear deck | **Done** ([spec](./Equipment/EQUIP-F01-equipment-loadout.md)) |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel) |
-
-**Architecture lock (F04 target):**
-
-- HP/AP ceilings = `MaxHealth` / `MaxActionPoints` attrs + AttributeChange clamp.
-- Damage = panel base + global attribute correction + pipeline (mult / corr / offset).
-- Attribute Bonus grade table = `data/combat/attribute-bonus.json`; cards declare grade + stats only.
-- flex **removed**; probe deck replaces strike/defend spam.
 
 ---
 
@@ -29,7 +22,7 @@ Last updated: 2026-07-16
 
 | Theme | Suggested ID | After |
 |-------|--------------|-------|
-| Equipment + equipment-driven deck | EQUIP-F01 | ITEM-F01 |
+| Equipment wear / dual-wield variants / passives | EQUIP-F02 | EQUIP-F01 |
 | Enemy data + AI (JSON catalog) | COMBAT-F05 | COMBAT-F04 |
 | Dungeon / loot / events | DUNGEON-F01 | Combat + equipment data |
 

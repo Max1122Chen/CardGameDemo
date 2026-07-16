@@ -17,10 +17,23 @@ export type CombatAbilityRegistration = {
   setBridge: (bridge: CardPlayCommitBridge) => void;
 };
 
-/** Register combat GA hooks (call once before CombatSession setup). */
+/** Shared across duplicate module loads (src vs dist); keyed on the registry instance. */
+const COMBAT_ABILITY_REG_KEY = Symbol.for('@cardgame/combat.abilityRegistration');
+
+type RegistryHost = AbilityActivationRegistry & {
+  [COMBAT_ABILITY_REG_KEY]?: CombatAbilityRegistration;
+};
+
+/** Register combat GA hooks (idempotent per registry; bridge is replaced on each bootstrap). */
 export function registerCombatAbilityHandlers(
   registry: AbilityActivationRegistry,
 ): CombatAbilityRegistration {
+  const host = registry as RegistryHost;
+  const existing = host[COMBAT_ABILITY_REG_KEY];
+  if (existing) {
+    return existing;
+  }
+
   let bridge: CardPlayCommitBridge | undefined;
   const getBridge = (): CardPlayCommitBridge => {
     if (!bridge) {
@@ -29,17 +42,20 @@ export function registerCombatAbilityHandlers(
     return bridge;
   };
 
-  registry.register(TAKE_DAMAGE_HANDLER_ID, createTakeDamageHandler());
-  registry.register(CARD_PLAY_DAMAGE_HANDLER_ID, createCardPlayDamageHandler(getBridge));
-  registry.register(CARD_PLAY_BLOCK_HANDLER_ID, createCardPlayBlockHandler(getBridge));
-  registry.register(CARD_PLAY_STATUS_HANDLER_ID, createCardPlayStatusHandler(getBridge));
-  registry.register(CARD_PLAY_HEAL_HANDLER_ID, createCardPlayHealHandler(getBridge));
+  // Use set() so a second module copy (or stale first install) rebinds to this bridge.
+  registry.set(TAKE_DAMAGE_HANDLER_ID, createTakeDamageHandler());
+  registry.set(CARD_PLAY_DAMAGE_HANDLER_ID, createCardPlayDamageHandler(getBridge));
+  registry.set(CARD_PLAY_BLOCK_HANDLER_ID, createCardPlayBlockHandler(getBridge));
+  registry.set(CARD_PLAY_STATUS_HANDLER_ID, createCardPlayStatusHandler(getBridge));
+  registry.set(CARD_PLAY_HEAL_HANDLER_ID, createCardPlayHealHandler(getBridge));
 
-  return {
+  const registration: CombatAbilityRegistration = {
     setBridge: (next) => {
       bridge = next;
     },
   };
+  host[COMBAT_ABILITY_REG_KEY] = registration;
+  return registration;
 }
 
 export {

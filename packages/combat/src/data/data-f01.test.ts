@@ -33,7 +33,7 @@ describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
       'wait',
       'weaken',
     ]);
-    expect(deckIds).toHaveLength(12);
+    expect(deckIds).toHaveLength(10);
     expect(cardCatalog.strike.name).toBe('Strike');
     expect(cardCatalog.strike.ability.id).toBe('ga.archetype.cardPlayDamage');
     expect(cardCatalog.strike.ability.handlerId).toBe('combat.cardPlayDamage');
@@ -127,9 +127,11 @@ describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
     expect(parsed.ability.parameterValues?.ApCost).toBe(1);
   });
 
-  it('starter deck file lists twelve card ids', () => {
+  it('starter deck file lists ten base card ids (equipment injects extras)', () => {
     const deckIds = loadDeckIds(`${resolveRepoDataRoot()}/decks`);
-    expect(deckIds).toHaveLength(12);
+    expect(deckIds).toHaveLength(10);
     expect(deckIds.filter((id) => id === 'strike')).toHaveLength(2);
+    expect(deckIds).not.toContain('heavy_blow');
+    expect(deckIds).not.toContain('mend');
   });
 });

@@ -80,8 +80,8 @@ export function loadCombatBootstrapFromRepo(
 
 export function combatBootstrapConfig(
   engine: RuleEngine,
-  tuneables: Partial<CombatSessionTuneables> = {},
+  overrides: Partial<CombatSessionTuneables> & { deckIds?: readonly string[] } = {},
 ): Partial<CombatSessionTuneables> &
   Pick<import('../types.js').CombatSessionConfig, 'cardCatalog' | 'deckIds' | 'takeDamageAbility'> {
-  return { ...loadCombatBootstrapFromRepo(engine.tagManager), ...tuneables };
+  return { ...loadCombatBootstrapFromRepo(engine.tagManager), ...overrides };
 }

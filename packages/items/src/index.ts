@@ -45,6 +45,8 @@ export {
   findFirstFit,
   moveInventoryEntry,
   discardInventoryEntry,
+  takeInventoryEntry,
+  placePayloadInInventory,
   discardInventorySlot,
   tidyInventory,
   listInventorySlots,
@@ -62,6 +64,21 @@ export {
   type PlaceResult,
   type Rotation,
 } from './inventory.js';
+export {
+  EQUIPMENT_SLOT_IDS,
+  createEquipmentLoadout,
+  equipFromInventory,
+  unequipToInventory,
+  listEquippedPieces,
+  listEquipmentSlots,
+  type EquipmentSlotId,
+  type EquippedPiece,
+  type EquipmentLoadout,
+  type EquipResult,
+  type EquipFailureReason,
+  type EquipmentSlotView,
+} from './equipment-loadout.js';
+export { buildDeckIdsFromLoadout } from './deck-from-equipment.js';
 export {
   createPendingLootFromTable,
   hasPendingLoot,

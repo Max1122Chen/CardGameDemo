@@ -38,6 +38,7 @@ export function executeConsoleCommand(controller: SessionController, input: stri
         lines: [
           'Commands:',
           '  help',
+          '  battle          restart combat (keeps bag/loadout)',
           '  state [entityId]',
           '  trace [on|off]',
           '  event <tag> [channel]',
@@ -45,6 +46,13 @@ export function executeConsoleCommand(controller: SessionController, input: stri
         ],
         statusMessage: 'Console help displayed.',
       };
+    case 'battle': {
+      controller.bootstrapBattle();
+      return {
+        lines: ['Started a new battle with current equipment deck.'],
+        statusMessage: 'New battle started.',
+      };
+    }
     case 'state': {
       const entityId = args[0];
       if (!entityId) {

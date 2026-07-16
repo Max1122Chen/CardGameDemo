@@ -179,4 +179,16 @@ describe('CombatSession', () => {
     expect(enemy.getAttribute('DamageToTake')?.currentValue).toBe(0);
     expect(enemy.getAttribute('Health')?.currentValue).toBe(beforeHp);
   });
+
+  it('can bootstrap a second battle on the same RuleEngine', () => {
+    const { engine, session: first } = createSession({ openingHand: ['strike'] });
+    playCard(first, 'strike');
+    expect(first.getSnapshot().phase).not.toBe('Setup');
+
+    const second = CombatSession.bootstrap(engine, combatBootstrapConfig(engine));
+    const snapshot = second.getSnapshot();
+    expect(snapshot.phase).toBe('PlayerTurn');
+    expect(snapshot.player.health).toBe(30);
+    expect(snapshot.enemies[0]?.health).toBe(12);
+  });
 });

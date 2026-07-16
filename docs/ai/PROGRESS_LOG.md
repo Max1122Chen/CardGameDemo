@@ -10,6 +10,17 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-16 — EQUIP-F01 implemented: equipment loadout + deck injection
+
+- **Loadout:** Hand/Head/Chest/Legs/Feet; equip leaves backpack; unequip auto-places back.
+- **Two-hand:** `required` occupies both hands; optional/forbidden take one free compatible slot.
+- **Deck:** `starter` base + granted cards from equipped pieces; applied on `battle` restart.
+- **CLI:** Equipment panel (Tab); `E`/`U` after combat; console `battle` keeps bag/loadout.
+- **CLI polish:** console focus captures typing (no B/Q steal); `battle` clears prior combat entities + idempotent ability handlers.
+- **Probe:** sword → Heavy Blow×2; shield → Mend×2; starter drops those ids so grants are visible.
+- **Spec:** [EQUIP-F01-equipment-loadout.md](./Equipment/EQUIP-F01-equipment-loadout.md) → Done.
+- **Verify:** `npm run verify` green (playtest OK).
+
 ### 2026-07-16 — ITEM-F02 implemented: rectangular grid backpack
 
 - **Grid:** default `4×6`; `inventory_shape` fragment; stack = one footprint.

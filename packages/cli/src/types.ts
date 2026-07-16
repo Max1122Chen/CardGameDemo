@@ -59,7 +59,7 @@ export type CombatPreviewView = {
   };
 };
 
-export type InventoryFocus = 'loot' | 'backpack';
+export type InventoryFocus = 'loot' | 'backpack' | 'equipment';
 
 export type InventorySlotView = {
   slotIndex: number;
@@ -88,6 +88,14 @@ export type LootEntryView = {
   name: string;
   quantity: number;
   sellValue: number;
+  label: string;
+};
+
+export type EquipmentSlotView = {
+  slotId: string;
+  entryId?: string;
+  itemId?: string;
+  name?: string;
   label: string;
 };
 
@@ -123,9 +131,11 @@ export type AppState = {
   inventorySlots: InventorySlotView[];
   inventoryGrid: InventoryGridCellView[][];
   pendingLoot: LootEntryView[];
+  equipmentSlots: EquipmentSlotView[];
   inventoryFocus: InventoryFocus;
   selectedLootIndex: number;
   selectedInventorySlot: number;
+  selectedEquipmentSlot: number;
   inventoryPlaceInput: string;
 };
 
@@ -154,6 +164,8 @@ export type UiAction =
   | { type: 'pickup_all_loot' }
   | { type: 'discard_selected_inventory_slot' }
   | { type: 'tidy_inventory' }
+  | { type: 'equip_selected_item' }
+  | { type: 'unequip_selected_slot' }
   | { type: 'inventory_place_append'; char: string }
   | { type: 'inventory_place_backspace' }
   | { type: 'inventory_place_submit' }

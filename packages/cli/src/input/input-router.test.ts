@@ -98,6 +98,12 @@ describe('routeInput', () => {
     expect(routeInput(withOverlay, parseKeypress('t'))).toEqual([{ type: 'tidy_inventory' }]);
   });
 
+  it('routes equip and unequip in inventory overlay', () => {
+    const withOverlay = { ...base, overlay: 'inventory' as const, focusLayer: 'inventory' as const };
+    expect(routeInput(withOverlay, parseKeypress('e'))).toEqual([{ type: 'equip_selected_item' }]);
+    expect(routeInput(withOverlay, parseKeypress('u'))).toEqual([{ type: 'unequip_selected_slot' }]);
+  });
+
   it('routes place digits into inventory place input', () => {
     const withOverlay = { ...base, overlay: 'inventory' as const, focusLayer: 'inventory' as const };
     expect(routeInput(withOverlay, parseKeypress('1'))).toEqual([{ type: 'inventory_place_append', char: '1' }]);
@@ -108,5 +114,15 @@ describe('routeInput', () => {
     const consoleState = { ...base, overlay: 'console' as const, focusLayer: 'console' as const };
     expect(routeInput(consoleState, parseKeypress('s'))).toEqual([{ type: 'console_append', char: 's' }]);
     expect(routeInput(base, parseKeypress('s'))).toEqual([]);
+  });
+
+  it('does not steal console keystrokes for global shortcuts', () => {
+    const consoleState = { ...base, overlay: 'console' as const, focusLayer: 'console' as const };
+    expect(routeInput(consoleState, parseKeypress('b'))).toEqual([{ type: 'console_append', char: 'b' }]);
+    expect(routeInput(consoleState, parseKeypress('q'))).toEqual([{ type: 'console_append', char: 'q' }]);
+    expect(routeInput(consoleState, parseKeypress('t'))).toEqual([{ type: 'console_append', char: 't' }]);
+    expect(routeInput(consoleState, parseKeypress('e'))).toEqual([{ type: 'console_append', char: 'e' }]);
+    expect(routeInput(consoleState, parseKeypress('`'))).toEqual([{ type: 'toggle_console' }]);
+    expect(routeInput(consoleState, parseKeypress('\u001b'))).toEqual([{ type: 'close_overlay' }]);
   });
 });
