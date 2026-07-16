@@ -10,6 +10,20 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-17 — CLI-F03 implemented: host input, paint buffer, ScrollZone
+
+- **Paint:** fixed cols×rows framebuffer; full rewrite each frame (no ghosting via eraseBelow alone).
+- **Input:** minEngine-style IMC/IA + priority/consume; Gameplay/Inventory/Console/Stats/Global contexts; bridge to existing UiAction.
+- **Widgets:** ScrollZone sticky auto-tail on combat log, console scrollback, trace.
+- **SelectList / typography polish:** deferred (per user).
+- **Spec:** [CLI-F03-host-foundation.md](./CLI/CLI-F03-host-foundation.md) → Done.
+- **Verify:** `npm run verify` green (179 tests).
+
+### 2026-07-16 — CLI-F03 design Review: host foundation
+
+- **Spec:** [CLI-F03-host-foundation.md](./CLI/CLI-F03-host-foundation.md) — IMC/IA input (minEngine-inspired), fixed frame buffer, ScrollZone/SelectList, typography v1.
+- **Status:** Review — await user confirm + 「开始做」 before code.
+
 ### 2026-07-16 — EQUIP-F01 implemented: equipment loadout + deck injection
 
 - **Loadout:** Hand/Head/Chest/Legs/Feet; equip leaves backpack; unequip auto-places back.

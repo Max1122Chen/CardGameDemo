@@ -1,7 +1,7 @@
 import type { CliOptions } from './cli.js';
 import { createInitialAppState, routeInput } from './input/input-router.js';
 import { parseKeypress } from './input/key-events.js';
-import { paintInitialFrame } from './render/ansi.js';
+import { paintBufferedFrame, resolveTerminalSize } from './render/frame-buffer.js';
 import { renderFrame } from './render/frame-renderer.js';
 import {
   applyUiActions,
@@ -53,12 +53,12 @@ export async function runAppShell(options: CliOptions, io: TerminalIO): Promise<
   const { controller, state: bootState } = createBootstrappedShell(options);
   let state = bootState;
 
-  const redraw = (initial = false) => {
-    io.paint(renderFrame(state, controller), initial);
+  const redraw = () => {
+    io.paint(renderFrame(state, controller));
   };
 
   io.enterRawMode();
-  redraw(true);
+  redraw();
 
   return new Promise<number>((resolve) => {
     const cleanup = io.onData((chunk) => {
@@ -78,5 +78,5 @@ export async function runAppShell(options: CliOptions, io: TerminalIO): Promise<
 
 export function renderBootFrame(options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId'>): string {
   const { controller, state } = createBootstrappedShell(options);
-  return paintInitialFrame(renderFrame(state, controller));
+  return paintBufferedFrame(renderFrame(state, controller), resolveTerminalSize());
 }

@@ -10,7 +10,7 @@ describe('ansi helpers', () => {
     expect(padVisible(text, 6)).toBe(`${text}    `);
   });
 
-  it('paints frames with home cursor instead of full clear', () => {
+  it('legacy paintFrame still homes and erases below', () => {
     expect(paintFrame('line')).toBe('\u001b[Hline\u001b[J');
   });
 });

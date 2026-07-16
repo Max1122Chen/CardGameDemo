@@ -8,12 +8,12 @@ Last updated: 2026-07-16
 
 ## In focus
 
-**Phase: EQUIP-F01 Done** — next: EQUIP-F02 / COMBAT-F05 when promoted.
+**Phase:** CLI-F03 Done — next: EQUIP-F02 / COMBAT-F05 when promoted; UI layout polish deferred.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–21 | … through ITEM-F02 | Grid backpack | **Done** |
-| 22 | **EQUIP-F01** | Slots, equip/unequip, base+gear deck | **Done** ([spec](./Equipment/EQUIP-F01-equipment-loadout.md)) |
+| 1–22 | … through EQUIP-F01 | Equipment loadout | **Done** |
+| 23 | **CLI-F03** | IMC/IA input, frame buffer, ScrollZone auto-tail | **Done** ([spec](./CLI/CLI-F03-host-foundation.md)) |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel) |
 
 ---

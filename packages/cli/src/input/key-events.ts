@@ -27,6 +27,11 @@ export function parseKeypress(chunk: string): ParsedKey {
     return { kind: 'backspace' };
   }
 
+  // Tab is outside printable range but used by inventory focus cycling.
+  if (chunk === '\t') {
+    return { kind: 'char', char: '\t' };
+  }
+
   if (chunk === '\u001b[A') {
     return { kind: 'up' };
   }

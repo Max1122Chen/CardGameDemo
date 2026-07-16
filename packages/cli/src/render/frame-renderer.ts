@@ -2,6 +2,11 @@ import type { SessionController } from '../session/session-controller.js';
 import type { AppState, EntityStatsView } from '../types.js';
 import { padVisible, style, ANSI } from './ansi.js';
 import { formatPlayerStats, formatPrimaryStat, primaryColors, theme } from './theme.js';
+import { renderScrollZone } from './widgets/scroll-zone.js';
+
+const COMBAT_LOG_VIEWPORT = 8;
+const CONSOLE_SCROLLBACK_VIEWPORT = 6;
+const TRACE_VIEWPORT = 6;
 
 function box(title: string, lines: string[], width = 72): string[] {
   const inner = width - 4;
@@ -87,10 +92,13 @@ function renderGameplay(state: AppState): string[] {
           return selected ? theme.selected(line) : line;
         });
 
-  const logLines =
-    state.combatLog.length > 0
-      ? state.combatLog.map((line) => theme.log(line))
-      : [theme.muted('Battle ready.')];
+  const logSource =
+    state.combatLog.length > 0 ? state.combatLog.map((line) => theme.log(line)) : [theme.muted('Battle ready.')];
+  const logLines = renderScrollZone({
+    lines: logSource,
+    viewportHeight: COMBAT_LOG_VIEWPORT,
+    autoTail: true,
+  });
 
   const playerPreview =
     state.preview?.blockToGain !== undefined && state.preview.blockToGain > 0
@@ -196,7 +204,11 @@ function renderOverlay(state: AppState): string[] {
         theme.muted('Esc closes overlay.'),
       ]);
     case 'console': {
-      const scrollback = state.consoleScrollback.slice(-6).map((line) => theme.muted(line));
+      const scrollback = renderScrollZone({
+        lines: state.consoleScrollback.map((line) => theme.muted(line)),
+        viewportHeight: CONSOLE_SCROLLBACK_VIEWPORT,
+        autoTail: true,
+      });
       return box('Debug Console', [
         ...scrollback,
         ...(scrollback.length > 0 ? [''] : []),
@@ -210,13 +222,18 @@ function renderOverlay(state: AppState): string[] {
 }
 
 function renderTracePane(controller: SessionController): string[] {
-  const lines = controller.traceLines.slice(-6).map((line) => {
+  const traced = controller.traceLines.map((line) => {
     try {
       const parsed = JSON.parse(line) as { kind?: string };
       return theme.trace(parsed.kind ? `${parsed.kind}` : line.slice(0, 40));
     } catch {
       return theme.trace(line.slice(0, 40));
     }
+  });
+  const lines = renderScrollZone({
+    lines: traced,
+    viewportHeight: TRACE_VIEWPORT,
+    autoTail: true,
   });
   return box('Trace', lines.length > 0 ? lines : [theme.muted('(no trace entries)')]);
 }

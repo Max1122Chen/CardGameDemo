@@ -1,4 +1,5 @@
-import { enterTuiScreen, exitTuiScreen, paintFrame, paintInitialFrame } from '../render/ansi.js';
+import { enterTuiScreen, exitTuiScreen } from '../render/ansi.js';
+import { paintBufferedFrame, resolveTerminalSize } from '../render/frame-buffer.js';
 
 export type TerminalIO = {
   isInteractive: boolean;
@@ -14,20 +15,19 @@ export function createNodeTerminalIO(): TerminalIO {
   const stdout = process.stdout;
   const isInteractive = Boolean(stdin.isTTY && stdout.isTTY);
   let rawModeEnabled = false;
-  let firstPaint = true;
+
+  const paintContent = (content: string) => {
+    const size = resolveTerminalSize(stdout);
+    stdout.write(paintBufferedFrame(content, size));
+  };
 
   return {
     isInteractive,
     write(text: string) {
       stdout.write(text);
     },
-    paint(content: string, initial = false) {
-      if (initial || firstPaint) {
-        stdout.write(paintInitialFrame(content));
-        firstPaint = false;
-        return;
-      }
-      stdout.write(paintFrame(content));
+    paint(content: string, _initial = false) {
+      paintContent(content);
     },
     onData(handler) {
       const listener = (chunk: Buffer | string) => {
@@ -45,11 +45,10 @@ export function createNodeTerminalIO(): TerminalIO {
       stdin.setRawMode?.(true);
       stdin.resume();
       rawModeEnabled = true;
-      firstPaint = true;
       stdout.write(enterTuiScreen());
     },
     exitRawMode() {
-      if (!isInteractive || !rawModeEnabled) {
+      if (!isInteractive || rawModeEnabled === false) {
         return;
       }
       stdin.setRawMode?.(false);
