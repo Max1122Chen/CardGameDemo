@@ -1,14 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { createGameplayEvent } from '../events/gameplay-event.js';
-import { createGameplayEventChannel } from '../events/gameplay-event-channel.js';
 import { emitTurnEndTimingEvent } from '../events/timing-events.js';
 import { RuleEngine } from '../engine/rule-engine.js';
 import { parseGameplayEffectDefinition } from '../definitions/parse-definitions.js';
-import { createTakeDamageAbilityDefinition } from '../combat/take-damage-ability.js';
-import { CombatAttributes } from '../combat/combat-attributes.js';
-import { bootstrapCombatAttributes } from '../combat/take-damage.js';
-import { registerCombatAbilityHandlers } from '../combat/register-combat-abilities.js';
 
 describe('CORE-F10 — GFC gaps', () => {
   it('ongoing source/target gates disable modifiers until tag present', () => {
@@ -19,9 +13,9 @@ describe('CORE-F10 — GFC gaps', () => {
     const absorbStage = engine.tagManager.resolve('EvaluationStage.DamageAbsorb');
 
     for (const gfc of [source, target]) {
-      gfc.setAttributeBase(CombatAttributes.DamageToTake, 0);
+      gfc.setAttributeBase('DamageToTake', 0);
       gfc.bindEvaluationPipeline({
-        attribute: CombatAttributes.DamageToTake,
+        attribute: 'DamageToTake',
         stageOrder: [absorbStage],
       });
     }
@@ -33,7 +27,7 @@ describe('CORE-F10 — GFC gaps', () => {
         ongoingTagRequirements: { targetRequiredTags: ['Status.Vulnerable'] },
         modifiers: [
           {
-            attribute: CombatAttributes.DamageToTake,
+            attribute: 'DamageToTake',
             op: 'Multiply',
             magnitude: 1.25,
             evaluationStage: absorbStage,
@@ -47,11 +41,11 @@ describe('CORE-F10 — GFC gaps', () => {
       },
     );
 
-    target.setAttributeBase(CombatAttributes.DamageToTake, 8);
-    expect(target.getAttribute(CombatAttributes.DamageToTake)?.currentValue).toBe(8);
+    target.setAttributeBase('DamageToTake', 8);
+    expect(target.getAttribute('DamageToTake')?.currentValue).toBe(8);
 
     target.addTag(vulnerable);
-    expect(target.getAttribute(CombatAttributes.DamageToTake)?.currentValue).toBe(10);
+    expect(target.getAttribute('DamageToTake')?.currentValue).toBe(10);
   });
 
   it('stacking addDuration merges duration magnitude by effect id', () => {
@@ -115,35 +109,5 @@ describe('CORE-F10 — GFC gaps', () => {
 
     expect(parsed.grantedTags?.[0]?.name).toBe('Status.Vulnerable');
     expect(parsed.modifiers[0]?.evaluationStage?.name).toBe('EvaluationStage.DamageAbsorb');
-  });
-
-  it('TakeDamage GA settles Block then Health', () => {
-    const engine = RuleEngine.create();
-    registerCombatAbilityHandlers(engine.activationRegistry);
-    const target = engine.createEntityWithGfc('target');
-    bootstrapCombatAttributes(target, { health: 20, block: 3 }, engine.tagManager);
-    const handle = target.listGrantedAbilities().find((a) => a.abilityDefId === 'ga.combat.take-damage')?.handle;
-    expect(handle).toBeDefined();
-
-    target.setAttributeBase(CombatAttributes.DamageToTake, 8);
-
-    const result = target.tryActivate(handle!, {
-      instigatorEntityId: 'source',
-      sourceEntityId: 'source',
-      targetEntityId: 'target',
-    });
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.activationData?.takeDamage).toEqual({ blocked: 3, healthLost: 5 });
-    }
-    expect(target.getAttribute(CombatAttributes.Health)?.currentValue).toBe(15);
-    expect(target.getAttribute(CombatAttributes.Block)?.currentValue).toBe(0);
-  });
-});
-
-describe('createTakeDamageAbilityDefinition', () => {
-  it('uses combat.takeDamage handlerId', () => {
-    expect(createTakeDamageAbilityDefinition().handlerId).toBe('combat.takeDamage');
   });
 });

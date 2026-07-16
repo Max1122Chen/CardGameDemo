@@ -3,9 +3,12 @@
   "name": "Weaken",
   "cost": 1,
   "targeting": "single_enemy",
-  "abilityRef": "ga.card.play",
-  "setByCaller": {
-    "Data.CommitMode": 0
-  },
-  "commitEffectRefs": [{ "target": "target", "effectRef": "ge.status.vulnerable" }]
+  "abilityRef": "ga.archetype.cardPlayStatus",
+  "effectBindings": [
+    {
+      "when": "commit",
+      "target": "target",
+      "effectRef": "ge.status.vulnerable"
+    }
+  ]
 }

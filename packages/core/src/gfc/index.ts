@@ -48,6 +48,7 @@ export {
   type AbilityActivationHandler,
   type AbilityHandlerContext,
   type AbilityHandlerResult,
+  type AbilityHookServices,
   type ActivationFailureReason,
   type ActivationResult,
   type ActiveAbilityEventInfo,
@@ -68,6 +69,7 @@ export {
   parseGameplayAbilityDefinition,
   parseGameplayEffectDefinition,
   type WireGameplayAbilityDefinition,
+  type WireGameplayAbilityEffectBindingSpec,
   type WireGameplayEffectDefinition,
 } from '../definitions/parse-definitions.js';
 

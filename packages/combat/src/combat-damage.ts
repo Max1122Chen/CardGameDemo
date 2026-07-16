@@ -1,5 +1,5 @@
-import type { EntityId } from '../engine/component-type.js';
-import type { GameplayFrameworkComponent } from '../gfc/gameplay-framework-component.js';
+import type { EntityId } from '@cardgame/core';
+import type { GameplayFrameworkComponent } from '@cardgame/core';
 
 export type DamageResult = {
   blocked: number;

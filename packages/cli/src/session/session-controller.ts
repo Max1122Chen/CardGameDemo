@@ -1,8 +1,10 @@
 import {
   CombatSession,
+  type CombatSnapshot,
+} from '@cardgame/combat';
+import {
   RuleEngine,
   TraceBuffer,
-  type CombatSnapshot,
 } from '@cardgame/core';
 
 import { combatBootstrapConfig } from '../data/load-combat-bootstrap.js';

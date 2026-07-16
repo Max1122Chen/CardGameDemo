@@ -1,0 +1,11 @@
+{
+  "id": "ga.archetype.takeDamage",
+  "kind": "active",
+  "name": "TakeDamage",
+  "tags": {},
+  "handlerId": "combat.takeDamage",
+  "costApplyTiming": "manual",
+  "endPolicy": "auto",
+  "effectsOnActivate": [],
+  "parameterSchema": {}
+}

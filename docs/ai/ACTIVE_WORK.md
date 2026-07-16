@@ -1,6 +1,6 @@
 # Active work (agent backlog)
 
-Last updated: 2026-07-14
+Last updated: 2026-07-16
 
 > **Agent:** Primary backlog. Do not infer implementation from full design docs without promotion here.
 
@@ -8,24 +8,29 @@ Last updated: 2026-07-14
 
 ## In focus
 
-**Phase: Data-driven abilities** — CORE-F11 landed (handlers + SetByCaller + thin cards).
+**Phase: postâ€“CORE-F12** â€” parameterized GA/GE + Cost GE shipped; pick next Feature.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–16 | CORE-F01–F11, COMBAT-F01–F03, CLI-F02, DATA-F01 | GFC + JSON cards + AbilityActivationRegistry | **Done** |
-| — | **CLI-F01** | ndjson / debug stubs | Planned (parallel, not blocking) |
+| 1â€“17 | â€¦ through CORE-F12 | Params + Cost GE + hooks + `@cardgame/combat` | **Done** ([spec](./Core/CORE-F12-tech-debt-polish.md)) |
+| â€” | **CLI-F01** | ndjson / debug stubs | Planned (parallel) |
 
-**Next:** User may promote CORE-F12 (tech-debt polish) or EQUIP / COMBAT-F04 after review.
+**Architecture lock (current):**
+
+- GA = archetype Def (`parameters` + `effectBindings` + `costEffectRef` + `handlerId`); cards override `parameters`.
+- GE = JSON templates + SetByCaller; bind `$Param` â†’ `Data.*` at apply.
+- Cost = Cost GE + `checkCost` / `applyCost` / `commitAbility`.
+- Listen = explicit in activate hook; Session = bridge only.
+- Combat host: `@cardgame/combat`; core = pure framework.
 
 ---
 
-## Deferred (user roadmap — register when promoted)
+## Deferred (user roadmap â€” register when promoted)
 
 | Theme | Suggested ID | After |
 |-------|--------------|-------|
-| F11 structural polish | CORE-F12 | After F11 commit |
-| Equipment + equipment-driven deck | EQUIP-F01 | Prefer after polish |
-| Enemy data + AI | COMBAT-F04 | Prefer after polish |
+| Equipment + equipment-driven deck | EQUIP-F01 | now available |
+| Enemy data + AI | COMBAT-F04 | now available |
 | Dungeon / loot / events | DUNGEON-F01 | Combat + equipment data |
 
 ---

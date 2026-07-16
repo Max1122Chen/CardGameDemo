@@ -1,0 +1,11 @@
+{
+  "id": "ge.template.spend-ap",
+  "duration": { "kind": "Instant" },
+  "modifiers": [
+    {
+      "attribute": "ActionPoints",
+      "op": "Add",
+      "magnitude": { "kind": "SetByCaller", "key": "Data.Amount" }
+    }
+  ]
+}

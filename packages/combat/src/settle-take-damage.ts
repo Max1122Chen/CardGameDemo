@@ -1,7 +1,7 @@
 import type {
   GameplayEffectApplicationContext,
   GameplayEffectDefinition,
-} from '../gfc/types.js';
+} from '@cardgame/core';
 
 export type TakeDamageEntity = {
   getAttribute(attribute: string): { currentValue: number } | undefined;

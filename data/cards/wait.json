@@ -3,8 +3,5 @@
   "name": "Wait",
   "cost": 1,
   "targeting": "none",
-  "abilityRef": "ga.card.play",
-  "setByCaller": {
-    "Data.CommitMode": 0
-  }
+  "abilityRef": "ga.archetype.cardPlayStatus"
 }

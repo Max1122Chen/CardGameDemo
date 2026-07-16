@@ -1,4 +1,4 @@
-import type { GameplayEffectDefinition } from '../gfc/types.js';
+import type { GameplayEffectDefinition } from '@cardgame/core';
 import { CombatAttributes } from './combat-attributes.js';
 
 export function spendActionPointsEffect(amount: number): GameplayEffectDefinition {

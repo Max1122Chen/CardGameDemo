@@ -61,6 +61,19 @@ export type WireGameplayAbilityEffectBinding = {
   effect: WireGameplayEffectDefinition;
 };
 
+export type WireGameplayAbilityEffectBindingSpec = {
+  when?: string;
+  target: 'self' | 'target';
+  effectRef?: string;
+  effect?: WireGameplayEffectDefinition;
+  bind?: Readonly<Record<string, string>>;
+};
+
+export type WireGameplayAbilityParameterSchemaEntry = {
+  type: 'number' | 'boolean';
+  default?: number | boolean;
+};
+
 export type WireGameplayAbilityDefinition = {
   id: string;
   kind: 'active' | 'passive';
@@ -68,8 +81,15 @@ export type WireGameplayAbilityDefinition = {
   tags: GameplayAbilityDefinition['tags'];
   cost?: GameplayAbilityDefinition['cost'];
   chargeCostOnActivate?: boolean;
+  costEffectRef?: string;
+  costEffect?: WireGameplayEffectDefinition;
+  costBindings?: Readonly<Record<string, string>>;
+  costApplyTiming?: GameplayAbilityDefinition['costApplyTiming'];
   endPolicy?: GameplayAbilityDefinition['endPolicy'];
-  effectsOnActivate: readonly WireGameplayAbilityEffectBinding[];
+  effectsOnActivate?: readonly WireGameplayAbilityEffectBinding[];
+  effectBindings?: readonly WireGameplayAbilityEffectBindingSpec[];
+  parameterSchema?: Readonly<Record<string, WireGameplayAbilityParameterSchemaEntry>>;
+  parameterValues?: Readonly<Record<string, number | boolean>>;
   listenWhileActive?: GameplayAbilityDefinition['listenWhileActive'];
   handlerId?: string;
   autoActivateOnGrant?: boolean;
@@ -177,9 +197,59 @@ export function parseGameplayEffectDefinition(
 export function parseGameplayAbilityDefinition(
   wire: WireGameplayAbilityDefinition,
   manager: GameplayTagManager,
+  catalog?: {
+    effects?: Readonly<Record<string, WireGameplayEffectDefinition>>;
+  },
 ): GameplayAbilityDefinition {
   if (!wire.id) {
     throw new DefinitionParseError('GameplayAbilityDefinition.id is required');
+  }
+
+  const effectsOnActivate = (wire.effectsOnActivate ?? []).map((binding, index) => ({
+    target: binding.target,
+    effect: parseGameplayEffectDefinition(
+      binding.effect,
+      manager,
+      `effectsOnActivate[${index}].effect`,
+    ),
+  }));
+
+  const effectBindings = wire.effectBindings?.map((binding, index) => {
+    let effectWire = binding.effect;
+    if (binding.effectRef) {
+      effectWire = catalog?.effects?.[binding.effectRef];
+      if (!effectWire) {
+        throw new DefinitionParseError(
+          `Unknown effectBindings[${index}].effectRef: ${binding.effectRef}`,
+        );
+      }
+    }
+    if (!effectWire) {
+      throw new DefinitionParseError(
+        `effectBindings[${index}]: effect or effectRef is required`,
+      );
+    }
+    return {
+      when: binding.when,
+      target: binding.target,
+      effect: parseGameplayEffectDefinition(
+        effectWire,
+        manager,
+        `effectBindings[${index}].effect`,
+      ),
+      bind: binding.bind,
+    };
+  });
+
+  let costEffect: GameplayEffectDefinition | undefined;
+  if (wire.costEffectRef) {
+    const costWire = catalog?.effects?.[wire.costEffectRef];
+    if (!costWire) {
+      throw new DefinitionParseError(`Unknown costEffectRef: ${wire.costEffectRef}`);
+    }
+    costEffect = parseGameplayEffectDefinition(costWire, manager, 'costEffect');
+  } else if (wire.costEffect) {
+    costEffect = parseGameplayEffectDefinition(wire.costEffect, manager, 'costEffect');
   }
 
   return {
@@ -189,15 +259,14 @@ export function parseGameplayAbilityDefinition(
     tags: wire.tags,
     cost: wire.cost,
     chargeCostOnActivate: wire.chargeCostOnActivate,
+    costEffect,
+    costBindings: wire.costBindings,
+    costApplyTiming: wire.costApplyTiming,
     endPolicy: wire.endPolicy,
-    effectsOnActivate: wire.effectsOnActivate.map((binding, index) => ({
-      target: binding.target,
-      effect: parseGameplayEffectDefinition(
-        binding.effect,
-        manager,
-        `effectsOnActivate[${index}].effect`,
-      ),
-    })),
+    effectsOnActivate,
+    effectBindings,
+    parameterSchema: wire.parameterSchema,
+    parameterValues: wire.parameterValues,
     listenWhileActive: wire.listenWhileActive,
     handlerId: wire.handlerId,
     autoActivateOnGrant: wire.autoActivateOnGrant,

@@ -4,20 +4,28 @@ export { CombatAttributes } from './combat-attributes.js';
 export { settleTakeDamage, resetCombatMeta, bootstrapCombatAttributes } from './take-damage.js';
 export { createTakeDamageAbilityDefinition, TAKE_DAMAGE_ABILITY_ID } from './take-damage-ability.js';
 export { settleTakeDamageOnEntity } from './settle-take-damage.js';
+export { dealDamageToEntity } from './deal-damage.js';
 export { registerCombatAbilityHandlers } from './register-combat-abilities.js';
 export {
   SetByCallerKeys,
-  CommitMode,
-  CARD_PLAY_HANDLER_ID,
   TAKE_DAMAGE_HANDLER_ID,
-  CARD_PLAY_ABILITY_ID,
+  CARD_PLAY_DAMAGE_ABILITY_ID,
+  CARD_PLAY_BLOCK_ABILITY_ID,
+  CARD_PLAY_STATUS_ABILITY_ID,
 } from './set-by-caller-keys.js';
-export type { CardDefinition, CardTargeting } from './card-definition.js';
+export {
+  CARD_PLAY_DAMAGE_HANDLER_ID,
+  CARD_PLAY_BLOCK_HANDLER_ID,
+  CARD_PLAY_STATUS_HANDLER_ID,
+  type CardPlayCommitBridge,
+} from './card-play-handlers.js';
+export type { CardDefinition, CardTargeting, CardCommitEffectTarget } from './card-definition.js';
 export {
   COMBAT_ENEMY_ID,
   COMBAT_PLAYER_ID,
   DEFAULT_COMBAT_CONFIG,
   CARD_ACTION_IDS,
+  type CardId,
   type CardActionId,
   type CardActionSpec,
   type CardInstance,
@@ -33,3 +41,22 @@ export {
   type DeckState,
   type EnemyIntent,
 } from './types.js';
+export {
+  parseCardDefinition,
+  buildCardCatalog,
+  buildCombatCardBootstrap,
+  catalogToDisplaySpecs,
+  type WireCardDefinition,
+  type WireCardCommitEffect,
+  type WireCardCommitEffectRef,
+  type CombatCardBootstrap,
+  type DefinitionAssetCatalog,
+} from './data/parse-card.js';
+export {
+  loadCombatBootstrapFromRepo,
+  loadDefinitionAssetCatalog,
+  loadCardWiresFromDir,
+  loadDeckIds,
+  resolveRepoDataRoot,
+  combatBootstrapConfig,
+} from './data/combat-bootstrap.js';

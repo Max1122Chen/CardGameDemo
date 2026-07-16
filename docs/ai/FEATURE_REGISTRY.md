@@ -1,6 +1,6 @@
 # Feature Registry
 
-Last updated: 2026-07-14  
+Last updated: 2026-07-16  
 Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 
 **Rules:**
@@ -34,6 +34,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F10` | GFC gaps for data-driven cards (Ongoing GE gates, serde) | Done | — | [CORE-F10-data-driven-gfc-gaps.md](./Core/CORE-F10-data-driven-gfc-gaps.md) |
 | `DATA-F01` | Card & effect JSON schema + loader | Done | ? | [DATA-F01-card-asset-pipeline.md](./Data/DATA-F01-card-asset-pipeline.md) |
 | `CORE-F11` | Extensible GA activation, SetByCaller, reusable GE/GA assets | Done | — | [CORE-F11-extensible-ga-assets.md](./Core/CORE-F11-extensible-ga-assets.md) |
+| `CORE-F12` | Parameterized GA/GE defs, activate hooks, Cost GE, F11 debt polish | Done | — | [CORE-F12-tech-debt-polish.md](./Core/CORE-F12-tech-debt-polish.md) |
 
 ---
 
@@ -42,7 +43,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | DOMAIN | Next Feature # | Notes |
 |--------|----------------|-------|
 | `WF` | F02 | Workflow / docs |
-| `CORE` | F12 | F11 extensible GA + assets Done |
+| `CORE` | F13 | F12 parameterized GA/GE + Cost GE Done |
 | `COMBAT` | F04 | F03 describability probes registered |
 | `DUNGEON` | F01 | Map, encounters, loot |
 | `DATA` | F02 | F01 card asset pipeline registered |

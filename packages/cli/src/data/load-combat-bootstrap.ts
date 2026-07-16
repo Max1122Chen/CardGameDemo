@@ -7,10 +7,12 @@ import {
   type CombatCardBootstrap,
   type CombatSessionTuneables,
   type DefinitionAssetCatalog,
-  type RuleEngine,
   type WireCardDefinition,
-  type WireGameplayAbilityDefinition,
-  type WireGameplayEffectDefinition,
+} from '@cardgame/combat';
+import type {
+  RuleEngine,
+  WireGameplayAbilityDefinition,
+  WireGameplayEffectDefinition,
 } from '@cardgame/core';
 
 function findRepoRoot(startDir: string): string {
@@ -82,9 +84,6 @@ export function combatBootstrapConfig(
   engine: RuleEngine,
   tuneables: Partial<CombatSessionTuneables> = {},
 ): Partial<CombatSessionTuneables> &
-  Pick<
-    import('@cardgame/core').CombatSessionConfig,
-    'cardCatalog' | 'deckIds'
-  > {
+  Pick<import('@cardgame/combat').CombatSessionConfig, 'cardCatalog' | 'deckIds'> {
   return { ...loadCombatBootstrapFromRepo(engine), ...tuneables };
 }

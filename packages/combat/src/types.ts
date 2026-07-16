@@ -1,4 +1,4 @@
-import type { EntityId } from '../engine/component-type.js';
+import type { EntityId } from '@cardgame/core';
 
 export const COMBAT_PLAYER_ID = 'player' as const;
 export const COMBAT_ENEMY_ID = 'enemy-1' as const;
@@ -6,8 +6,11 @@ export const COMBAT_ENEMY_ID = 'enemy-1' as const;
 export type CombatPhase = 'Setup' | 'PlayerTurn' | 'EnemyTurn' | 'Victory' | 'Defeat';
 export type CombatTurnOwner = 'player' | 'enemy';
 export type CombatResult = 'victory' | 'defeat';
-export type CardActionId = 'strike' | 'defend' | 'bash' | 'weaken' | 'flex' | 'wait';
+export type CardId = string;
+/** @deprecated Prefer CardId â€?open string ids (CORE-F12 D6). */
+export type CardActionId = CardId;
 
+/** Starter deck card ids (catalog membership validated at load). */
 export const CARD_ACTION_IDS = [
   'strike',
   'defend',
@@ -15,7 +18,7 @@ export const CARD_ACTION_IDS = [
   'weaken',
   'flex',
   'wait',
-] as const satisfies readonly CardActionId[];
+] as const;
 
 export type CombatAction =
   | { type: 'PlayCard'; handIndex: number }
@@ -23,7 +26,7 @@ export type CombatAction =
 
 export type CardInstance = {
   instanceId: string;
-  actionId: CardActionId;
+  actionId: CardId;
 };
 
 export type DeckState = {
@@ -47,7 +50,7 @@ export type ActorSnapshot = {
 
 export type CardView = {
   instanceId: string;
-  actionId: CardActionId;
+  actionId: CardId;
   name: string;
   cost: number;
 };
@@ -55,7 +58,7 @@ export type CardView = {
 export type CombatPreviewSnapshot = {
   handIndex: number;
   instanceId: string;
-  actionId: CardActionId;
+  actionId: CardId;
   targetEntityId: EntityId;
   damage?: number;
   damageToTake?: number;
@@ -77,7 +80,7 @@ export type CombatSnapshot = {
 import type { CardDefinition } from './card-definition.js';
 
 export type CardActionSpec = {
-  id: CardActionId;
+  id: CardId;
   name: string;
   cost: number;
 };
@@ -90,12 +93,12 @@ export type CombatSessionTuneables = {
   enemyStartHealth: number;
   enemyAttackDamage: number;
   /** Scenario hook: force opening hand (ignores openingDraw count). */
-  openingHand?: readonly CardActionId[];
+  openingHand?: readonly CardId[];
 };
 
 export type CombatSessionConfig = CombatSessionTuneables & {
-  cardCatalog: Record<CardActionId, CardDefinition>;
-  deckIds: readonly CardActionId[];
+  cardCatalog: Record<CardId, CardDefinition>;
+  deckIds: readonly CardId[];
 };
 
 export const DEFAULT_COMBAT_CONFIG: CombatSessionTuneables = {

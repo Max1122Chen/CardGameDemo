@@ -1,5 +1,5 @@
-import type { GameplayTagManager } from '../tags/gameplay-tag-manager.js';
-import type { GameplayFrameworkComponent } from '../gfc/gameplay-framework-component.js';
+import type { GameplayTagManager } from '@cardgame/core';
+import type { GameplayFrameworkComponent } from '@cardgame/core';
 import { CombatAttributes } from './combat-attributes.js';
 import { createTakeDamageAbilityDefinition } from './take-damage-ability.js';
 import { settleTakeDamageOnEntity } from './settle-take-damage.js';

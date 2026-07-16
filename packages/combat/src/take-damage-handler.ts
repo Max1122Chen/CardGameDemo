@@ -1,4 +1,4 @@
-import type { AbilityActivationHandler } from '../ga/ability-activation-registry.js';
+import type { AbilityActivationHandler } from '@cardgame/core';
 import { settleTakeDamageOnEntity } from './settle-take-damage.js';
 
 export function createTakeDamageHandler(): AbilityActivationHandler {

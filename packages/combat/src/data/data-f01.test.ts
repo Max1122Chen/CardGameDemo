@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { RuleEngine } from '../engine/rule-engine.js';
-import { CombatSession } from '../combat/combat-session.js';
+import { RuleEngine } from '@cardgame/core';
+import { CombatSession } from '../combat-session.js';
 import {
   buildCardCatalog,
   buildCombatCardBootstrap,
@@ -14,9 +14,9 @@ import {
   loadDefinitionAssetCatalog,
   resolveRepoDataRoot,
   combatBootstrapConfig,
-} from './combat-bootstrap.test-helper.js';
+} from './combat-bootstrap.js';
 
-describe('DATA-F01 / CORE-F11 card asset pipeline', () => {
+describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
   it('loads starter deck from repo JSON', () => {
     const engine = RuleEngine.create();
     const { cardCatalog, deckIds } = loadCombatBootstrapFromRepo(engine.tagManager);
@@ -31,18 +31,21 @@ describe('DATA-F01 / CORE-F11 card asset pipeline', () => {
     ]);
     expect(deckIds).toHaveLength(12);
     expect(cardCatalog.strike.name).toBe('Strike');
-    expect(cardCatalog.strike.ability.id).toBe('ga.card.play');
-    expect(cardCatalog.strike.ability.handlerId).toBe('combat.cardPlay');
+    expect(cardCatalog.strike.ability.id).toBe('ga.archetype.cardPlayDamage');
+    expect(cardCatalog.strike.ability.handlerId).toBe('combat.cardPlayDamage');
     expect(cardCatalog.strike.ability.effectsOnActivate).toHaveLength(0);
+    expect(cardCatalog.strike.ability.parameterValues?.Damage).toBe(6);
+    expect(cardCatalog.strike.ability.parameterValues?.ApCost).toBe(1);
   });
 
-  it('parses weaken vulnerable commit effect with duration channels', () => {
+  it('parses weaken vulnerable commit effectBinding with duration channels', () => {
     const engine = RuleEngine.create();
     const { cardCatalog } = loadCombatBootstrapFromRepo(engine.tagManager);
     const weaken = cardCatalog.weaken;
 
-    expect(weaken.commitEffects).toHaveLength(1);
-    const effect = weaken.commitEffects![0]!.effect;
+    const commitBindings = (weaken.ability.effectBindings ?? []).filter((b) => b.when === 'commit');
+    expect(commitBindings).toHaveLength(1);
+    const effect = commitBindings[0]!.effect;
     expect(effect.id).toBe('ge.status.vulnerable');
     expect(effect.duration.kind).toBe('Duration');
     if (effect.duration.kind === 'Duration') {
@@ -97,7 +100,7 @@ describe('DATA-F01 / CORE-F11 card asset pipeline', () => {
 
     expect(() =>
       buildCombatCardBootstrap(wires, ['strike', 'missing'], engine.tagManager, catalog),
-    ).toThrow(/Unknown card id/);
+    ).toThrow(/unknown card/i);
   });
 
   it('round-trips a minimal wire card through parseCardDefinition', () => {

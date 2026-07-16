@@ -6,9 +6,24 @@ import type { GameplayTagContainer } from '../tags/gameplay-tag-container.js';
 import type { GameplayTagManager } from '../tags/gameplay-tag-manager.js';
 import { DEFAULT_CHANNEL_TAG } from '../tags/native-tags.js';
 import type { TraceEntryInput } from '../trace/trace.js';
-import type { AttributeValue, GameplayEffectApplicationContext, GameplayEffectDefinition } from '../gfc/types.js';
+import type {
+  AttributeValue,
+  GameplayEffectApplicationContext,
+  GameplayEffectDefinition,
+  GameplayEffectModifier,
+} from '../gfc/types.js';
 import { evaluateTagGates, gatesNeedEntity } from './tag-gates.js';
-import type { AbilityActivationRegistry } from './ability-activation-registry.js';
+import type {
+  AbilityActivationRegistry,
+  AbilityHandlerContext,
+  AbilityHookServices,
+} from './ability-activation-registry.js';
+import {
+  mergeParameterValues,
+  resolveBindingMap,
+  resolveBindingMapOptional,
+  type AbilityParameterValue,
+} from './parameter-binding.js';
 import {
   GameplayAbilityError,
   type AbilityActivationContext,
@@ -42,7 +57,7 @@ export type GameplayAbilityHost = {
   unsubscribeAbilityEvent(listenerId: string): void;
   /** Optional host reaction when listenWhileActive matches (legacy / combat session). */
   onActiveAbilityEvent?(info: ActiveAbilityEventInfo): void;
-  /** App-registered activation handlers (CORE-F11). */
+  /** App-registered activation handlers (CORE-F11/F12). */
   activationRegistry?: AbilityActivationRegistry;
   emitTrace(entry: TraceEntryInput): void;
 };
@@ -59,10 +74,14 @@ type ActiveAbilityRecord = {
   handle: string;
   abilityDefId: string;
   listenerIds: string[];
+  activationCtx: AbilityActivationContext;
+  parameters: Record<string, AbilityParameterValue>;
+  definition: GameplayAbilityDefinition;
 };
 
 let nextAbilityHandle = 0;
 let nextAbilityInstance = 0;
+let nextListenSerial = 0;
 
 export class GameplayAbilityRuntime {
   private readonly granted = new Map<string, GrantedAbilityRecord>();
@@ -76,7 +95,6 @@ export class GameplayAbilityRuntime {
     const handle = `ability-${nextAbilityHandle++}`;
     const record: GrantedAbilityRecord = { handle, definition };
 
-    // F08 passive shim: grant-scoped listen → tryActivate on match.
     if (definition.kind === 'passive' && definition.passiveTrigger) {
       const listen = definition.passiveTrigger;
       const channelTag = listen.channelTag ?? DEFAULT_CHANNEL_TAG;
@@ -146,19 +164,29 @@ export class GameplayAbilityRuntime {
     const record = this.granted.get(handle)!;
     const definition = record.definition;
     const instanceId = `ability-instance-${nextAbilityInstance++}`;
-
-    const chargeCost = definition.chargeCostOnActivate !== false;
-    if (chargeCost && definition.cost) {
-      this.spendCost(definition.cost);
-    }
+    const parameters = this.resolveParameters(definition, ctx);
 
     const activeRecord: ActiveAbilityRecord = {
       instanceId,
       handle,
       abilityDefId: definition.id,
       listenerIds: [],
+      activationCtx: ctx,
+      parameters,
+      definition,
     };
     this.active.set(instanceId, activeRecord);
+
+    const costTiming = definition.costApplyTiming ?? 'activate';
+    if (costTiming === 'activate') {
+      const shouldCharge =
+        definition.costEffect !== undefined ||
+        (definition.cost !== undefined && definition.chargeCostOnActivate !== false);
+      if (shouldCharge && !this.applyCostForActive(activeRecord)) {
+        this.endAbility(instanceId);
+        return { ok: false, reason: 'insufficient_cost' };
+      }
+    }
 
     for (const binding of definition.effectsOnActivate) {
       const targetId = binding.target === 'self' ? this.host.entityId : ctx.targetEntityId;
@@ -186,12 +214,7 @@ export class GameplayAbilityRuntime {
         this.endAbility(instanceId);
         return { ok: false, reason: 'cannot_activate' };
       }
-      const handlerResult = handler.onActivate({
-        host: this.host,
-        definition,
-        ctx,
-        instanceId,
-      });
+      const handlerResult = handler.onActivate(this.buildHandlerContext(activeRecord));
       if (!handlerResult.ok) {
         this.endAbility(instanceId);
         return { ok: false, reason: handlerResult.reason ?? 'cannot_activate' };
@@ -202,7 +225,7 @@ export class GameplayAbilityRuntime {
     }
 
     if (definition.listenWhileActive) {
-      this.attachActiveListeners(activeRecord, definition.listenWhileActive, definition);
+      this.attachDeclarativeListeners(activeRecord, definition.listenWhileActive, definition);
     }
 
     this.host.emitTrace({
@@ -273,14 +296,55 @@ export class GameplayAbilityRuntime {
     this.active.clear();
   }
 
-  private attachActiveListeners(
+  private buildHandlerContext(active: ActiveAbilityRecord): AbilityHandlerContext {
+    const services = this.createHookServices(active);
+    return {
+      host: this.host,
+      definition: active.definition,
+      ctx: {
+        ...active.activationCtx,
+        parameters: active.parameters,
+      },
+      instanceId: active.instanceId,
+      services,
+    };
+  }
+
+  private createHookServices(active: ActiveAbilityRecord): AbilityHookServices {
+    return {
+      parameters: active.parameters,
+      startListen: (filter, onEvent) => this.startListen(active, filter, onEvent),
+      stopListen: (listenerId) => this.stopListen(active, listenerId),
+      checkCost: () => this.checkCostForActive(active),
+      applyCost: () => {
+        if (!this.applyCostForActive(active)) {
+          throw new GameplayAbilityError('applyCost failed: insufficient cost');
+        }
+      },
+      commitAbility: () => {
+        if (!this.checkCostForActive(active)) {
+          return false;
+        }
+        return this.applyCostForActive(active);
+      },
+      applyEffectBindings: (when) => this.applyEffectBindingsForActive(active, when),
+      endAbility: () => {
+        this.endAbility(active.instanceId);
+      },
+    };
+  }
+
+  private startListen(
     active: ActiveAbilityRecord,
     listen: GameplayAbilityEventListen,
-    definition: GameplayAbilityDefinition,
-  ): void {
+    onEvent: (event: GameplayEvent) => void,
+  ): string {
+    if (!this.active.has(active.instanceId)) {
+      throw new GameplayAbilityError('startListen: ability is not active');
+    }
     const channelTag = listen.channelTag ?? DEFAULT_CHANNEL_TAG;
     const channel = createGameplayEventChannel(this.host.tagManager.resolve(channelTag));
-    const listenerId = `ga-active-listen:${this.host.entityId}:${active.instanceId}`;
+    const listenerId = `ga-hook-listen:${this.host.entityId}:${active.instanceId}:${nextListenSerial++}`;
 
     this.host.subscribeAbilityEvent(channel, listenerId, (event) => {
       if (!this.active.has(active.instanceId)) {
@@ -289,7 +353,6 @@ export class GameplayAbilityRuntime {
       if (!this.eventMatchesListen(listen, event)) {
         return;
       }
-
       this.host.emitTrace({
         kind: 'ga.listen.match',
         entity: this.host.entityId,
@@ -297,24 +360,175 @@ export class GameplayAbilityRuntime {
         abilityDefId: active.abilityDefId,
         eventTags: [...listen.eventTags],
       });
+      onEvent(event);
+    });
 
-      const handler =
-        definition.handlerId !== undefined
-          ? this.host.activationRegistry?.get(definition.handlerId)
-          : undefined;
+    active.listenerIds.push(listenerId);
+    return listenerId;
+  }
 
+  private stopListen(active: ActiveAbilityRecord, listenerId: string): void {
+    this.host.unsubscribeAbilityEvent(listenerId);
+    active.listenerIds = active.listenerIds.filter((id) => id !== listenerId);
+  }
+
+  private resolveParameters(
+    definition: GameplayAbilityDefinition,
+    ctx: AbilityActivationContext,
+  ): Record<string, AbilityParameterValue> {
+    const fromDef = mergeParameterValues(definition.parameterSchema, definition.parameterValues);
+    if (ctx.parameters) {
+      return { ...fromDef, ...ctx.parameters };
+    }
+    return fromDef;
+  }
+
+  private checkCostForActive(active: ActiveAbilityRecord): boolean {
+    const def = active.definition;
+    if (def.costEffect) {
+      return this.checkCostEffect(def.costEffect, active.parameters, def.costBindings);
+    }
+    if (def.cost) {
+      return this.canAffordLegacyCost(def.cost);
+    }
+    return true;
+  }
+
+  private applyCostForActive(active: ActiveAbilityRecord): boolean {
+    const def = active.definition;
+    if (def.costEffect) {
+      if (!this.checkCostEffect(def.costEffect, active.parameters, def.costBindings)) {
+        return false;
+      }
+      const raw = resolveBindingMap(def.costBindings, active.parameters);
+      // Cost GE magnitudes are "amount to spend" (positive); apply as negative Add.
+      const setByCaller = Object.fromEntries(
+        Object.entries(raw).map(([key, value]) => [key, -Math.abs(value)]),
+      );
+      this.host.applyGameplayEffectTo(this.host.entityId, def.costEffect, {
+        instigatorEntityId: active.activationCtx.instigatorEntityId,
+        sourceEntityId: active.activationCtx.sourceEntityId ?? this.host.entityId,
+        targetEntityId: this.host.entityId,
+        payload: active.activationCtx.payload,
+        setByCaller,
+      });
+      return true;
+    }
+    if (def.cost) {
+      if (!this.canAffordLegacyCost(def.cost)) {
+        return false;
+      }
+      this.spendLegacyCost(def.cost);
+      return true;
+    }
+    return true;
+  }
+
+  private checkCostEffect(
+    effect: GameplayEffectDefinition,
+    parameters: Readonly<Record<string, AbilityParameterValue>>,
+    costBindings: Readonly<Record<string, string>> | undefined,
+  ): boolean {
+    const raw = resolveBindingMap(costBindings, parameters);
+    const setByCaller = Object.fromEntries(
+      Object.entries(raw).map(([key, value]) => [key, -Math.abs(value)]),
+    );
+    for (const modifier of effect.modifiers) {
+      if (!this.canAffordModifier(modifier, setByCaller)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private canAffordModifier(
+    modifier: GameplayEffectModifier,
+    setByCaller: Readonly<Record<string, number>>,
+  ): boolean {
+    const magnitude = this.resolveModifierMagnitude(modifier, setByCaller);
+    if (magnitude === undefined) {
+      return false;
+    }
+    const attr = this.host.getAttribute(modifier.attribute);
+    if (!attr) {
+      return false;
+    }
+    if (modifier.op === 'Add') {
+      // Spending resources: Add negative amount → need current >= -magnitude
+      if (magnitude < 0) {
+        return attr.currentValue >= -magnitude;
+      }
+      return true;
+    }
+    if (modifier.op === 'Override') {
+      return true;
+    }
+    return true;
+  }
+
+  private resolveModifierMagnitude(
+    modifier: GameplayEffectModifier,
+    setByCaller: Readonly<Record<string, number>>,
+  ): number | undefined {
+    const mag = modifier.magnitude;
+    if (typeof mag === 'number') {
+      return mag;
+    }
+    if (mag.kind === 'SetByCaller') {
+      const value = setByCaller[mag.key];
+      return value;
+    }
+    // AttributeBased cost check not supported in F12 MVP
+    return undefined;
+  }
+
+  private applyEffectBindingsForActive(active: ActiveAbilityRecord, when?: string): void {
+    const bindings = active.definition.effectBindings ?? [];
+    for (const binding of bindings) {
+      if (when !== undefined && binding.when !== when) {
+        continue;
+      }
+      const setByCaller = resolveBindingMapOptional(binding.bind, active.parameters);
+      if (binding.bind && Object.keys(binding.bind).length > 0 && setByCaller === undefined) {
+        // Optional params missing — skip this binding
+        continue;
+      }
+      const targetId =
+        binding.target === 'self' ? this.host.entityId : active.activationCtx.targetEntityId;
+      if (!targetId) {
+        throw new GameplayAbilityError('applyEffectBindings: missing target');
+      }
+      this.host.applyGameplayEffectTo(targetId, binding.effect, {
+        instigatorEntityId: active.activationCtx.instigatorEntityId,
+        sourceEntityId: active.activationCtx.sourceEntityId,
+        targetEntityId: active.activationCtx.targetEntityId,
+        payload: active.activationCtx.payload,
+        setByCaller: setByCaller ?? active.activationCtx.setByCaller,
+      });
+    }
+  }
+
+  private attachDeclarativeListeners(
+    active: ActiveAbilityRecord,
+    listen: GameplayAbilityEventListen,
+    definition: GameplayAbilityDefinition,
+  ): void {
+    const handler =
+      definition.handlerId !== undefined
+        ? this.host.activationRegistry?.get(definition.handlerId)
+        : undefined;
+
+    this.startListen(active, listen, (event) => {
       if (handler?.onActiveEvent) {
-        const granted = this.granted.get(active.handle);
         handler.onActiveEvent({
-          host: this.host,
-          definition: granted?.definition ?? definition,
+          ...this.buildHandlerContext(active),
+          event,
           ctx: {
-            instigatorEntityId: this.host.entityId,
+            ...active.activationCtx,
             event,
             payload: event.payload,
+            parameters: active.parameters,
           },
-          instanceId: active.instanceId,
-          event,
         });
         return;
       }
@@ -326,8 +540,6 @@ export class GameplayAbilityRuntime {
         event,
       });
     });
-
-    active.listenerIds.push(listenerId);
   }
 
   private onGrantScopedPassiveEvent(handle: string, event: GameplayEvent): void {
@@ -417,20 +629,33 @@ export class GameplayAbilityRuntime {
       }
     }
 
-    const needsTargetBinding = def.effectsOnActivate.some((binding) => binding.target === 'target');
+    const needsTargetBinding =
+      def.effectsOnActivate.some((binding) => binding.target === 'target') ||
+      (def.effectBindings ?? []).some((binding) => binding.target === 'target');
     if (needsTargetBinding && !ctx.targetEntityId) {
       return { ok: false, reason: 'missing_target', defId: def.id };
     }
 
-    const chargeCost = def.chargeCostOnActivate !== false;
-    if (chargeCost && def.cost && !this.canAffordCost(def.cost)) {
-      return { ok: false, reason: 'insufficient_cost', defId: def.id };
+    const costTiming = def.costApplyTiming ?? 'activate';
+    if (costTiming === 'activate') {
+      const parameters = this.resolveParameters(def, ctx);
+      if (def.costEffect) {
+        if (!this.checkCostEffect(def.costEffect, parameters, def.costBindings)) {
+          return { ok: false, reason: 'insufficient_cost', defId: def.id };
+        }
+      } else if (
+        def.cost &&
+        def.chargeCostOnActivate !== false &&
+        !this.canAffordLegacyCost(def.cost)
+      ) {
+        return { ok: false, reason: 'insufficient_cost', defId: def.id };
+      }
     }
 
     return { ok: true, defId: def.id };
   }
 
-  private canAffordCost(cost: NonNullable<GameplayAbilityDefinition['cost']>): boolean {
+  private canAffordLegacyCost(cost: NonNullable<GameplayAbilityDefinition['cost']>): boolean {
     const value = this.host.getAttribute(cost.attribute);
     if (!value) {
       return false;
@@ -438,7 +663,7 @@ export class GameplayAbilityRuntime {
     return value.currentValue >= cost.amount;
   }
 
-  private spendCost(cost: NonNullable<GameplayAbilityDefinition['cost']>): void {
+  private spendLegacyCost(cost: NonNullable<GameplayAbilityDefinition['cost']>): void {
     const value = this.host.getAttribute(cost.attribute);
     if (!value) {
       throw new GameplayAbilityError(`Missing cost attribute: ${cost.attribute}`);
@@ -453,11 +678,9 @@ export class GameplayAbilityRuntime {
     if (definition.endPolicy === 'auto') {
       return true;
     }
-    // Handler-driven activate with no Instant effects: default auto-end after handler.
     if (definition.handlerId && definition.effectsOnActivate.length === 0) {
       return true;
     }
-    // Default F08: Instant-only activate effects → auto end; otherwise stay.
     if (definition.effectsOnActivate.length === 0) {
       return true;
     }

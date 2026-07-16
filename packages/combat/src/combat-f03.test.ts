@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { combatBootstrapConfig } from '../data/combat-bootstrap.test-helper.js';
-import { RuleEngine } from '../engine/rule-engine.js';
+import { combatBootstrapConfig } from './data/combat-bootstrap.js';
+import { RuleEngine } from '@cardgame/core';
 import { CombatSession } from './combat-session.js';
 import type { CardActionId } from './types.js';
 import { COMBAT_ENEMY_ID } from './types.js';

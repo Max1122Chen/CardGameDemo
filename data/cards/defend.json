@@ -3,9 +3,6 @@
   "name": "Defend",
   "cost": 1,
   "targeting": "self",
-  "abilityRef": "ga.card.play",
-  "setByCaller": {
-    "Data.BlockToGain": 5,
-    "Data.CommitMode": 2
-  }
+  "abilityRef": "ga.archetype.cardPlayBlock",
+  "parameters": { "BlockToGain": 5 }
 }

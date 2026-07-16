@@ -3,9 +3,6 @@
   "name": "Strike",
   "cost": 1,
   "targeting": "single_enemy",
-  "abilityRef": "ga.card.play",
-  "setByCaller": {
-    "Data.Damage": 6,
-    "Data.CommitMode": 1
-  }
+  "abilityRef": "ga.archetype.cardPlayDamage",
+  "parameters": { "Damage": 6 }
 }

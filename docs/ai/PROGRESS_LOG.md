@@ -1,6 +1,6 @@
 # CardGameDemo Progress Log (for AI)
 
-Last updated: 2026-07-14
+Last updated: 2026-07-16
 
 ## Purpose
 
@@ -9,6 +9,34 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 ---
 
 ## Recent entries
+
+### 2026-07-16 — CORE-F12 implemented: parameterized defs + Cost GE + @cardgame/combat
+
+- **Shipped:** GA `parameters` / `effectBindings` / `costEffectRef`; `checkCost`/`applyCost`/`commitAbility`; hook `startListen`; three card-play hooks + TakeDamage archetype; `dealDamageToEntity`; open `CardId`; combat moved to `@cardgame/combat`.
+- **Data:** `data/abilities/card-play-{damage,block,status}.json`, `take-damage.json`, `data/effects/spend-ap.json`; cards use `parameters` (no CommitMode).
+- **Verify:** typecheck + 134 tests + lint green.
+- **Spec:** [CORE-F12-tech-debt-polish.md](./Core/CORE-F12-tech-debt-polish.md) → Done.
+
+### 2026-07-16 — CORE-F12: parameterized defs + hooks (subclass model withdrawn)
+
+- **Model:** GA archetype Defs + `parameters` (CDO) + `effectBindings`; GE JSON templates + SetByCaller; small `activateHookId` set — **not** per-card TS subclasses.
+- **Parameters:** GA parameters (config, Blackboard-like) vs GE SetByCaller (apply-time magnitude holes); explicit bind `$Param` → `Data.*`.
+- **Cost:** Cost GE + `checkCost`/`applyCost`/`commitAbility` (UE-aligned); D10.
+- **Spec:** [CORE-F12-tech-debt-polish.md](./Core/CORE-F12-tech-debt-polish.md) rewritten; ACTIVE_WORK aligned.
+
+### 2026-07-16 — CORE-F12: listen-as-Activate-action + full GE tree
+
+- *(Superseded by parameterized defs revision same day.)*
+
+### 2026-07-16 — CORE-F12 redesign: GA/GE subclass polymorphism
+
+- **Model:** Framework GA/GE = bases; cards/statuses = subclasses with virtual overrides (UE-like).
+- **Demote:** Freestanding `handlerId` registry and shared `ga.card.play` as end state.
+- **Spec:** [CORE-F12-tech-debt-polish.md](./Core/CORE-F12-tech-debt-polish.md); superseded in part by listen-action revision same day.
+
+### 2026-07-14 — CORE-F12 redesign: per-card GA owns commit
+
+- *(Superseded by 2026-07-16 subclass polymorphism rewrite.)*
 
 ### 2026-07-14 — CORE-F11: Activation registry, SetByCaller, reusable assets
 

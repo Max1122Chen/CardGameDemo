@@ -3,9 +3,6 @@
   "name": "Bash",
   "cost": 2,
   "targeting": "single_enemy",
-  "abilityRef": "ga.card.play",
-  "setByCaller": {
-    "Data.Damage": 8,
-    "Data.CommitMode": 1
-  }
+  "abilityRef": "ga.archetype.cardPlayDamage",
+  "parameters": { "Damage": 8 }
 }

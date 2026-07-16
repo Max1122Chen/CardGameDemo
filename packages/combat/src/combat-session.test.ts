@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { RuleEngine } from '../engine/rule-engine.js';
-import { TraceBuffer } from '../trace/trace.js';
+import { RuleEngine } from '@cardgame/core';
+import { TraceBuffer } from '@cardgame/core';
 import { CombatError, CombatSession } from './combat-session.js';
-import { combatBootstrapConfig } from '../data/combat-bootstrap.test-helper.js';
+import { combatBootstrapConfig } from './data/combat-bootstrap.js';
 import { drawCards, buildDeckInstances } from './deck-state.js';
 import type { CardActionId, CombatSessionTuneables } from './types.js';
 import { COMBAT_ENEMY_ID, COMBAT_PLAYER_ID } from './types.js';

@@ -3,9 +3,12 @@
   "name": "Flex",
   "cost": 1,
   "targeting": "self",
-  "abilityRef": "ga.card.play",
-  "setByCaller": {
-    "Data.CommitMode": 0
-  },
-  "commitEffectRefs": [{ "target": "self", "effectRef": "ge.card.flex.strength" }]
+  "abilityRef": "ga.archetype.cardPlayStatus",
+  "effectBindings": [
+    {
+      "when": "commit",
+      "target": "self",
+      "effectRef": "ge.card.flex.strength"
+    }
+  ]
 }

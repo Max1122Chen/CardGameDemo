@@ -2,10 +2,10 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { RuleEngine } from '../engine/rule-engine.js';
-import type { GameplayTagManager } from '../tags/gameplay-tag-manager.js';
-import type { CombatSessionTuneables } from '../combat/types.js';
-import type { WireGameplayAbilityDefinition, WireGameplayEffectDefinition } from '../definitions/parse-definitions.js';
+import type { RuleEngine } from '@cardgame/core';
+import type { GameplayTagManager } from '@cardgame/core';
+import type { CombatSessionTuneables } from '../types.js';
+import type { WireGameplayAbilityDefinition, WireGameplayEffectDefinition } from '@cardgame/core';
 import {
   buildCombatCardBootstrap,
   type CombatCardBootstrap,
@@ -82,6 +82,6 @@ export function combatBootstrapConfig(
   engine: RuleEngine,
   tuneables: Partial<CombatSessionTuneables> = {},
 ): Partial<CombatSessionTuneables> &
-  Pick<import('../combat/types.js').CombatSessionConfig, 'cardCatalog' | 'deckIds'> {
+  Pick<import('../types.js').CombatSessionConfig, 'cardCatalog' | 'deckIds'> {
   return { ...loadCombatBootstrapFromRepo(engine.tagManager), ...tuneables };
 }
