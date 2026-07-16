@@ -1,0 +1,10 @@
+{
+  "neutral": 10,
+  "grades": {
+    "none": { "bonus": 0, "punishment": 0 },
+    "A": { "bonus": 1.0, "punishment": 1.0 },
+    "B": { "bonus": 0.75, "punishment": 0.5 },
+    "C": { "bonus": 0.5, "punishment": 0.5 },
+    "D": { "bonus": 0.25, "punishment": 0 }
+  }
+}

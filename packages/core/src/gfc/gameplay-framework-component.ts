@@ -554,6 +554,7 @@ export class GameplayFrameworkComponent {
         continue;
       }
 
+      let finalValue = nextValue;
       const ctx = {
         entityId: this.entityId,
         attribute,
@@ -563,15 +564,17 @@ export class GameplayFrameworkComponent {
 
       for (const callback of this.preAttributeChangeCallbacks) {
         callback(ctx);
+        finalValue = ctx.newValue;
       }
 
-      state.currentValue = nextValue;
+      state.currentValue = finalValue;
       this.emitTrace('attribute.current.recompute', {
         attribute,
         before: oldValue,
-        after: nextValue,
+        after: finalValue,
       });
 
+      ctx.newValue = finalValue;
       for (const callback of this.postAttributeChangeCallbacks) {
         callback(ctx);
       }

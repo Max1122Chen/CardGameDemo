@@ -50,8 +50,8 @@ describe('session-controller combat integration', () => {
     state = applyUiAction(state, controller, { type: 'select_hand', index: strikeIndex });
 
     expect(state.previewActive).toBe(true);
-    expect(state.preview?.damageToTake).toBe(6);
-    expect(state.enemies[0]?.previewDamageToTake).toBe(6);
+    expect(state.preview?.damageToTake).toBe(8);
+    expect(state.enemies[0]?.previewDamageToTake).toBe(8);
 
     const hpBefore = state.enemies[0]?.health ?? 0;
     state = applyUiAction(state, controller, { type: 'cancel_card_preview' });

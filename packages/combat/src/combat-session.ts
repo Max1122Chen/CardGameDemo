@@ -6,19 +6,37 @@ import type { GameplayEffectApplicationContext } from '@cardgame/core';
 import type { GameplayTag } from '@cardgame/core';
 import type { TraceEntryInput } from '@cardgame/core';
 import type { CardDefinition } from './card-definition.js';
+import {
+  computeAttributeBonusForEntity,
+  loadAttributeBonusConfig,
+  readPrimaryBlock,
+  type AttributeBonusConfig,
+} from './attribute-bonus.js';
 import { CombatAttributes } from './combat-attributes.js';
-import { getEntityActionPoints, getEntityBlock, getEntityHealth } from './combat-damage.js';
+import {
+  getEntityActionPoints,
+  getEntityBlock,
+  getEntityHealth,
+  getEntityMaxActionPoints,
+  getEntityMaxHealth,
+} from './combat-damage.js';
 import {
   buildDeckInstances,
   discardFromHand,
   discardHand,
   drawCards,
 } from './deck-state.js';
-import { dealDamageToEntity } from './deal-damage.js';
+import { dealOutgoingDamage } from './deal-outgoing-damage.js';
 import { CombatError } from './errors.js';
 import { createSlimeScript } from './enemy-script.js';
 import { registerCombatAbilityHandlers } from './register-combat-abilities.js';
-import { bootstrapCombatAttributes, resetCombatMeta } from './take-damage.js';
+import {
+  bootstrapCombatAttributes,
+  DEFAULT_ENEMY_PRIMARIES,
+  DEFAULT_PLAYER_PRIMARIES,
+  resetCombatMeta,
+} from './take-damage.js';
+import { SetByCallerKeys } from './set-by-caller-keys.js';
 import {
   COMBAT_ENEMY_ID,
   COMBAT_PLAYER_ID,
@@ -26,12 +44,14 @@ import {
   type CardId,
   type CardInstance,
   type CombatAction,
+  type ActorSnapshot,
   type CombatPhase,
   type CombatResult,
   type CombatSessionConfig,
   type CombatSessionTuneables,
   type CombatSnapshot,
   type CombatTurnOwner,
+  type DamageBreakdown,
   type DeckState,
 } from './types.js';
 
@@ -54,6 +74,7 @@ export class CombatSession {
   private readonly combatChannel;
   private readonly enemyScript;
   private readonly cardDefinitions: Record<CardId, CardDefinition>;
+  private readonly bonusConfig: AttributeBonusConfig;
   private preview?: PreviewState;
   private readonly cardAbilityHandles = new Map<CardId, string>();
   private readonly takeDamageHandles = new Map<string, string>();
@@ -68,6 +89,7 @@ export class CombatSession {
     this.deck = deck;
     this.instances = instances;
     this.cardDefinitions = cardDefinitions;
+    this.bonusConfig = loadAttributeBonusConfig();
     this.combatChannel = engine.eventSystem.channel(engine.tagManager.resolve('Combat'));
     this.enemyScript = createSlimeScript(config.enemyAttackDamage);
   }
@@ -169,12 +191,22 @@ export class CombatSession {
 
     const targetId = this.resolvePreviewTarget(def, targetEntityId);
 
+    const setByCaller: Record<string, number> = {};
+    if (def.attributeBonus) {
+      setByCaller[SetByCallerKeys.AttributeBonus] = computeAttributeBonusForEntity(
+        def.attributeBonus,
+        player,
+        this.bonusConfig,
+      );
+    }
+
     const result = player.tryActivate(handle, {
       instigatorEntityId: COMBAT_PLAYER_ID,
       sourceEntityId: COMBAT_PLAYER_ID,
       targetEntityId: targetId,
       parameters: def.ability.parameterValues,
       payload: { cardInstanceId: instanceId, actionId: instance.actionId, cost: def.cost },
+      setByCaller: Object.keys(setByCaller).length > 0 ? setByCaller : undefined,
     });
 
     if (!result.ok) {
@@ -268,36 +300,54 @@ export class CombatSession {
 
     let preview: CombatSnapshot['preview'];
     if (this.preview) {
+      const def = this.getCardDefinition(this.preview.actionId);
       const target =
         this.preview.targetEntityId === COMBAT_PLAYER_ID ? player : this.requireEnemy();
+      const panelDamage =
+        typeof def.ability.parameterValues?.Damage === 'number'
+          ? def.ability.parameterValues.Damage
+          : 0;
+      const bonus = computeAttributeBonusForEntity(
+        def.attributeBonus,
+        player,
+        this.bonusConfig,
+      );
+      const scaling =
+        player.getAttribute(CombatAttributes.DamageScaling)?.currentValue ?? 1;
+      const multiplier =
+        player.getAttribute(CombatAttributes.DamageMultiplier)?.currentValue ?? 1;
+      const offset = player.getAttribute(CombatAttributes.DamageOffset)?.currentValue ?? 0;
+      const outgoing = player.getAttribute(CombatAttributes.Damage)?.currentValue ?? 0;
+      const damageBreakdown: DamageBreakdown | undefined =
+        panelDamage > 0 || bonus !== 0 || outgoing > 0
+          ? {
+              panel: panelDamage,
+              bonus,
+              scaling,
+              multiplier,
+              offset,
+              outgoing,
+            }
+          : undefined;
+
       preview = {
         handIndex: this.preview.handIndex,
         instanceId: this.preview.instanceId,
         actionId: this.preview.actionId,
         targetEntityId: this.preview.targetEntityId,
-        damage: player.getAttribute(CombatAttributes.Damage)?.currentValue,
+        damage: outgoing,
         damageToTake: target.getAttribute(CombatAttributes.DamageToTake)?.currentValue,
         blockToGain: player.getAttribute(CombatAttributes.BlockToGain)?.currentValue,
+        damageBreakdown,
       };
     }
 
     return {
       phase: this.phase,
       turnOwner: this.turnOwner,
-      player: {
-        entityId: COMBAT_PLAYER_ID,
-        name: 'Player',
-        health: getEntityHealth(player),
-        block: getEntityBlock(player),
-        actionPoints: getEntityActionPoints(player),
-      },
+      player: this.buildActorSnapshot(COMBAT_PLAYER_ID, player, 'Player', true),
       enemies: [
-        {
-          entityId: COMBAT_ENEMY_ID,
-          name: this.enemyScript.name,
-          health: getEntityHealth(enemy),
-          block: getEntityBlock(enemy),
-        },
+        this.buildActorSnapshot(COMBAT_ENEMY_ID, enemy, this.enemyScript.name, false),
       ],
       hand,
       enemyIntent: {
@@ -330,7 +380,9 @@ export class CombatSession {
         {
           health: this.config.playerStartHealth,
           block: 0,
+          maxActionPoints: this.config.actionPointsPerTurn,
           actionPoints: this.config.actionPointsPerTurn,
+          primaries: DEFAULT_PLAYER_PRIMARIES,
           takeDamageAbility: this.config.takeDamageAbility,
         },
         this.engine.tagManager,
@@ -343,13 +395,14 @@ export class CombatSession {
         {
           health: this.config.enemyStartHealth,
           block: 0,
+          primaries: DEFAULT_ENEMY_PRIMARIES,
           takeDamageAbility: this.config.takeDamageAbility,
         },
         this.engine.tagManager,
       ),
     );
 
-    // Per-card grant so each keeps its own parameterValues (shared archetype id ?shared params).
+    // Per-card grant so each keeps its own parameterValues (shared archetype id ??shared params).
     for (const def of Object.values(this.cardDefinitions)) {
       this.cardAbilityHandles.set(def.id, player.grantAbility(def.ability));
     }
@@ -530,16 +583,21 @@ export class CombatSession {
     this.emitCombatTrace({ kind: 'combat.turn', owner: 'enemy', phase: 'EnemyTurn' });
 
     const player = this.requirePlayer();
+    const enemy = this.requireEnemy();
     const damage = this.enemyScript.getIntent().damage;
 
-    const result = dealDamageToEntity({
+    resetCombatMeta(enemy);
+    const result = dealOutgoingDamage({
+      source: enemy,
       target: player,
-      amount: damage,
+      panelDamage: damage,
+      tagManager: this.engine.tagManager,
+      bonusConfig: this.bonusConfig,
       instigatorEntityId: COMBAT_ENEMY_ID,
-      sourceEntityId: COMBAT_ENEMY_ID,
       activateTakeDamage: (entityId, ctx) => this.activateTakeDamage(entityId, ctx),
     });
     resetCombatMeta(player);
+    resetCombatMeta(enemy);
 
     this.emitCombatEvent('GameplayEvent.Combat.player.TakeDamage', {
       sourceId: COMBAT_ENEMY_ID,
@@ -573,7 +631,10 @@ export class CombatSession {
   private beginPlayerTurn(): void {
     const player = this.requirePlayer();
     player.setAttributeBase(CombatAttributes.Block, 0);
-    player.setAttributeBase(CombatAttributes.ActionPoints, this.config.actionPointsPerTurn);
+    const maxAp =
+      player.getAttribute(CombatAttributes.MaxActionPoints)?.currentValue ??
+      this.config.actionPointsPerTurn;
+    player.setAttributeBase(CombatAttributes.ActionPoints, maxAp);
 
     const drawn = drawCards(this.deck, this.config.turnDraw);
     for (const instanceId of drawn) {
@@ -668,5 +729,26 @@ export class CombatSession {
 
   private requireEnemy(): GameplayFrameworkComponent {
     return this.engine.requireGfc(COMBAT_ENEMY_ID);
+  }
+
+  private buildActorSnapshot(
+    entityId: string,
+    gfc: GameplayFrameworkComponent,
+    name: string,
+    includeAp: boolean,
+  ): ActorSnapshot {
+    return {
+      entityId,
+      name,
+      health: getEntityHealth(gfc),
+      maxHealth: getEntityMaxHealth(gfc),
+      block: getEntityBlock(gfc),
+      actionPoints: includeAp ? getEntityActionPoints(gfc) : undefined,
+      maxActionPoints: includeAp ? getEntityMaxActionPoints(gfc) : undefined,
+      primaries: readPrimaryBlock(gfc),
+      damageScaling: gfc.getAttribute(CombatAttributes.DamageScaling)?.currentValue,
+      damageMultiplier: gfc.getAttribute(CombatAttributes.DamageMultiplier)?.currentValue,
+      damageOffset: gfc.getAttribute(CombatAttributes.DamageOffset)?.currentValue,
+    };
   }
 }

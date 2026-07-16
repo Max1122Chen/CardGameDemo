@@ -2,9 +2,11 @@ import type { AbilityActivationRegistry } from '@cardgame/core';
 import {
   createCardPlayBlockHandler,
   createCardPlayDamageHandler,
+  createCardPlayHealHandler,
   createCardPlayStatusHandler,
   CARD_PLAY_BLOCK_HANDLER_ID,
   CARD_PLAY_DAMAGE_HANDLER_ID,
+  CARD_PLAY_HEAL_HANDLER_ID,
   CARD_PLAY_STATUS_HANDLER_ID,
   TAKE_DAMAGE_HANDLER_ID,
   type CardPlayCommitBridge,
@@ -31,6 +33,7 @@ export function registerCombatAbilityHandlers(
   registry.register(CARD_PLAY_DAMAGE_HANDLER_ID, createCardPlayDamageHandler(getBridge));
   registry.register(CARD_PLAY_BLOCK_HANDLER_ID, createCardPlayBlockHandler(getBridge));
   registry.register(CARD_PLAY_STATUS_HANDLER_ID, createCardPlayStatusHandler(getBridge));
+  registry.register(CARD_PLAY_HEAL_HANDLER_ID, createCardPlayHealHandler(getBridge));
 
   return {
     setBridge: (next) => {
@@ -42,6 +45,7 @@ export function registerCombatAbilityHandlers(
 export {
   CARD_PLAY_BLOCK_HANDLER_ID,
   CARD_PLAY_DAMAGE_HANDLER_ID,
+  CARD_PLAY_HEAL_HANDLER_ID,
   CARD_PLAY_STATUS_HANDLER_ID,
   TAKE_DAMAGE_HANDLER_ID,
   type CardPlayCommitBridge,

@@ -10,6 +10,23 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-16 — COMBAT-F04 implemented: combat numeric depth
+
+- **Caps:** `MaxHealth` / `MaxActionPoints` attrs + pre-clamp; turn start AP → Max; **mend** heal card.
+- **Primaries:** six stats on player/enemy bootstrap; global `data/combat/attribute-bonus.json`; card `attributeBonus` wire.
+- **Damage:** panel + correction @ CommonDamage; pipeline × mult × corr + offset; enemy attack via `dealOutgoingDamage`.
+- **Deck:** flex removed; probe cards (jab, heavy_blow, surge, precise_cut, mend) + revised starter deck.
+- **CLI:** `P`/`E` stats overlay; preview damage breakdown line; end turn → `F`.
+- **Verify:** typecheck + **144 tests** + lint green.
+- **Status:** Implemented — **await user playtest** before commit & Done.
+- **Spec:** [COMBAT-F04-combat-numeric-depth.md](./Combat/COMBAT-F04-combat-numeric-depth.md)
+
+### 2026-07-16 — COMBAT-F04 spec Review: combat numeric depth
+
+- **Scope:** MaxHealth/MaxAP + clamp; six primaries; global attribute correction; full Damage pipeline; probe deck (flex removed); CLI stats overlay; enemy attack via pipeline.
+- **Status:** Review — locked D1–D15; await user 「开始做 S01」 before code.
+- **Spec:** [COMBAT-F04-combat-numeric-depth.md](./Combat/COMBAT-F04-combat-numeric-depth.md)
+
 ### 2026-07-16 — CORE-F13 implemented: thin GA runtime + legacy purge
 
 - **Runtime:** `tryActivate` = tag gates + hook only; removed auto cost/GE/listen/end and F08 APIs (`listenWhileActive`, `endPolicy`, `GameplayAbilityCost`, `onActiveAbilityEvent`, etc.).

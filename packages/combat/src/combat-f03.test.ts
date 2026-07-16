@@ -32,15 +32,7 @@ describe('COMBAT-F03 probes', () => {
     previewAndPlay(session, 'weaken');
     previewAndPlay(session, 'strike');
 
-    expect(session.getSnapshot().enemies[0].health).toBe(5);
-  });
-
-  it('P2 Flex then Strike deals +2 damage', () => {
-    const session = createSession(['flex', 'strike']);
-    previewAndPlay(session, 'flex');
-    previewAndPlay(session, 'strike');
-
-    expect(session.getSnapshot().enemies[0].health).toBe(4);
+    expect(session.getSnapshot().enemies[0]!.health).toBe(2);
   });
 
   it('P4 two Defends stack block against enemy attack', () => {
@@ -54,12 +46,12 @@ describe('COMBAT-F03 probes', () => {
 
   it('P5 Wait spends AP without dealing damage', () => {
     const session = createSession(['wait']);
-    const beforeHp = session.getSnapshot().enemies[0].health;
+    const beforeHp = session.getSnapshot().enemies[0]!.health;
     previewAndPlay(session, 'wait');
 
     const snapshot = session.getSnapshot();
     expect(snapshot.player.actionPoints).toBe(2);
-    expect(snapshot.enemies[0].health).toBe(beforeHp);
+    expect(snapshot.enemies[0]!.health).toBe(beforeHp);
   });
 
   it('Weaken preview shows no damage until Strike follows', () => {
@@ -75,7 +67,10 @@ describe('COMBAT-F03 probes', () => {
     const engine = RuleEngine.create();
     const session = CombatSession.bootstrap(
       engine,
-      combatBootstrapConfig(engine, { openingHand: ['weaken', 'weaken'] }),
+      combatBootstrapConfig(engine, {
+        openingHand: ['weaken', 'weaken'],
+        deckIds: ['weaken', 'weaken', 'wait'],
+      }),
     );
     const enemy = engine.requireGfc(COMBAT_ENEMY_ID);
 

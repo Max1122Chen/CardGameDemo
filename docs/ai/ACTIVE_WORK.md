@@ -8,21 +8,20 @@ Last updated: 2026-07-16
 
 ## In focus
 
-**Phase: post–CORE-F13** — thin GA runtime shipped; pick next Feature.
+**Phase: COMBAT-F04 (Implemented — await playtest)** — combat numeric depth complete in working tree.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–18 | … through CORE-F13 | Thin runtime + legacy purge | **Done** ([spec](./Core/CORE-F13-thin-ga-runtime.md)) |
+| 1–18 | … through CORE-F13 | Thin runtime + legacy purge | **Done** |
+| 19 | **COMBAT-F04** | Max attrs, six stats, damage pipeline, probe deck, CLI stats | **Implemented** ([spec](./Combat/COMBAT-F04-combat-numeric-depth.md)) — await user test |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel) |
 
-**Architecture lock (current):**
+**Architecture lock (F04 target):**
 
-- GA runtime = tag gates + hook invoke + services only (**no** auto cost / GE / listen / end).
-- GA content = archetype Def (`parameters` + `effectBindings` + `costEffectRef` + `handlerId`).
-- GE = JSON templates + SetByCaller; bind `$Param` → `Data.*` at apply (in hook).
-- Cost = Cost GE + `checkCost` / `applyCost` / `commitAbility` (hook-timed).
-- Listen = `startListen` / `stopListen` in hook only.
-- Combat host: `@cardgame/combat`; core = pure framework.
+- HP/AP ceilings = `MaxHealth` / `MaxActionPoints` attrs + AttributeChange clamp.
+- Damage = panel base + global attribute correction + pipeline (mult / corr / offset).
+- Attribute Bonus grade table = `data/combat/attribute-bonus.json`; cards declare grade + stats only.
+- flex **removed**; probe deck replaces strike/defend spam.
 
 ---
 
@@ -30,8 +29,8 @@ Last updated: 2026-07-16
 
 | Theme | Suggested ID | After |
 |-------|--------------|-------|
-| Equipment + equipment-driven deck | EQUIP-F01 | now available |
-| Enemy data + AI | COMBAT-F04 | now available |
+| Equipment + equipment-driven deck | EQUIP-F01 | COMBAT-F04 |
+| Enemy data + AI (JSON catalog) | COMBAT-F05 | COMBAT-F04 |
 | Dungeon / loot / events | DUNGEON-F01 | Combat + equipment data |
 
 ---

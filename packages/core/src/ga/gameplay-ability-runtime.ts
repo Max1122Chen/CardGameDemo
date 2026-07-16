@@ -410,10 +410,14 @@ export class GameplayAbilityRuntime {
       if (when !== undefined && binding.when !== when) {
         continue;
       }
-      const setByCaller = resolveBindingMapOptional(binding.bind, active.parameters);
-      if (binding.bind && Object.keys(binding.bind).length > 0 && setByCaller === undefined) {
+      const bindingSetByCaller = resolveBindingMapOptional(binding.bind, active.parameters);
+      if (binding.bind && Object.keys(binding.bind).length > 0 && bindingSetByCaller === undefined) {
         continue;
       }
+      const setByCaller =
+        bindingSetByCaller || active.activationCtx.setByCaller
+          ? { ...active.activationCtx.setByCaller, ...bindingSetByCaller }
+          : undefined;
       const targetId =
         binding.target === 'self' ? this.host.entityId : active.activationCtx.targetEntityId;
       if (!targetId) {
@@ -424,7 +428,7 @@ export class GameplayAbilityRuntime {
         sourceEntityId: active.activationCtx.sourceEntityId,
         targetEntityId: active.activationCtx.targetEntityId,
         payload: active.activationCtx.payload,
-        setByCaller: setByCaller ?? active.activationCtx.setByCaller,
+        setByCaller,
       });
     }
   }

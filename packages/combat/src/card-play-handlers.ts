@@ -6,6 +6,7 @@ import { gainBlockFromPreviewEffect } from './card-abilities.js';
 export const CARD_PLAY_DAMAGE_HANDLER_ID = 'combat.cardPlayDamage';
 export const CARD_PLAY_BLOCK_HANDLER_ID = 'combat.cardPlayBlock';
 export const CARD_PLAY_STATUS_HANDLER_ID = 'combat.cardPlayStatus';
+export const CARD_PLAY_HEAL_HANDLER_ID = 'combat.cardPlayHeal';
 export const TAKE_DAMAGE_HANDLER_ID = 'combat.takeDamage';
 
 export const CARD_PLAY_LISTEN = {
@@ -152,4 +153,67 @@ export function createCardPlayStatusHandler(
   getBridge: () => CardPlayCommitBridge,
 ): AbilityActivationHandler {
   return createCardPlayListenHandler(getBridge, 'none');
+}
+
+export function createCardPlayHealHandler(
+  getBridge: () => CardPlayCommitBridge,
+): AbilityActivationHandler {
+  return {
+    onActivate({ host, ctx, instanceId, services, definition }) {
+      services.startListen(CARD_PLAY_LISTEN, (event) => {
+        const cardInstanceId = readPayloadCardId(event);
+        if (
+          !getBridge().matchesPreview({
+            abilityInstanceId: instanceId,
+            cardInstanceId,
+          })
+        ) {
+          return;
+        }
+
+        if (eventHasTag(event, host.tagManager, 'GameplayEvent.Combat.CancelPlayCard')) {
+          getBridge().cancelPreview();
+          return;
+        }
+
+        if (!eventHasTag(event, host.tagManager, 'GameplayEvent.Combat.TryPlayCard')) {
+          return;
+        }
+
+        if (!services.commitAbility()) {
+          return;
+        }
+
+        services.applyEffectBindings('commit');
+
+        const actionId =
+          readPayloadActionId(event) ??
+          (typeof ctx.payload?.actionId === 'string' ? ctx.payload.actionId : definition.id);
+        const cost =
+          typeof services.parameters.ApCost === 'number'
+            ? services.parameters.ApCost
+            : typeof ctx.payload?.cost === 'number'
+              ? ctx.payload.cost
+              : 0;
+        const healAmount =
+          typeof services.parameters.Heal === 'number' ? services.parameters.Heal : 0;
+        const logMessage = `${definition.name ?? actionId} healed ${healAmount} HP.`;
+
+        const resolvedCardId =
+          cardInstanceId ??
+          (typeof ctx.payload?.cardInstanceId === 'string' ? ctx.payload.cardInstanceId : '');
+
+        services.endAbility();
+        getBridge().completePlay({
+          abilityInstanceId: instanceId,
+          actionId,
+          cardInstanceId: resolvedCardId,
+          cost,
+          logMessage,
+        });
+      });
+
+      return { ok: true };
+    },
+  };
 }

@@ -1,5 +1,28 @@
 export type CliRuntimeMode = 'trace' | 'battle' | 'debug';
 
+export type StatsOverlayTarget = 'none' | 'player' | 'enemy';
+
+export type PrimaryStatsView = {
+  strength: number;
+  constitution: number;
+  dexterity: number;
+  intelligence: number;
+  wisdom: number;
+  charisma: number;
+};
+
+export type EntityStatsView = {
+  health: number;
+  maxHealth: number;
+  block: number;
+  actionPoints?: number;
+  maxActionPoints?: number;
+  primaries: PrimaryStatsView;
+  damageScaling?: number;
+  damageMultiplier?: number;
+  damageOffset?: number;
+};
+
 export type OverlayId = 'none' | 'inventory' | 'settings' | 'console';
 
 export type FocusLayer = 'gameplay' | 'inventory' | 'settings' | 'console';
@@ -26,6 +49,14 @@ export type CombatPreviewView = {
   damage?: number;
   damageToTake?: number;
   blockToGain?: number;
+  damageBreakdown?: {
+    panel: number;
+    bonus: number;
+    scaling: number;
+    multiplier: number;
+    offset: number;
+    outgoing: number;
+  };
 };
 
 export type AppState = {
@@ -52,6 +83,9 @@ export type AppState = {
   shouldQuit: boolean;
   previewActive: boolean;
   preview?: CombatPreviewView;
+  statsOverlay: StatsOverlayTarget;
+  playerStats?: EntityStatsView;
+  enemyStats?: EntityStatsView;
 };
 
 export type UiAction =
@@ -69,6 +103,9 @@ export type UiAction =
   | { type: 'play_selected_card' }
   | { type: 'cancel_card_preview' }
   | { type: 'end_turn' }
+  | { type: 'toggle_player_stats' }
+  | { type: 'toggle_enemy_stats' }
+  | { type: 'close_stats_overlay' }
   | { type: 'console_append'; char: string }
   | { type: 'console_backspace' }
   | { type: 'console_submit' };

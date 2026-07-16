@@ -1,0 +1,8 @@
+{
+  "id": "mend",
+  "name": "Mend",
+  "cost": 1,
+  "targeting": "self",
+  "abilityRef": "ga.archetype.cardPlayHeal",
+  "parameters": { "Heal": 8 }
+}

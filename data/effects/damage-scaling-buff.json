@@ -1,0 +1,17 @@
+{
+  "id": "ge.buff.damage-scaling",
+  "duration": {
+    "kind": "Duration",
+    "unitTag": "Timing.TurnEnd",
+    "magnitude": 1,
+    "channels": ["Combat"]
+  },
+  "modifiers": [
+    {
+      "attribute": "DamageScaling",
+      "op": "Add",
+      "magnitude": 0.25,
+      "evaluationStage": "EvaluationStage.CommonDamage"
+    }
+  ]
+}

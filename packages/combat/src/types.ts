@@ -1,4 +1,7 @@
 import type { EntityId } from '@cardgame/core';
+import type { PrimaryAttributeBlock } from './combat-attributes.js';
+import type { CardDefinition } from './card-definition.js';
+import type { GameplayAbilityDefinition } from '@cardgame/core';
 
 export const COMBAT_PLAYER_ID = 'player' as const;
 export const COMBAT_ENEMY_ID = 'enemy-1' as const;
@@ -7,16 +10,20 @@ export type CombatPhase = 'Setup' | 'PlayerTurn' | 'EnemyTurn' | 'Victory' | 'De
 export type CombatTurnOwner = 'player' | 'enemy';
 export type CombatResult = 'victory' | 'defeat';
 export type CardId = string;
-/** @deprecated Prefer CardId ù?open string ids (CORE-F12 D6). */
+/** @deprecated Prefer CardId ? open string ids (CORE-F12 D6). */
 export type CardActionId = CardId;
 
-/** Starter deck card ids (catalog membership validated at load). */
+/** Probe deck card ids (catalog membership validated at load). */
 export const CARD_ACTION_IDS = [
   'strike',
   'defend',
   'bash',
+  'jab',
+  'heavy_blow',
+  'surge',
+  'precise_cut',
+  'mend',
   'weaken',
-  'flex',
   'wait',
 ] as const;
 
@@ -44,8 +51,23 @@ export type ActorSnapshot = {
   entityId: EntityId;
   name: string;
   health: number;
+  maxHealth: number;
   block: number;
   actionPoints?: number;
+  maxActionPoints?: number;
+  primaries?: PrimaryAttributeBlock;
+  damageScaling?: number;
+  damageMultiplier?: number;
+  damageOffset?: number;
+};
+
+export type DamageBreakdown = {
+  panel: number;
+  bonus: number;
+  scaling: number;
+  multiplier: number;
+  offset: number;
+  outgoing: number;
 };
 
 export type CardView = {
@@ -63,6 +85,7 @@ export type CombatPreviewSnapshot = {
   damage?: number;
   damageToTake?: number;
   blockToGain?: number;
+  damageBreakdown?: DamageBreakdown;
 };
 
 export type CombatSnapshot = {
@@ -76,9 +99,6 @@ export type CombatSnapshot = {
   result?: CombatResult;
   preview?: CombatPreviewSnapshot;
 };
-
-import type { CardDefinition } from './card-definition.js';
-import type { GameplayAbilityDefinition } from '@cardgame/core';
 
 export type CardActionSpec = {
   id: CardId;

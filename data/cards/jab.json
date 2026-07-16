@@ -1,0 +1,9 @@
+{
+  "id": "jab",
+  "name": "Jab",
+  "cost": 0,
+  "targeting": "single_enemy",
+  "abilityRef": "ga.archetype.cardPlayDamage",
+  "parameters": { "Damage": 3 },
+  "attributeBonus": { "grade": "D", "stats": ["Strength"] }
+}

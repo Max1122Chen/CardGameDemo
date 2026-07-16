@@ -22,15 +22,42 @@ export const theme = {
   trace: (text: string) => style(text, ANSI.fg.blue),
 } as const;
 
-export function formatPlayerStats(health: number, block: number, actionPoints: number): string {
+export function formatPlayerStats(
+  health: number,
+  block: number,
+  actionPoints: number,
+  maxHealth?: number,
+  maxActionPoints?: number,
+): string {
+  const hpText =
+    maxHealth !== undefined
+      ? `${theme.healthValue(health)}/${theme.healthValue(maxHealth)}`
+      : theme.healthValue(health);
+  const apText =
+    maxActionPoints !== undefined
+      ? `${theme.apValue(actionPoints)}/${theme.apValue(maxActionPoints)}`
+      : theme.apValue(actionPoints);
   return [
     theme.healthLabel('HP'),
-    theme.healthValue(health),
+    hpText,
     '  ',
     theme.blockLabel('Block'),
     theme.blockValue(block),
     '  ',
     theme.apLabel('AP'),
-    theme.apValue(actionPoints),
+    apText,
   ].join('');
 }
+
+export function formatPrimaryStat(label: string, value: number, color: (text: string) => string): string {
+  return `${color(label)}:${color(String(value))}`;
+}
+
+export const primaryColors = {
+  strength: (text: string) => style(text, ANSI.fg.yellow),
+  constitution: (text: string) => style(text, ANSI.fg.red),
+  dexterity: (text: string) => style(text, ANSI.fg.green),
+  intelligence: (text: string) => style(text, ANSI.fg.blue),
+  wisdom: (text: string) => style(text, ANSI.dim),
+  charisma: (text: string) => style(text, ANSI.fg.magenta),
+} as const;

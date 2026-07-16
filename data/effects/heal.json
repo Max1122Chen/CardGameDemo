@@ -1,0 +1,11 @@
+{
+  "id": "ge.combat.heal",
+  "duration": { "kind": "Instant" },
+  "modifiers": [
+    {
+      "attribute": "Health",
+      "op": "Add",
+      "magnitude": { "kind": "SetByCaller", "key": "Data.Heal" }
+    }
+  ]
+}

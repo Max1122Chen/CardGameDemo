@@ -1,0 +1,12 @@
+{
+  "id": "ge.buff.damage-offset",
+  "duration": { "kind": "Instant" },
+  "modifiers": [
+    {
+      "attribute": "DamageOffset",
+      "op": "Add",
+      "magnitude": 4,
+      "evaluationStage": "EvaluationStage.DamageOffset"
+    }
+  ]
+}

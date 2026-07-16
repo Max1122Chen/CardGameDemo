@@ -4,5 +4,6 @@
   "cost": 2,
   "targeting": "single_enemy",
   "abilityRef": "ga.archetype.cardPlayDamage",
-  "parameters": { "Damage": 8 }
+  "parameters": { "Damage": 8 },
+  "attributeBonus": { "grade": "A", "stats": ["Strength"] }
 }

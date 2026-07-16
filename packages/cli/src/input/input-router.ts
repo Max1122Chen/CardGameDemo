@@ -35,8 +35,14 @@ function gameplayActions(key: ParsedKey): UiAction[] {
       if (key.char === ' ') {
         return [{ type: 'play_selected_card' }];
       }
-      if (key.char === 'e' || key.char === 'E') {
+      if (key.char === 'f' || key.char === 'F') {
         return [{ type: 'end_turn' }];
+      }
+      if (key.char === 'p' || key.char === 'P') {
+        return [{ type: 'toggle_player_stats' }];
+      }
+      if (key.char === 'e' || key.char === 'E') {
+        return [{ type: 'toggle_enemy_stats' }];
       }
       if (key.char === 'x' || key.char === 'X') {
         return [{ type: 'cancel_card_preview' }];
@@ -71,6 +77,9 @@ function globalActions(state: AppState, key: ParsedKey): UiAction[] {
   }
 
   if (key.kind === 'escape') {
+    if (state.statsOverlay !== 'none') {
+      return [{ type: 'close_stats_overlay' }];
+    }
     if (state.overlay !== 'none') {
       return [{ type: 'close_overlay' }];
     }
@@ -135,10 +144,13 @@ export function createInitialAppState(options: {
     combatLog: [],
     consoleInput: '',
     consoleScrollback: [],
-    statusMessage: 'Select card/enemy to preview. Space commit | Esc/x cancel | E end turn.',
+    statusMessage: 'Select card/enemy to preview. Space commit | Esc/x cancel | F end turn | P/E stats.',
     shouldQuit: false,
     previewActive: false,
     preview: undefined,
+    statsOverlay: 'none',
+    playerStats: undefined,
+    enemyStats: undefined,
   };
 }
 

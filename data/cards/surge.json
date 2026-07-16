@@ -1,6 +1,6 @@
 {
-  "id": "flex",
-  "name": "Flex",
+  "id": "surge",
+  "name": "Surge",
   "cost": 1,
   "targeting": "self",
   "abilityRef": "ga.archetype.cardPlayStatus",
@@ -8,7 +8,7 @@
     {
       "when": "commit",
       "target": "self",
-      "effectRef": "ge.card.flex.strength"
+      "effectRef": "ge.buff.damage-multiplier"
     }
   ]
 }

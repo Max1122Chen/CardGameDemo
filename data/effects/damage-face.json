@@ -6,6 +6,12 @@
       "attribute": "Damage",
       "op": "Override",
       "magnitude": { "kind": "SetByCaller", "key": "Data.Damage" }
+    },
+    {
+      "attribute": "Damage",
+      "op": "Add",
+      "magnitude": { "kind": "SetByCaller", "key": "Data.AttributeBonus" },
+      "evaluationStage": "EvaluationStage.CommonDamage"
     }
   ]
 }

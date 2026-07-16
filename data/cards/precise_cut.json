@@ -1,0 +1,16 @@
+{
+  "id": "precise_cut",
+  "name": "Precise Cut",
+  "cost": 1,
+  "targeting": "single_enemy",
+  "abilityRef": "ga.archetype.cardPlayDamage",
+  "parameters": { "Damage": 2 },
+  "attributeBonus": { "grade": "C", "stats": ["Dexterity"] },
+  "effectBindings": [
+    {
+      "when": "preview",
+      "target": "self",
+      "effectRef": "ge.buff.damage-offset"
+    }
+  ]
+}

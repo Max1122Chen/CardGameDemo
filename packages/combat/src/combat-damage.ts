@@ -52,6 +52,14 @@ export function getEntityActionPoints(target: GameplayFrameworkComponent): numbe
   return target.getAttribute('ActionPoints')?.currentValue ?? 0;
 }
 
+export function getEntityMaxHealth(target: GameplayFrameworkComponent): number {
+  return target.getAttribute('MaxHealth')?.currentValue ?? getEntityHealth(target);
+}
+
+export function getEntityMaxActionPoints(target: GameplayFrameworkComponent): number {
+  return target.getAttribute('MaxActionPoints')?.currentValue ?? getEntityActionPoints(target);
+}
+
 export type DamageTracePayload = {
   sourceId: EntityId;
   targetId: EntityId;

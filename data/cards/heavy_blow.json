@@ -1,0 +1,16 @@
+{
+  "id": "heavy_blow",
+  "name": "Heavy Blow",
+  "cost": 2,
+  "targeting": "single_enemy",
+  "abilityRef": "ga.archetype.cardPlayDamage",
+  "parameters": { "Damage": 5 },
+  "attributeBonus": { "grade": "B", "stats": ["Strength"] },
+  "effectBindings": [
+    {
+      "when": "commit",
+      "target": "self",
+      "effectRef": "ge.buff.damage-scaling"
+    }
+  ]
+}

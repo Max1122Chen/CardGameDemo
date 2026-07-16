@@ -43,9 +43,19 @@ describe('routeInput', () => {
     expect(actions).toEqual([{ type: 'select_hand', index: 1 }]);
   });
 
-  it('routes e to end turn in gameplay', () => {
-    const actions = routeInput(base, parseKeypress('e'));
+  it('routes f to end turn in gameplay', () => {
+    const actions = routeInput(base, parseKeypress('f'));
     expect(actions).toEqual([{ type: 'end_turn' }]);
+  });
+
+  it('routes p and e to stats overlays in gameplay', () => {
+    expect(routeInput(base, parseKeypress('p'))).toEqual([{ type: 'toggle_player_stats' }]);
+    expect(routeInput(base, parseKeypress('e'))).toEqual([{ type: 'toggle_enemy_stats' }]);
+  });
+
+  it('closes stats overlay on escape', () => {
+    const withStats = { ...base, statsOverlay: 'player' as const };
+    expect(routeInput(withStats, parseKeypress('\u001b'))).toEqual([{ type: 'close_stats_overlay' }]);
   });
 
   it('routes console typing only when console is focused', () => {

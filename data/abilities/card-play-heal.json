@@ -1,0 +1,21 @@
+{
+  "id": "ga.archetype.cardPlayHeal",
+  "kind": "active",
+  "name": "CardPlayHeal",
+  "tags": {},
+  "handlerId": "combat.cardPlayHeal",
+  "costEffectRef": "ge.template.spend-ap",
+  "costBindings": { "Data.Amount": "$ApCost" },
+  "parameterSchema": {
+    "ApCost": { "type": "number", "default": 0 },
+    "Heal": { "type": "number" }
+  },
+  "effectBindings": [
+    {
+      "when": "commit",
+      "target": "self",
+      "effectRef": "ge.combat.heal",
+      "bind": { "Data.Heal": "$Heal" }
+    }
+  ]
+}

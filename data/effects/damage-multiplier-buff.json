@@ -1,0 +1,17 @@
+{
+  "id": "ge.buff.damage-multiplier",
+  "duration": {
+    "kind": "Duration",
+    "unitTag": "Timing.TurnEnd",
+    "magnitude": 1,
+    "channels": ["Combat"]
+  },
+  "modifiers": [
+    {
+      "attribute": "DamageMultiplier",
+      "op": "Multiply",
+      "magnitude": 1.25,
+      "evaluationStage": "EvaluationStage.CommonDamage"
+    }
+  ]
+}

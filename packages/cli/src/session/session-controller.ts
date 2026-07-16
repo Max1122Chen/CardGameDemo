@@ -1,7 +1,4 @@
-import {
-  CombatSession,
-  type CombatSnapshot,
-} from '@cardgame/combat';
+import { CombatSession, type CombatSnapshot } from '@cardgame/combat';
 import {
   RuleEngine,
   TraceBuffer,
@@ -11,7 +8,45 @@ import { combatBootstrapConfig } from '../data/load-combat-bootstrap.js';
 
 import { executeConsoleCommand } from '../console/console-executor.js';
 import { applyOverlayToggle } from '../input/input-router.js';
-import type { AppState, CombatPreviewView, EnemyView, HandCard, UiAction } from '../types.js';
+import type {
+  AppState,
+  CombatPreviewView,
+  EnemyView,
+  EntityStatsView,
+  HandCard,
+  PrimaryStatsView,
+  UiAction,
+} from '../types.js';
+
+function toPrimaryStatsView(
+  primaries: NonNullable<CombatSnapshot['player']['primaries']>,
+): PrimaryStatsView {
+  return {
+    strength: primaries.Strength,
+    constitution: primaries.Constitution,
+    dexterity: primaries.Dexterity,
+    intelligence: primaries.Intelligence,
+    wisdom: primaries.Wisdom,
+    charisma: primaries.Charisma,
+  };
+}
+
+function toEntityStatsView(actor: CombatSnapshot['player']): EntityStatsView | undefined {
+  if (!actor.primaries) {
+    return undefined;
+  }
+  return {
+    health: actor.health,
+    maxHealth: actor.maxHealth,
+    block: actor.block,
+    actionPoints: actor.actionPoints,
+    maxActionPoints: actor.maxActionPoints,
+    primaries: toPrimaryStatsView(actor.primaries),
+    damageScaling: actor.damageScaling,
+    damageMultiplier: actor.damageMultiplier,
+    damageOffset: actor.damageOffset,
+  };
+}
 
 export type SessionController = {
   engine: RuleEngine;
@@ -79,6 +114,7 @@ export function createSessionController(options: {
             damage: preview.damage,
             damageToTake: preview.damageToTake,
             blockToGain: preview.blockToGain,
+            damageBreakdown: preview.damageBreakdown,
           }
         : undefined;
 
@@ -97,6 +133,8 @@ export function createSessionController(options: {
         selectedEnemyIndex: Math.min(state.selectedEnemyIndex, Math.max(0, enemies.length - 1)),
         previewActive: previewView !== undefined,
         preview: previewView,
+        playerStats: toEntityStatsView(snapshot.player),
+        enemyStats: snapshot.enemies[0] ? toEntityStatsView(snapshot.enemies[0]) : undefined,
       };
     },
   };
@@ -134,7 +172,11 @@ function previewStatusMessage(state: AppState): string {
     return `${name} preview: Block +${preview.blockToGain} (Space commit, Esc/x cancel)`;
   }
   if (preview.damageToTake !== undefined) {
-    return `${name} preview: deal ${preview.damage ?? '?'} → absorb ${preview.damageToTake} (Space commit, Esc/x cancel)`;
+    const breakdown = preview.damageBreakdown;
+    const breakdownText = breakdown
+      ? ` [${breakdown.panel}${breakdown.bonus >= 0 ? '+' : ''}${breakdown.bonus} ×${breakdown.scaling} ×${breakdown.multiplier} +${breakdown.offset} → ${breakdown.outgoing}]`
+      : '';
+    return `${name} preview: deal ${preview.damage ?? '?'} → absorb ${preview.damageToTake}${breakdownText} (Space commit, Esc/x cancel)`;
   }
   return `${name} preview active (Space commit, Esc/x cancel)`;
 }
@@ -177,6 +219,18 @@ export function applyUiAction(
         ...state,
         overlay: 'none',
         focusLayer: 'gameplay',
+      };
+    case 'close_stats_overlay':
+      return { ...state, statsOverlay: 'none' };
+    case 'toggle_player_stats':
+      return {
+        ...state,
+        statsOverlay: state.statsOverlay === 'player' ? 'none' : 'player',
+      };
+    case 'toggle_enemy_stats':
+      return {
+        ...state,
+        statsOverlay: state.statsOverlay === 'enemy' ? 'none' : 'enemy',
       };
     case 'toggle_trace_pane':
       return { ...state, showTracePane: !state.showTracePane };

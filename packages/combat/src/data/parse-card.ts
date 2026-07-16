@@ -7,9 +7,22 @@ import {
   type WireGameplayEffectDefinition,
   mergeParameterValues,
 } from '@cardgame/core';
+import type {
+  AttributeBonusGrade,
+  AttributeBonusSpec,
+} from '../attribute-bonus.js';
+import type { PrimaryAttributeName } from '../combat-attributes.js';
 import type { CardCommitEffectTarget, CardDefinition, CardTargeting } from '../card-definition.js';
 import type { CardId } from '../types.js';
 import { TAKE_DAMAGE_ABILITY_ID } from '../set-by-caller-keys.js';
+
+const VALID_BONUS_GRADES: readonly AttributeBonusGrade[] = [
+  'none',
+  'A',
+  'B',
+  'C',
+  'D',
+];
 
 export type WireCardCommitEffect = {
   target: CardCommitEffectTarget;
@@ -38,6 +51,10 @@ export type WireCardDefinition = {
   /** @deprecated F11 �?prefer effectBindings when=commit */
   commitEffects?: readonly WireCardCommitEffect[];
   commitEffectRefs?: readonly WireCardCommitEffectRef[];
+  attributeBonus?: {
+    grade: AttributeBonusGrade;
+    stats: readonly PrimaryAttributeName[];
+  };
 };
 
 export type DefinitionAssetCatalog = {
@@ -68,6 +85,42 @@ function resolveAbilityWire(
   throw new DefinitionParseError(`Card ${wire.id}: ability or abilityRef is required`);
 }
 
+function parseAttributeBonus(
+  wire: WireCardDefinition,
+): AttributeBonusSpec | undefined {
+  if (wire.attributeBonus === undefined) {
+    return undefined;
+  }
+  const { grade, stats } = wire.attributeBonus;
+  if (!VALID_BONUS_GRADES.includes(grade)) {
+    throw new DefinitionParseError(
+      `Card ${wire.id}: unknown attributeBonus grade "${String(grade)}"`,
+    );
+  }
+  if (!Array.isArray(stats) || stats.length === 0) {
+    throw new DefinitionParseError(`Card ${wire.id}: attributeBonus.stats must be non-empty`);
+  }
+  for (const stat of stats as readonly string[]) {
+    if (!isPrimaryAttributeName(stat)) {
+      throw new DefinitionParseError(
+        `Card ${wire.id}: unknown primary stat in attributeBonus: ${String(stat)}`,
+      );
+    }
+  }
+  return { grade, stats: stats as readonly PrimaryAttributeName[] };
+}
+
+function isPrimaryAttributeName(value: string): value is PrimaryAttributeName {
+  return (
+    value === 'Strength' ||
+    value === 'Constitution' ||
+    value === 'Dexterity' ||
+    value === 'Intelligence' ||
+    value === 'Wisdom' ||
+    value === 'Charisma'
+  );
+}
+
 function commitRefsToBindings(
   refs: readonly WireCardCommitEffectRef[] | undefined,
 ): WireGameplayAbilityEffectBindingSpec[] {
@@ -94,8 +147,8 @@ export function parseCardDefinition(
   const abilityWire = resolveAbilityWire(wire, catalog);
 
   const mergedBindings: WireGameplayAbilityEffectBindingSpec[] = [
-    ...(abilityWire.effectBindings ?? []),
     ...(wire.effectBindings ?? []),
+    ...(abilityWire.effectBindings ?? []),
     ...commitRefsToBindings(wire.commitEffectRefs),
   ];
 
@@ -131,6 +184,7 @@ export function parseCardDefinition(
     name: wire.name,
     cost: wire.cost,
     targeting: wire.targeting,
+    attributeBonus: parseAttributeBonus(wire),
     ability: {
       ...ability,
       parameterValues,

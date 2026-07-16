@@ -1,7 +1,7 @@
 import type { SessionController } from '../session/session-controller.js';
-import type { AppState } from '../types.js';
+import type { AppState, EntityStatsView } from '../types.js';
 import { padVisible, style, ANSI } from './ansi.js';
-import { formatPlayerStats, theme } from './theme.js';
+import { formatPlayerStats, formatPrimaryStat, primaryColors, theme } from './theme.js';
 
 function box(title: string, lines: string[], width = 72): string[] {
   const inner = width - 4;
@@ -12,6 +12,37 @@ function box(title: string, lines: string[], width = 72): string[] {
   }
   output.push(`${border}${style('-'.repeat(width - 2), ANSI.dim)}+`);
   return output;
+}
+
+function formatDamageBreakdown(preview: NonNullable<AppState['preview']>): string | undefined {
+  const breakdown = preview.damageBreakdown;
+  if (!breakdown) {
+    return undefined;
+  }
+  const bonusSign = breakdown.bonus >= 0 ? '+' : '';
+  return theme.intent(
+    `dmg: ${breakdown.panel}${bonusSign}${breakdown.bonus} ×${breakdown.scaling} ×${breakdown.multiplier} +${breakdown.offset} → ${breakdown.outgoing}`,
+  );
+}
+
+function renderStatsOverlay(title: string, stats: EntityStatsView): string[] {
+  const p = stats.primaries;
+  const lines = [
+    `${formatPlayerStats(stats.health, stats.block, stats.actionPoints ?? 0, stats.maxHealth, stats.maxActionPoints)}`,
+    [
+      formatPrimaryStat('Str', p.strength, primaryColors.strength),
+      formatPrimaryStat('Con', p.constitution, primaryColors.constitution),
+      formatPrimaryStat('Dex', p.dexterity, primaryColors.dexterity),
+    ].join('  '),
+    [
+      formatPrimaryStat('Int', p.intelligence, primaryColors.intelligence),
+      formatPrimaryStat('Wis', p.wisdom, primaryColors.wisdom),
+      formatPrimaryStat('Cha', p.charisma, primaryColors.charisma),
+    ].join('  '),
+    `${theme.muted('Damage')} scale×${stats.damageScaling ?? 1} mult×${stats.damageMultiplier ?? 1} off+${stats.damageOffset ?? 0}`,
+    theme.muted('Esc closes stats overlay.'),
+  ];
+  return box(title, lines);
 }
 
 function renderGameplay(state: AppState): string[] {
@@ -64,12 +95,20 @@ function renderGameplay(state: AppState): string[] {
   const playerPreview =
     state.preview?.blockToGain !== undefined && state.preview.blockToGain > 0
       ? ` ${theme.intent(`preview blk+${state.preview.blockToGain}`)}`
-      : '';
+      : state.preview?.damageBreakdown
+        ? ` ${formatDamageBreakdown(state.preview) ?? ''}`
+        : '';
 
   return [
     phaseLine,
     ...box('Player', [
-      `${formatPlayerStats(state.playerHealth, state.playerBlock, state.actionPoints)}${playerPreview}`,
+      `${formatPlayerStats(
+        state.playerHealth,
+        state.playerBlock,
+        state.actionPoints,
+        state.playerStats?.maxHealth,
+        state.playerStats?.maxActionPoints,
+      )}${playerPreview}`,
       theme.status(state.statusMessage),
     ]),
     ...box('Enemies', enemyLines),
@@ -120,9 +159,6 @@ export function renderFrame(state: AppState, controller: SessionController): str
   const header = theme.header(
     `CardGameDemo [${state.runtimeMode}] seed=${state.seed ?? '-'} scenario=${state.scenarioId ?? '-'}`,
   );
-  const footer = theme.footer(
-    'Space Commit | Esc/x Cancel preview | E End Turn | Esc Settings | B Inventory | ~ Console | Q Quit',
-  );
   const lines = [header, ...renderGameplay(state)];
 
   if (state.showTracePane) {
@@ -134,7 +170,19 @@ export function renderFrame(state: AppState, controller: SessionController): str
     lines.push(...renderOverlay(state));
   }
 
+  if (state.statsOverlay === 'player' && state.playerStats) {
+    lines.push('');
+    lines.push(...renderStatsOverlay('Player Stats', state.playerStats));
+  } else if (state.statsOverlay === 'enemy' && state.enemyStats) {
+    lines.push('');
+    lines.push(...renderStatsOverlay('Enemy Stats', state.enemyStats));
+  }
+
   lines.push('');
-  lines.push(footer);
+  lines.push(
+    theme.footer(
+      'Space Commit | Esc/x Cancel | F End Turn | P/E Stats | Esc Settings | B Inventory | ~ Console | Q Quit',
+    ),
+  );
   return `${lines.join('\n')}\n`;
 }

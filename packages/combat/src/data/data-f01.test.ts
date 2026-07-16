@@ -24,8 +24,12 @@ describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
     expect(Object.keys(cardCatalog).sort()).toEqual([
       'bash',
       'defend',
-      'flex',
+      'heavy_blow',
+      'jab',
+      'mend',
+      'precise_cut',
       'strike',
+      'surge',
       'wait',
       'weaken',
     ]);
@@ -35,6 +39,7 @@ describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
     expect(cardCatalog.strike.ability.handlerId).toBe('combat.cardPlayDamage');
     expect(cardCatalog.strike.ability.parameterValues?.Damage).toBe(6);
     expect(cardCatalog.strike.ability.parameterValues?.ApCost).toBe(1);
+    expect(cardCatalog.strike.attributeBonus).toEqual({ grade: 'A', stats: ['Strength'] });
   });
 
   it('parses weaken vulnerable commit effectBinding with duration channels', () => {
@@ -65,7 +70,7 @@ describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
     const strikeIndex = session.getSnapshot().hand.findIndex((c) => c.actionId === 'strike');
     session.applyAction({ type: 'PlayCard', handIndex: strikeIndex });
 
-    expect(session.getSnapshot().enemies[0].health).toBe(5);
+    expect(session.getSnapshot().enemies[0]!.health).toBe(2);
   });
 
   it('rejects duplicate card ids in catalog build', () => {
@@ -125,6 +130,6 @@ describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
   it('starter deck file lists twelve card ids', () => {
     const deckIds = loadDeckIds(`${resolveRepoDataRoot()}/decks`);
     expect(deckIds).toHaveLength(12);
-    expect(deckIds.filter((id) => id === 'strike')).toHaveLength(4);
+    expect(deckIds.filter((id) => id === 'strike')).toHaveLength(2);
   });
 });

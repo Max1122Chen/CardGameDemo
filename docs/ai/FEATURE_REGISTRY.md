@@ -31,6 +31,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Done | ? | [COMBAT-F01-minimal-battle-slice.md](./Combat/COMBAT-F01-minimal-battle-slice.md), [combat.md](../design/systems/combat.md) |
 | `COMBAT-F02` | GFC-language combat: CORE GA gaps + preview/commit card loop | Done | ? | [COMBAT-F02-gfc-combat-integration.md](./Combat/COMBAT-F02-gfc-combat-integration.md), [combat.md](../design/systems/combat.md) ?????????? |
 | `COMBAT-F03` | Combat describability probes (pre?JSON cards) | Done | ? | [COMBAT-F03-combat-describability-probes.md](./Combat/COMBAT-F03-combat-describability-probes.md) |
+| `COMBAT-F04` | Combat numeric depth: caps, six stats, damage pipeline, probes | Implemented (await test) | — | [COMBAT-F04-combat-numeric-depth.md](./Combat/COMBAT-F04-combat-numeric-depth.md) |
 | `CORE-F10` | GFC gaps for data-driven cards (Ongoing GE gates, serde) | Done | — | [CORE-F10-data-driven-gfc-gaps.md](./Core/CORE-F10-data-driven-gfc-gaps.md) |
 | `DATA-F01` | Card & effect JSON schema + loader | Done | ? | [DATA-F01-card-asset-pipeline.md](./Data/DATA-F01-card-asset-pipeline.md) |
 | `CORE-F11` | Extensible GA activation, SetByCaller, reusable GE/GA assets | Done | — | [CORE-F11-extensible-ga-assets.md](./Core/CORE-F11-extensible-ga-assets.md) |
@@ -45,7 +46,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 |--------|----------------|-------|
 | `WF` | F02 | Workflow / docs |
 | `CORE` | F14 | F13 thin GA runtime Done |
-| `COMBAT` | F04 | F03 describability probes registered |
+| `COMBAT` | F05 | F04 combat numeric depth registered |
 | `DUNGEON` | F01 | Map, encounters, loot |
 | `DATA` | F02 | F01 card asset pipeline registered |
 | `EFFECT` | F01 | May fold into CORE-F06; register if split |

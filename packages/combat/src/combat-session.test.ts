@@ -76,7 +76,7 @@ describe('CombatSession', () => {
 
     const snapshot = session.getSnapshot();
     expect(snapshot.player.actionPoints).toBe(2);
-    expect(snapshot.enemies[0].health).toBe(beforeEnemyHp - 6);
+    expect(snapshot.enemies[0].health).toBe(beforeEnemyHp - 8);
   });
 
   it('insufficient AP rejects play', () => {
@@ -171,7 +171,7 @@ describe('CombatSession', () => {
 
     session.beginCardPreview(handIndex(session, 'strike'), COMBAT_ENEMY_ID);
 
-    expect(enemy.getAttribute('DamageToTake')?.currentValue).toBe(6);
+    expect(enemy.getAttribute('DamageToTake')?.currentValue).toBe(8);
     expect(enemy.getAttribute('Health')?.currentValue).toBe(beforeHp);
 
     session.cancelCardPreview();

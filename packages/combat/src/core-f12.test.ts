@@ -66,6 +66,6 @@ describe('CORE-F12 ActivationRegistry + card archetypes', () => {
     session.applyAction({ type: 'PlayCard', handIndex: weakenIndex });
     const strikeIndex = session.getSnapshot().hand.findIndex((c) => c.actionId === 'strike');
     session.applyAction({ type: 'PlayCard', handIndex: strikeIndex });
-    expect(session.getSnapshot().enemies[0]!.health).toBe(5);
+    expect(session.getSnapshot().enemies[0]!.health).toBe(2);
   });
 });
