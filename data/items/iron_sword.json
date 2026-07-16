@@ -1,0 +1,16 @@
+{
+  "id": "iron_sword",
+  "name": "Iron Sword",
+  "tags": ["Item.Category.Equipment", "Item.Slot.Hand", "Item.Rarity.Common", "Item.Drop.BattleReward"],
+  "maxStack": 1,
+  "sellValue": 25,
+  "fragments": [
+    {
+      "kind": "equipment",
+      "slots": ["Hand.Main", "Hand.Off"],
+      "twoHandMode": "optional",
+      "cards": [{ "cardId": "strike", "count": 2 }]
+    },
+    { "kind": "durability", "max": 20 }
+  ]
+}

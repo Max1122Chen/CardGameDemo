@@ -1,0 +1,10 @@
+{
+  "default": {
+    "id": "default",
+    "entries": [
+      { "itemId": "gold_coin", "quantity": 5 },
+      { "itemId": "healing_herb", "quantity": 2 },
+      { "itemId": "iron_sword", "quantity": 1 }
+    ]
+  }
+}

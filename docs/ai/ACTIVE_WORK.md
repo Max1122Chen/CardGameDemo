@@ -8,12 +8,12 @@ Last updated: 2026-07-16
 
 ## In focus
 
-**Phase: COMBAT-F04 (Implemented — await playtest)** — combat numeric depth complete in working tree.
+**Phase: ITEM-F01 Done** — next: EQUIP-F01 when promoted.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–18 | … through CORE-F13 | Thin runtime + legacy purge | **Done** |
-| 19 | **COMBAT-F04** | Max attrs, six stats, damage pipeline, probe deck, CLI stats | **Implemented** ([spec](./Combat/COMBAT-F04-combat-numeric-depth.md)) — await user test |
+| 1–19 | … through COMBAT-F04 | Combat numeric depth | **Done** |
+| 20 | **ITEM-F01** | Item defs + fragments, 12-slot inventory, static loot, CLI pickup/discard | **Done** ([spec](./Items/ITEM-F01-item-foundation.md)) |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel) |
 
 **Architecture lock (F04 target):**
@@ -29,7 +29,7 @@ Last updated: 2026-07-16
 
 | Theme | Suggested ID | After |
 |-------|--------------|-------|
-| Equipment + equipment-driven deck | EQUIP-F01 | COMBAT-F04 |
+| Equipment + equipment-driven deck | EQUIP-F01 | ITEM-F01 |
 | Enemy data + AI (JSON catalog) | COMBAT-F05 | COMBAT-F04 |
 | Dungeon / loot / events | DUNGEON-F01 | Combat + equipment data |
 

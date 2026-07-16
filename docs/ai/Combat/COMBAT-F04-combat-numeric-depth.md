@@ -2,7 +2,7 @@
 
 ## Meta
 - **ID:** COMBAT-F04
-- **Status:** Implemented — **await user playtest / approval** before commit & Done.
+- **Status:** Done
 - **Owner:** —
 - **Last updated:** 2026-07-16
 - **Related:** [COMBAT-F03](./COMBAT-F03-combat-describability-probes.md), [CORE-F09](../Core/CORE-F09-numeric-calculation-pipeline.md), [CORE-F13](../Core/CORE-F13-thin-ga-runtime.md), [CLI-F02](../CLI/CLI-F02-terminal-tui.md)

@@ -18,7 +18,12 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
-    files: ['packages/core/src/**/*.ts', 'packages/combat/src/**/*.ts', 'packages/cli/src/**/*.ts'],
+    files: [
+      'packages/core/src/**/*.ts',
+      'packages/combat/src/**/*.ts',
+      'packages/items/src/**/*.ts',
+      'packages/cli/src/**/*.ts',
+    ],
     languageOptions: {
       parserOptions: {
         projectService: true,

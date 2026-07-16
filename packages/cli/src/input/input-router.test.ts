@@ -58,6 +58,26 @@ describe('routeInput', () => {
     expect(routeInput(withStats, parseKeypress('\u001b'))).toEqual([{ type: 'close_stats_overlay' }]);
   });
 
+  it('routes inventory discard on d when inventory overlay is focused', () => {
+    const withOverlay = {
+      ...base,
+      overlay: 'inventory' as const,
+      focusLayer: 'inventory' as const,
+      inventorySlots: [{ slotIndex: 0, itemId: 'gold_coin', name: 'Gold Coin', quantity: 1, sellValue: 1, label: 'Gold Coin x1' }],
+    };
+    expect(routeInput(withOverlay, parseKeypress('d'))).toEqual([{ type: 'discard_selected_inventory_slot' }]);
+  });
+
+  it('routes pickup on p when inventory overlay is focused', () => {
+    const withOverlay = {
+      ...base,
+      overlay: 'inventory' as const,
+      focusLayer: 'inventory' as const,
+      pendingLoot: [{ lootIndex: 0, itemId: 'gold_coin', name: 'Gold Coin', quantity: 1, sellValue: 1, label: 'Gold Coin x1' }],
+    };
+    expect(routeInput(withOverlay, parseKeypress('p'))).toEqual([{ type: 'pickup_selected_loot' }]);
+  });
+
   it('routes console typing only when console is focused', () => {
     const consoleState = { ...base, overlay: 'console' as const, focusLayer: 'console' as const };
     expect(routeInput(consoleState, parseKeypress('s'))).toEqual([{ type: 'console_append', char: 's' }]);

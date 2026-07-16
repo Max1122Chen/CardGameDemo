@@ -117,10 +117,45 @@ function renderGameplay(state: AppState): string[] {
   ];
 }
 
+function renderInventoryOverlay(state: AppState): string[] {
+  const lootLines =
+    state.pendingLoot.length === 0
+      ? [theme.muted('(no loot)')]
+      : state.pendingLoot.map((entry, index) => {
+          const selected = state.inventoryFocus === 'loot' && index === state.selectedLootIndex;
+          const marker = selected ? theme.selected('>') : ' ';
+          const line = `${marker} [${index}] ${entry.label} (sell ${entry.sellValue})`;
+          return selected ? theme.selected(line) : line;
+        });
+
+  const backpackLines =
+    state.inventorySlots.length === 0
+      ? [theme.muted('(empty)')]
+      : state.inventorySlots.map((slot, index) => {
+          const selected = state.inventoryFocus === 'backpack' && index === state.selectedInventorySlot;
+          const marker = selected ? theme.selected('>') : ' ';
+          const line = `${marker} [${slot.slotIndex + 1}] ${slot.label} (sell ${slot.sellValue})`;
+          return selected ? theme.selected(line) : line;
+        });
+
+  const usedSlots = state.inventorySlots.length;
+  const lootHint =
+    state.pendingLoot.length > 0
+      ? theme.status('Loot: P pickup | A pickup all | Tab switch panel')
+      : theme.muted('No pending loot.');
+
+  return [
+    ...box('Loot', lootLines),
+    ...box(`Backpack (${usedSlots}/${state.inventoryCapacity})`, backpackLines),
+    lootHint,
+    theme.muted('Backpack: D discard slot | Tab switch panel | Esc closes.'),
+  ];
+}
+
 function renderOverlay(state: AppState): string[] {
   switch (state.overlay) {
     case 'inventory':
-      return box('Inventory', [theme.muted('Backpack slots are not implemented yet.'), theme.muted('Esc closes overlay.')]);
+      return renderInventoryOverlay(state);
     case 'settings':
       return box('Settings', [
         `${theme.muted('Mode:')} ${style(state.runtimeMode, ANSI.fg.brightWhite)}`,
@@ -181,7 +216,7 @@ export function renderFrame(state: AppState, controller: SessionController): str
   lines.push('');
   lines.push(
     theme.footer(
-      'Space Commit | Esc/x Cancel | F End Turn | P/E Stats | Esc Settings | B Inventory | ~ Console | Q Quit',
+      'Space Commit | Esc/x Cancel | F End Turn | P/E Stats | B Backpack/Loot | ~ Console | Q Quit',
     ),
   );
   return `${lines.join('\n')}\n`;

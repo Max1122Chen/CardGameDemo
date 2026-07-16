@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@cardgame/core": "*",
-    "@cardgame/combat": "*"
+    "@cardgame/combat": "*",
+    "@cardgame/items": "*"
   },
   "scripts": {
     "build": "tsc -b",

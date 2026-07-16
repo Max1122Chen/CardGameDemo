@@ -1,10 +1,25 @@
-import { CombatSession, type CombatSnapshot } from '@cardgame/combat';
+import { CombatSession, resolveRepoDataRoot, type CombatSnapshot } from '@cardgame/combat';
 import {
   RuleEngine,
   TraceBuffer,
 } from '@cardgame/core';
+import {
+  createInventory,
+  createPendingLootFromTable,
+  DEFAULT_INVENTORY_CAPACITY,
+  discardInventorySlot,
+  listInventorySlots,
+  listPendingLoot,
+  loadBattleRewards,
+  pickupAllLoot,
+  pickupLootEntry,
+  type InventoryState,
+  type ItemDefinition,
+  type PendingLootState,
+} from '@cardgame/items';
 
 import { combatBootstrapConfig } from '../data/load-combat-bootstrap.js';
+import { loadItemBootstrap, loadItemTagDefinitions } from '../data/load-items-bootstrap.js';
 
 import { executeConsoleCommand } from '../console/console-executor.js';
 import { applyOverlayToggle } from '../input/input-router.js';
@@ -51,11 +66,58 @@ function toEntityStatsView(actor: CombatSnapshot['player']): EntityStatsView | u
 export type SessionController = {
   engine: RuleEngine;
   combatSession: CombatSession;
+  itemCatalog: Record<string, ItemDefinition>;
+  inventory: InventoryState;
+  pendingLoot: PendingLootState;
+  lootSpawned: boolean;
   traceLines: string[];
   bootstrapBattle: () => void;
   syncViewState: (state: AppState) => AppState;
   getCombatSnapshot: () => CombatSnapshot;
 };
+
+function syncInventoryViews(
+  state: AppState,
+  controller: SessionController,
+): Pick<
+  AppState,
+  | 'inventoryCapacity'
+  | 'inventorySlots'
+  | 'pendingLoot'
+  | 'selectedLootIndex'
+  | 'selectedInventorySlot'
+  | 'inventoryFocus'
+> {
+  const inventorySlots = listInventorySlots(controller.inventory, controller.itemCatalog);
+  const pendingLoot = listPendingLoot(controller.pendingLoot, controller.itemCatalog);
+  const inventoryFocus =
+    pendingLoot.length > 0 && state.inventoryFocus === 'loot'
+      ? 'loot'
+      : pendingLoot.length === 0
+        ? 'backpack'
+        : state.inventoryFocus;
+
+  return {
+    inventoryCapacity: controller.inventory.capacity,
+    inventorySlots,
+    pendingLoot,
+    inventoryFocus,
+    selectedLootIndex: clampIndex(state.selectedLootIndex, pendingLoot.length),
+    selectedInventorySlot: clampIndex(state.selectedInventorySlot, inventorySlots.length),
+  };
+}
+
+function maybeSpawnVictoryLoot(controller: SessionController, snapshot: CombatSnapshot): string | undefined {
+  if (snapshot.result !== 'victory' || controller.lootSpawned) {
+    return undefined;
+  }
+
+  const dataRoot = resolveRepoDataRoot();
+  const rewards = loadBattleRewards(dataRoot);
+  controller.pendingLoot = createPendingLootFromTable(rewards);
+  controller.lootSpawned = true;
+  return 'Victory! Loot available — press B for backpack.';
+}
 
 export function createSessionController(options: {
   seed?: number;
@@ -63,25 +125,43 @@ export function createSessionController(options: {
   traceToBuffer?: boolean;
 }): SessionController {
   const traceBuffer = options.traceToBuffer ? new TraceBuffer() : undefined;
+  const itemTagDefinitions = loadItemTagDefinitions();
   const engine = RuleEngine.create({
     traceSink: traceBuffer,
+    tagDefinitions: { json: itemTagDefinitions },
   });
+
+  const itemCatalog = loadItemBootstrap(engine.tagManager);
+  let inventory = createInventory(DEFAULT_INVENTORY_CAPACITY);
+  let pendingLoot: PendingLootState = { entries: [] };
+  let lootSpawned = false;
 
   let combatSession = CombatSession.bootstrap(engine, combatBootstrapConfig(engine));
 
   const controller: SessionController = {
     engine,
     combatSession,
+    itemCatalog,
+    inventory,
+    pendingLoot,
+    lootSpawned,
     traceLines: [],
     bootstrapBattle() {
       combatSession = CombatSession.bootstrap(engine, combatBootstrapConfig(engine));
       controller.combatSession = combatSession;
+      inventory = createInventory(DEFAULT_INVENTORY_CAPACITY);
+      pendingLoot = { entries: [] };
+      lootSpawned = false;
+      controller.inventory = inventory;
+      controller.pendingLoot = pendingLoot;
+      controller.lootSpawned = lootSpawned;
     },
     getCombatSnapshot() {
       return combatSession.getSnapshot();
     },
     syncViewState(state) {
       const snapshot = combatSession.getSnapshot();
+      const lootHint = maybeSpawnVictoryLoot(controller, snapshot);
 
       const hand: HandCard[] = snapshot.hand.map((card) => ({
         id: card.actionId,
@@ -118,6 +198,8 @@ export function createSessionController(options: {
           }
         : undefined;
 
+      const inventoryViews = syncInventoryViews(state, controller);
+
       return {
         ...state,
         hand,
@@ -135,6 +217,8 @@ export function createSessionController(options: {
         preview: previewView,
         playerStats: toEntityStatsView(snapshot.player),
         enemyStats: snapshot.enemies[0] ? toEntityStatsView(snapshot.enemies[0]) : undefined,
+        ...inventoryViews,
+        statusMessage: lootHint ?? state.statusMessage,
       };
     },
   };
@@ -202,6 +286,10 @@ function refreshCardPreview(state: AppState, controller: SessionController): App
   return { ...synced, statusMessage: previewStatusMessage(synced) };
 }
 
+function syncAfterInventoryAction(state: AppState, controller: SessionController, message: string): AppState {
+  return { ...controller.syncViewState(state), statusMessage: message };
+}
+
 export function applyUiAction(
   state: AppState,
   controller: SessionController,
@@ -236,6 +324,105 @@ export function applyUiAction(
       return { ...state, showTracePane: !state.showTracePane };
     case 'quit':
       return { ...state, shouldQuit: true };
+    case 'inventory_prev': {
+      if (state.inventoryFocus === 'loot' && state.pendingLoot.length > 0) {
+        return syncAfterInventoryAction(
+          {
+            ...state,
+            selectedLootIndex: clampIndex(state.selectedLootIndex - 1, state.pendingLoot.length),
+          },
+          controller,
+          state.statusMessage,
+        );
+      }
+      return syncAfterInventoryAction(
+        {
+          ...state,
+          selectedInventorySlot: clampIndex(state.selectedInventorySlot - 1, state.inventorySlots.length),
+        },
+        controller,
+        state.statusMessage,
+      );
+    }
+    case 'inventory_next': {
+      if (state.inventoryFocus === 'loot' && state.pendingLoot.length > 0) {
+        return syncAfterInventoryAction(
+          {
+            ...state,
+            selectedLootIndex: clampIndex(state.selectedLootIndex + 1, state.pendingLoot.length),
+          },
+          controller,
+          state.statusMessage,
+        );
+      }
+      return syncAfterInventoryAction(
+        {
+          ...state,
+          selectedInventorySlot: clampIndex(state.selectedInventorySlot + 1, state.inventorySlots.length),
+        },
+        controller,
+        state.statusMessage,
+      );
+    }
+    case 'inventory_toggle_focus': {
+      if (state.pendingLoot.length === 0) {
+        return state;
+      }
+      return syncAfterInventoryAction(
+        {
+          ...state,
+          inventoryFocus: state.inventoryFocus === 'loot' ? 'backpack' : 'loot',
+        },
+        controller,
+        state.statusMessage,
+      );
+    }
+    case 'pickup_selected_loot': {
+      if (state.pendingLoot.length === 0) {
+        return syncAfterInventoryAction(state, controller, 'No loot to pickup.');
+      }
+      const entry = state.pendingLoot[state.selectedLootIndex];
+      if (!entry) {
+        return syncAfterInventoryAction(state, controller, 'No loot selected.');
+      }
+      const result = pickupLootEntry(
+        controller.pendingLoot,
+        controller.inventory,
+        controller.itemCatalog,
+        entry.lootIndex,
+      );
+      if (!result.ok) {
+        const reason =
+          result.reason === 'inventory_full'
+            ? 'Inventory full.'
+            : result.reason === 'unknown_item'
+              ? 'Unknown item.'
+              : 'Could not pickup loot.';
+        return syncAfterInventoryAction(state, controller, reason);
+      }
+      return syncAfterInventoryAction(state, controller, `Picked up ${entry.label}.`);
+    }
+    case 'pickup_all_loot': {
+      if (state.pendingLoot.length === 0) {
+        return syncAfterInventoryAction(state, controller, 'No loot to pickup.');
+      }
+      const result = pickupAllLoot(controller.pendingLoot, controller.inventory, controller.itemCatalog);
+      if (result.pickedEntries === 0) {
+        return syncAfterInventoryAction(state, controller, 'Inventory full — could not pickup loot.');
+      }
+      const suffix = result.partial ? ' (inventory full, some loot remains)' : '';
+      return syncAfterInventoryAction(state, controller, `Picked up loot${suffix}.`);
+    }
+    case 'discard_selected_inventory_slot': {
+      const slot = state.inventorySlots[state.selectedInventorySlot];
+      if (!slot) {
+        return syncAfterInventoryAction(state, controller, 'No inventory slot selected.');
+      }
+      if (!discardInventorySlot(controller.inventory, slot.slotIndex)) {
+        return syncAfterInventoryAction(state, controller, 'Could not discard item.');
+      }
+      return syncAfterInventoryAction(state, controller, `Discarded ${slot.label}.`);
+    }
     case 'hand_prev': {
       const next = {
         ...state,
@@ -298,7 +485,6 @@ export function applyUiAction(
       }
 
       try {
-        // Ensure preview matches selection, then commit.
         const enemy = state.enemies[state.selectedEnemyIndex];
         controller.combatSession.beginCardPreview(state.selectedHandIndex, enemy?.id);
         controller.combatSession.applyAction({
@@ -312,7 +498,6 @@ export function applyUiAction(
 
       const synced = controller.syncViewState(state);
       const latestLog = synced.combatLog[synced.combatLog.length - 1] ?? `Played ${card.name}.`;
-      // After play, re-preview the (possibly new) selection for continuous UX.
       return refreshCardPreview({ ...synced, statusMessage: latestLog }, controller);
     }
     case 'end_turn': {

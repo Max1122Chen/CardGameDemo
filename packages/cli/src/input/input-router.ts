@@ -13,6 +13,32 @@ function isQuit(char: string): boolean {
   return char === 'q' || char === 'Q';
 }
 
+function inventoryActions(key: ParsedKey): UiAction[] {
+  switch (key.kind) {
+    case 'up':
+      return [{ type: 'inventory_prev' }];
+    case 'down':
+      return [{ type: 'inventory_next' }];
+    case 'char': {
+      if (key.char === 'p' || key.char === 'P') {
+        return [{ type: 'pickup_selected_loot' }];
+      }
+      if (key.char === 'a' || key.char === 'A') {
+        return [{ type: 'pickup_all_loot' }];
+      }
+      if (key.char === 'd' || key.char === 'D') {
+        return [{ type: 'discard_selected_inventory_slot' }];
+      }
+      if (key.char === '\t') {
+        return [{ type: 'inventory_toggle_focus' }];
+      }
+      return [];
+    }
+    default:
+      return [];
+  }
+}
+
 function gameplayActions(key: ParsedKey): UiAction[] {
   switch (key.kind) {
     case 'left':
@@ -151,6 +177,12 @@ export function createInitialAppState(options: {
     statsOverlay: 'none',
     playerStats: undefined,
     enemyStats: undefined,
+    inventoryCapacity: 12,
+    inventorySlots: [],
+    pendingLoot: [],
+    inventoryFocus: 'backpack',
+    selectedLootIndex: 0,
+    selectedInventorySlot: 0,
   };
 }
 
@@ -164,6 +196,10 @@ export function routeInput(state: AppState, key: ParsedKey): UiAction[] {
     return consoleActions(key);
   }
 
+  if (state.focusLayer === 'inventory') {
+    return inventoryActions(key);
+  }
+
   if (state.focusLayer === 'gameplay') {
     return gameplayActions(key);
   }
@@ -173,9 +209,14 @@ export function routeInput(state: AppState, key: ParsedKey): UiAction[] {
 
 export function applyOverlayToggle(state: AppState, overlay: AppState['overlay']): AppState {
   const nextOverlay = state.overlay === overlay ? 'none' : overlay;
+  const inventoryFocus =
+    nextOverlay === 'inventory' && state.pendingLoot.length > 0 ? 'loot' : state.inventoryFocus;
   return {
     ...state,
     overlay: nextOverlay,
     focusLayer: layerForOverlay(nextOverlay),
+    inventoryFocus,
+    selectedLootIndex: 0,
+    selectedInventorySlot: 0,
   };
 }

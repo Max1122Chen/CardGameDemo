@@ -59,6 +59,26 @@ export type CombatPreviewView = {
   };
 };
 
+export type InventoryFocus = 'loot' | 'backpack';
+
+export type InventorySlotView = {
+  slotIndex: number;
+  itemId: string;
+  name: string;
+  quantity: number;
+  sellValue: number;
+  label: string;
+};
+
+export type LootEntryView = {
+  lootIndex: number;
+  itemId: string;
+  name: string;
+  quantity: number;
+  sellValue: number;
+  label: string;
+};
+
 export type AppState = {
   runtimeMode: CliRuntimeMode;
   overlay: OverlayId;
@@ -86,6 +106,12 @@ export type AppState = {
   statsOverlay: StatsOverlayTarget;
   playerStats?: EntityStatsView;
   enemyStats?: EntityStatsView;
+  inventoryCapacity: number;
+  inventorySlots: InventorySlotView[];
+  pendingLoot: LootEntryView[];
+  inventoryFocus: InventoryFocus;
+  selectedLootIndex: number;
+  selectedInventorySlot: number;
 };
 
 export type UiAction =
@@ -106,6 +132,12 @@ export type UiAction =
   | { type: 'toggle_player_stats' }
   | { type: 'toggle_enemy_stats' }
   | { type: 'close_stats_overlay' }
+  | { type: 'inventory_prev' }
+  | { type: 'inventory_next' }
+  | { type: 'inventory_toggle_focus' }
+  | { type: 'pickup_selected_loot' }
+  | { type: 'pickup_all_loot' }
+  | { type: 'discard_selected_inventory_slot' }
   | { type: 'console_append'; char: string }
   | { type: 'console_backspace' }
   | { type: 'console_submit' };

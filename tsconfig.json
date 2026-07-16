@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/core" },
+    { "path": "./packages/items" },
     { "path": "./packages/combat" },
     { "path": "./packages/cli" }
   ]

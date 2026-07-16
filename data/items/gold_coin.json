@@ -1,0 +1,8 @@
+{
+  "id": "gold_coin",
+  "name": "Gold Coin",
+  "tags": ["Item.Category.Currency", "Item.Rarity.Common", "Item.Drop.BattleReward"],
+  "maxStack": 99,
+  "sellValue": 1,
+  "fragments": []
+}

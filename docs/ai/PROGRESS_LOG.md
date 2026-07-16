@@ -10,6 +10,19 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-16 — ITEM-F01 implemented: item foundation + inventory loot
+
+- **Model:** `ItemDefinition` with tags, `sellValue`, `maxStack`; fragment union (`equipment` merges slots+cards, `durability`, etc.).
+- **Package:** `@cardgame/items` — parse, inventory (12 slots), pending loot, pickup/discard.
+- **Data:** `data/items/*`, static `data/combat/battle-rewards.json`.
+- **CLI:** Victory hint; `B` overlay for loot + backpack; P/A pickup, D discard whole slot.
+- **Spec:** [ITEM-F01-item-foundation.md](./Items/ITEM-F01-item-foundation.md)
+
+### 2026-07-16 — COMBAT-F04 committed: combat numeric depth
+
+- **Commit:** `feat(combat): deepen combat numerics with bonus/scaling/multiplier`
+- **Status:** Done — [COMBAT-F04-combat-numeric-depth.md](./Combat/COMBAT-F04-combat-numeric-depth.md)
+
 ### 2026-07-16 — COMBAT-F04 implemented: combat numeric depth
 
 - **Caps:** `MaxHealth` / `MaxActionPoints` attrs + pre-clamp; turn start AP → Max; **mend** heal card.

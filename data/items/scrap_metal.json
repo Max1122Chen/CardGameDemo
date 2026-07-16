@@ -1,0 +1,8 @@
+{
+  "id": "scrap_metal",
+  "name": "Scrap Metal",
+  "tags": ["Item.Category.Material", "Item.Rarity.Common"],
+  "maxStack": 20,
+  "sellValue": 2,
+  "fragments": []
+}

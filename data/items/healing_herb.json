@@ -1,0 +1,10 @@
+{
+  "id": "healing_herb",
+  "name": "Healing Herb",
+  "tags": ["Item.Category.Consumable", "Item.Rarity.Common", "Item.Drop.BattleReward"],
+  "maxStack": 10,
+  "sellValue": 3,
+  "fragments": [
+    { "kind": "consumable_use", "effectRef": "heal-small" }
+  ]
+}
