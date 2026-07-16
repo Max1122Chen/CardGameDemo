@@ -7,6 +7,7 @@ import type {
   DurabilityFragment,
   EquipmentCardGrant,
   EquipmentFragment,
+  InventoryShapeFragment,
   ItemFragment,
   PassiveEffectsFragment,
 } from '../fragments.js';
@@ -25,7 +26,8 @@ export type WireItemFragment =
     }
   | { kind: 'durability'; max: number }
   | { kind: 'consumable_use'; effectRef: string }
-  | { kind: 'passive_effects'; effectRefs: readonly string[] };
+  | { kind: 'passive_effects'; effectRefs: readonly string[] }
+  | { kind: 'inventory_shape'; width: number; height: number };
 
 export type WireItemDefinition = {
   id: string;
@@ -91,6 +93,19 @@ function parseFragment(itemId: string, wire: WireItemFragment): ItemFragment {
         throw new DefinitionParseError(`Item ${itemId}: passive_effects.effectRefs must be non-empty`);
       }
       return { kind: 'passive_effects', effectRefs: wire.effectRefs } satisfies PassiveEffectsFragment;
+    }
+    case 'inventory_shape': {
+      if (!Number.isInteger(wire.width) || wire.width < 1) {
+        throw new DefinitionParseError(`Item ${itemId}: inventory_shape.width must be a positive integer`);
+      }
+      if (!Number.isInteger(wire.height) || wire.height < 1) {
+        throw new DefinitionParseError(`Item ${itemId}: inventory_shape.height must be a positive integer`);
+      }
+      return {
+        kind: 'inventory_shape',
+        width: wire.width,
+        height: wire.height,
+      } satisfies InventoryShapeFragment;
     }
     default:
       throw new DefinitionParseError(

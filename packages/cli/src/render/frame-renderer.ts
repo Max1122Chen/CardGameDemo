@@ -128,27 +128,45 @@ function renderInventoryOverlay(state: AppState): string[] {
           return selected ? theme.selected(line) : line;
         });
 
+  const gridLines =
+    state.inventoryGrid.length === 0
+      ? [theme.muted('(empty grid)')]
+      : state.inventoryGrid.map((row, y) => {
+          const cells = row
+            .map((cell) => (cell.selected ? theme.selected(cell.glyph) : cell.glyph))
+            .join(' ');
+          return theme.muted(`${y}|`) + ` ${cells}`;
+        });
+  if (gridLines.length > 0 && state.inventoryWidth > 0) {
+    const header = Array.from({ length: state.inventoryWidth }, (_, x) => String(x)).join(' ');
+    gridLines.unshift(theme.muted(`  ${header}`));
+  }
+
   const backpackLines =
     state.inventorySlots.length === 0
       ? [theme.muted('(empty)')]
       : state.inventorySlots.map((slot, index) => {
           const selected = state.inventoryFocus === 'backpack' && index === state.selectedInventorySlot;
           const marker = selected ? theme.selected('>') : ' ';
-          const line = `${marker} [${slot.slotIndex + 1}] ${slot.label} (sell ${slot.sellValue})`;
+          const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+          const glyph = glyphs[index % glyphs.length] ?? '?';
+          const line = `${marker} ${glyph} ${slot.label} @(${slot.x},${slot.y}) ${slot.width}x${slot.height} r${slot.rotation}`;
           return selected ? theme.selected(line) : line;
         });
 
-  const usedSlots = state.inventorySlots.length;
+  const placePrompt = theme.consolePrompt(`place> ${state.inventoryPlaceInput}_`);
   const lootHint =
     state.pendingLoot.length > 0
-      ? theme.status('Loot: P pickup | A pickup all | Tab switch panel')
+      ? theme.status('Loot: P auto | Enter place at x y [rot] | A all | Tab panel')
       : theme.muted('No pending loot.');
 
   return [
     ...box('Loot', lootLines),
-    ...box(`Backpack (${usedSlots}/${state.inventoryCapacity})`, backpackLines),
+    ...box(`Grid ${state.inventoryWidth}x${state.inventoryHeight}`, gridLines),
+    ...box('Backpack', backpackLines),
+    placePrompt,
     lootHint,
-    theme.muted('Backpack: D discard slot | Tab switch panel | Esc closes.'),
+    theme.muted('Bag: ↑↓ select | Enter x y [0|90] | T tidy | D discard | Esc close'),
   ];
 }
 

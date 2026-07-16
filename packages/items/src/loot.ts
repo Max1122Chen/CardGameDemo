@@ -1,7 +1,12 @@
 import type { ItemId } from './item-definition.js';
 import type { ItemDefinition } from './item-definition.js';
 import type { BattleRewardsTable } from './data/item-bootstrap.js';
-import { addToInventory, type InventoryState } from './inventory.js';
+import {
+  addToInventory,
+  placeLootAt,
+  type InventoryState,
+  type Rotation,
+} from './inventory.js';
 
 export type PendingLootEntry = {
   lootIndex: number;
@@ -60,33 +65,32 @@ export type PickupLootResult =
       ok: false;
       pickedUp: number;
       remaining: number;
-      reason: 'inventory_full' | 'unknown_item';
+      reason: 'inventory_full' | 'unknown_item' | 'out_of_bounds' | 'collision' | 'invalid_rotation';
     }
   | { ok: false; reason: 'no_loot' | 'invalid_index' };
 
-export function pickupLootEntry(
+function applyAddResult(
   loot: PendingLootState,
-  inventory: InventoryState,
-  catalog: Record<ItemId, ItemDefinition>,
-  lootIndex: number,
+  entryIndex: number,
+  entry: PendingLootEntry,
+  addResult: { ok: boolean; added: number; reason?: string },
 ): PickupLootResult {
-  const entryIndex = loot.entries.findIndex((entry) => entry.lootIndex === lootIndex);
-  if (entryIndex < 0) {
-    return { ok: false, reason: 'invalid_index' };
-  }
-
-  const entry = loot.entries[entryIndex];
-  if (!entry) {
-    return { ok: false, reason: 'invalid_index' };
-  }
-
-  const addResult = addToInventory(inventory, catalog, entry.itemId, entry.quantity);
   if (addResult.added === 0) {
+    const reason =
+      addResult.reason === 'unknown_item'
+        ? 'unknown_item'
+        : addResult.reason === 'out_of_bounds'
+          ? 'out_of_bounds'
+          : addResult.reason === 'collision'
+            ? 'collision'
+            : addResult.reason === 'invalid_rotation'
+              ? 'invalid_rotation'
+              : 'inventory_full';
     return {
       ok: false,
       pickedUp: 0,
       remaining: entry.quantity,
-      reason: addResult.reason === 'unknown_item' ? 'unknown_item' : 'inventory_full',
+      reason,
     };
   }
 
@@ -110,6 +114,49 @@ export function pickupLootEntry(
     remaining,
     reason: 'inventory_full',
   };
+}
+
+export function pickupLootEntry(
+  loot: PendingLootState,
+  inventory: InventoryState,
+  catalog: Record<ItemId, ItemDefinition>,
+  lootIndex: number,
+): PickupLootResult {
+  const entryIndex = loot.entries.findIndex((entry) => entry.lootIndex === lootIndex);
+  if (entryIndex < 0) {
+    return { ok: false, reason: 'invalid_index' };
+  }
+
+  const entry = loot.entries[entryIndex];
+  if (!entry) {
+    return { ok: false, reason: 'invalid_index' };
+  }
+
+  const addResult = addToInventory(inventory, catalog, entry.itemId, entry.quantity);
+  return applyAddResult(loot, entryIndex, entry, addResult);
+}
+
+export function placePendingLootEntry(
+  loot: PendingLootState,
+  inventory: InventoryState,
+  catalog: Record<ItemId, ItemDefinition>,
+  lootIndex: number,
+  x: number,
+  y: number,
+  rotation: Rotation,
+): PickupLootResult {
+  const entryIndex = loot.entries.findIndex((entry) => entry.lootIndex === lootIndex);
+  if (entryIndex < 0) {
+    return { ok: false, reason: 'invalid_index' };
+  }
+
+  const entry = loot.entries[entryIndex];
+  if (!entry) {
+    return { ok: false, reason: 'invalid_index' };
+  }
+
+  const addResult = placeLootAt(inventory, catalog, entry.itemId, entry.quantity, x, y, rotation);
+  return applyAddResult(loot, entryIndex, entry, addResult);
 }
 
 export function pickupAllLoot(

@@ -11,6 +11,7 @@
       "twoHandMode": "optional",
       "cards": [{ "cardId": "strike", "count": 2 }]
     },
-    { "kind": "durability", "max": 20 }
+    { "kind": "durability", "max": 20 },
+    { "kind": "inventory_shape", "width": 1, "height": 3 }
   ]
 }

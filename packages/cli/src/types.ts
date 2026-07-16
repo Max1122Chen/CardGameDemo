@@ -63,11 +63,23 @@ export type InventoryFocus = 'loot' | 'backpack';
 
 export type InventorySlotView = {
   slotIndex: number;
+  entryId: string;
   itemId: string;
   name: string;
   quantity: number;
   sellValue: number;
   label: string;
+  x: number;
+  y: number;
+  rotation: 0 | 90;
+  width: number;
+  height: number;
+};
+
+export type InventoryGridCellView = {
+  glyph: string;
+  entryId?: string;
+  selected?: boolean;
 };
 
 export type LootEntryView = {
@@ -106,12 +118,15 @@ export type AppState = {
   statsOverlay: StatsOverlayTarget;
   playerStats?: EntityStatsView;
   enemyStats?: EntityStatsView;
-  inventoryCapacity: number;
+  inventoryWidth: number;
+  inventoryHeight: number;
   inventorySlots: InventorySlotView[];
+  inventoryGrid: InventoryGridCellView[][];
   pendingLoot: LootEntryView[];
   inventoryFocus: InventoryFocus;
   selectedLootIndex: number;
   selectedInventorySlot: number;
+  inventoryPlaceInput: string;
 };
 
 export type UiAction =
@@ -138,6 +153,10 @@ export type UiAction =
   | { type: 'pickup_selected_loot' }
   | { type: 'pickup_all_loot' }
   | { type: 'discard_selected_inventory_slot' }
+  | { type: 'tidy_inventory' }
+  | { type: 'inventory_place_append'; char: string }
+  | { type: 'inventory_place_backspace' }
+  | { type: 'inventory_place_submit' }
   | { type: 'console_append'; char: string }
   | { type: 'console_backspace' }
   | { type: 'console_submit' };

@@ -10,6 +10,20 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-16 — ITEM-F02 implemented: rectangular grid backpack
+
+- **Grid:** default `4×6`; `inventory_shape` fragment; stack = one footprint.
+- **Ops:** auto first-fit, manual place/move via `x y [0|90]`, discard, FFD tidy with rollback.
+- **CLI:** ASCII grid + list; `T` tidy in overlay; Enter submits place command.
+- **Probe footprints:** coin/herb `1×1`, sword `1×3`, scrap `2×1`.
+- **Spec:** [ITEM-F02-grid-backpack.md](./Items/ITEM-F02-grid-backpack.md) → Done.
+
+### 2026-07-16 — ITEM-F02 spec Review: rectangular grid backpack
+
+- **Locked:** rectangles only; no mass; backpack `4×6` (W×H); auto first-fit; manual place/move via anchor+rotation; one-click tidy via FFD+rotation heuristic.
+- **Status:** Review — await orientation confirm + 「开始做 ITEM-F02」.
+- **Spec:** [ITEM-F02-grid-backpack.md](./Items/ITEM-F02-grid-backpack.md)
+
 ### 2026-07-16 — ITEM-F01 implemented: item foundation + inventory loot
 
 - **Model:** `ItemDefinition` with tags, `sellValue`, `maxStack`; fragment union (`equipment` merges slots+cards, `durability`, etc.).

@@ -25,14 +25,26 @@ export type PassiveEffectsFragment = {
   effectRefs: readonly string[];
 };
 
+export type InventoryShapeFragment = {
+  kind: 'inventory_shape';
+  width: number;
+  height: number;
+};
+
 export type ItemFragment =
   | EquipmentFragment
   | DurabilityFragment
   | ConsumableUseFragment
-  | PassiveEffectsFragment;
+  | PassiveEffectsFragment
+  | InventoryShapeFragment;
 
 export type ItemInstanceState = {
   durability?: { current: number };
+};
+
+export type ItemFootprint = {
+  width: number;
+  height: number;
 };
 
 export function getEquipmentFragment(fragments: readonly ItemFragment[]): EquipmentFragment | undefined {
@@ -41,6 +53,17 @@ export function getEquipmentFragment(fragments: readonly ItemFragment[]): Equipm
 
 export function getDurabilityFragment(fragments: readonly ItemFragment[]): DurabilityFragment | undefined {
   return fragments.find((fragment): fragment is DurabilityFragment => fragment.kind === 'durability');
+}
+
+export function getInventoryShapeFragment(
+  fragments: readonly ItemFragment[],
+): InventoryShapeFragment | undefined {
+  return fragments.find((fragment): fragment is InventoryShapeFragment => fragment.kind === 'inventory_shape');
+}
+
+export function getItemFootprint(fragments: readonly ItemFragment[]): ItemFootprint {
+  const shape = getInventoryShapeFragment(fragments);
+  return shape ? { width: shape.width, height: shape.height } : { width: 1, height: 1 };
 }
 
 export function requiresItemInstance(fragments: readonly ItemFragment[], maxStack: number): boolean {

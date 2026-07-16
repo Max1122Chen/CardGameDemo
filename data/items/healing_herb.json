@@ -5,6 +5,7 @@
   "maxStack": 10,
   "sellValue": 3,
   "fragments": [
-    { "kind": "consumable_use", "effectRef": "heal-small" }
+    { "kind": "consumable_use", "effectRef": "heal-small" },
+    { "kind": "inventory_shape", "width": 1, "height": 1 }
   ]
 }

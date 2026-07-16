@@ -19,6 +19,10 @@ function inventoryActions(key: ParsedKey): UiAction[] {
       return [{ type: 'inventory_prev' }];
     case 'down':
       return [{ type: 'inventory_next' }];
+    case 'enter':
+      return [{ type: 'inventory_place_submit' }];
+    case 'backspace':
+      return [{ type: 'inventory_place_backspace' }];
     case 'char': {
       if (key.char === 'p' || key.char === 'P') {
         return [{ type: 'pickup_selected_loot' }];
@@ -29,8 +33,14 @@ function inventoryActions(key: ParsedKey): UiAction[] {
       if (key.char === 'd' || key.char === 'D') {
         return [{ type: 'discard_selected_inventory_slot' }];
       }
+      if (key.char === 't' || key.char === 'T') {
+        return [{ type: 'tidy_inventory' }];
+      }
       if (key.char === '\t') {
         return [{ type: 'inventory_toggle_focus' }];
+      }
+      if (/[0-9 ]/.test(key.char)) {
+        return [{ type: 'inventory_place_append', char: key.char }];
       }
       return [];
     }
@@ -122,7 +132,8 @@ function globalActions(state: AppState, key: ParsedKey): UiAction[] {
     if (isConsoleToggle(key.char)) {
       return [{ type: 'toggle_console' }];
     }
-    if (key.char === 't' || key.char === 'T') {
+    // T is tidy inside inventory overlay; only toggle trace outside it.
+    if ((key.char === 't' || key.char === 'T') && state.focusLayer !== 'inventory') {
       return [{ type: 'toggle_trace_pane' }];
     }
   }
@@ -177,12 +188,15 @@ export function createInitialAppState(options: {
     statsOverlay: 'none',
     playerStats: undefined,
     enemyStats: undefined,
-    inventoryCapacity: 12,
+    inventoryWidth: 4,
+    inventoryHeight: 6,
     inventorySlots: [],
+    inventoryGrid: [],
     pendingLoot: [],
     inventoryFocus: 'backpack',
     selectedLootIndex: 0,
     selectedInventorySlot: 0,
+    inventoryPlaceInput: '',
   };
 }
 
@@ -218,5 +232,6 @@ export function applyOverlayToggle(state: AppState, overlay: AppState['overlay']
     inventoryFocus,
     selectedLootIndex: 0,
     selectedInventorySlot: 0,
+    inventoryPlaceInput: '',
   };
 }

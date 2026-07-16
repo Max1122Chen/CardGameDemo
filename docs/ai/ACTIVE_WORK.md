@@ -8,12 +8,12 @@ Last updated: 2026-07-16
 
 ## In focus
 
-**Phase: ITEM-F01 Done** — next: EQUIP-F01 when promoted.
+**Phase: ITEM-F02 Done** — next: EQUIP-F01 when promoted.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–19 | … through COMBAT-F04 | Combat numeric depth | **Done** |
-| 20 | **ITEM-F01** | Item defs + fragments, 12-slot inventory, static loot, CLI pickup/discard | **Done** ([spec](./Items/ITEM-F01-item-foundation.md)) |
+| 1–20 | … through ITEM-F01 | Item foundation | **Done** |
+| 21 | **ITEM-F02** | 4×6 grid bag, auto/manual place, move, tidy | **Done** ([spec](./Items/ITEM-F02-grid-backpack.md)) |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel) |
 
 **Architecture lock (F04 target):**

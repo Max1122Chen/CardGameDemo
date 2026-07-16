@@ -63,7 +63,22 @@ describe('routeInput', () => {
       ...base,
       overlay: 'inventory' as const,
       focusLayer: 'inventory' as const,
-      inventorySlots: [{ slotIndex: 0, itemId: 'gold_coin', name: 'Gold Coin', quantity: 1, sellValue: 1, label: 'Gold Coin x1' }],
+      inventorySlots: [
+        {
+          slotIndex: 0,
+          entryId: 'bag-1',
+          itemId: 'gold_coin',
+          name: 'Gold Coin',
+          quantity: 1,
+          sellValue: 1,
+          label: 'Gold Coin x1',
+          x: 0,
+          y: 0,
+          rotation: 0 as const,
+          width: 1,
+          height: 1,
+        },
+      ],
     };
     expect(routeInput(withOverlay, parseKeypress('d'))).toEqual([{ type: 'discard_selected_inventory_slot' }]);
   });
@@ -76,6 +91,17 @@ describe('routeInput', () => {
       pendingLoot: [{ lootIndex: 0, itemId: 'gold_coin', name: 'Gold Coin', quantity: 1, sellValue: 1, label: 'Gold Coin x1' }],
     };
     expect(routeInput(withOverlay, parseKeypress('p'))).toEqual([{ type: 'pickup_selected_loot' }]);
+  });
+
+  it('routes tidy on t when inventory overlay is focused', () => {
+    const withOverlay = { ...base, overlay: 'inventory' as const, focusLayer: 'inventory' as const };
+    expect(routeInput(withOverlay, parseKeypress('t'))).toEqual([{ type: 'tidy_inventory' }]);
+  });
+
+  it('routes place digits into inventory place input', () => {
+    const withOverlay = { ...base, overlay: 'inventory' as const, focusLayer: 'inventory' as const };
+    expect(routeInput(withOverlay, parseKeypress('1'))).toEqual([{ type: 'inventory_place_append', char: '1' }]);
+    expect(routeInput(withOverlay, parseKeypress('\r'))).toEqual([{ type: 'inventory_place_submit' }]);
   });
 
   it('routes console typing only when console is focused', () => {

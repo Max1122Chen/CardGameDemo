@@ -6,16 +6,22 @@ import {
 import {
   createInventory,
   createPendingLootFromTable,
-  DEFAULT_INVENTORY_CAPACITY,
-  discardInventorySlot,
+  DEFAULT_GRID_HEIGHT,
+  DEFAULT_GRID_WIDTH,
+  discardInventoryEntry,
   listInventorySlots,
   listPendingLoot,
   loadBattleRewards,
+  moveInventoryEntry,
   pickupAllLoot,
   pickupLootEntry,
+  placePendingLootEntry,
+  renderInventoryGrid,
+  tidyInventory,
   type InventoryState,
   type ItemDefinition,
   type PendingLootState,
+  type Rotation,
 } from '@cardgame/items';
 
 import { combatBootstrapConfig } from '../data/load-combat-bootstrap.js';
@@ -81,8 +87,10 @@ function syncInventoryViews(
   controller: SessionController,
 ): Pick<
   AppState,
-  | 'inventoryCapacity'
+  | 'inventoryWidth'
+  | 'inventoryHeight'
   | 'inventorySlots'
+  | 'inventoryGrid'
   | 'pendingLoot'
   | 'selectedLootIndex'
   | 'selectedInventorySlot'
@@ -90,6 +98,12 @@ function syncInventoryViews(
 > {
   const inventorySlots = listInventorySlots(controller.inventory, controller.itemCatalog);
   const pendingLoot = listPendingLoot(controller.pendingLoot, controller.itemCatalog);
+  const selectedSlot = inventorySlots[clampIndex(state.selectedInventorySlot, inventorySlots.length)];
+  const inventoryGrid = renderInventoryGrid(
+    controller.inventory,
+    controller.itemCatalog,
+    selectedSlot?.entryId,
+  );
   const inventoryFocus =
     pendingLoot.length > 0 && state.inventoryFocus === 'loot'
       ? 'loot'
@@ -98,8 +112,10 @@ function syncInventoryViews(
         : state.inventoryFocus;
 
   return {
-    inventoryCapacity: controller.inventory.capacity,
+    inventoryWidth: controller.inventory.width,
+    inventoryHeight: controller.inventory.height,
     inventorySlots,
+    inventoryGrid,
     pendingLoot,
     inventoryFocus,
     selectedLootIndex: clampIndex(state.selectedLootIndex, pendingLoot.length),
@@ -132,7 +148,7 @@ export function createSessionController(options: {
   });
 
   const itemCatalog = loadItemBootstrap(engine.tagManager);
-  let inventory = createInventory(DEFAULT_INVENTORY_CAPACITY);
+  let inventory = createInventory(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT);
   let pendingLoot: PendingLootState = { entries: [] };
   let lootSpawned = false;
 
@@ -149,7 +165,7 @@ export function createSessionController(options: {
     bootstrapBattle() {
       combatSession = CombatSession.bootstrap(engine, combatBootstrapConfig(engine));
       controller.combatSession = combatSession;
-      inventory = createInventory(DEFAULT_INVENTORY_CAPACITY);
+      inventory = createInventory(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT);
       pendingLoot = { entries: [] };
       lootSpawned = false;
       controller.inventory = inventory;
@@ -286,6 +302,44 @@ function refreshCardPreview(state: AppState, controller: SessionController): App
   return { ...synced, statusMessage: previewStatusMessage(synced) };
 }
 
+function parsePlaceCommand(
+  input: string,
+): { x: number; y: number; rotation: Rotation } | undefined {
+  const parts = input.trim().split(/\s+/).filter((part) => part.length > 0);
+  if (parts.length < 2 || parts.length > 3) {
+    return undefined;
+  }
+  const x = Number(parts[0]);
+  const y = Number(parts[1]);
+  const rotationRaw = parts[2] === undefined ? 0 : Number(parts[2]);
+  if (!Number.isInteger(x) || !Number.isInteger(y)) {
+    return undefined;
+  }
+  if (rotationRaw !== 0 && rotationRaw !== 90) {
+    return undefined;
+  }
+  return { x, y, rotation: rotationRaw };
+}
+
+function placeFailureMessage(reason: string | undefined): string {
+  switch (reason) {
+    case 'inventory_full':
+      return 'Inventory full.';
+    case 'out_of_bounds':
+      return 'Placement out of bounds.';
+    case 'collision':
+      return 'Placement collides with another item.';
+    case 'invalid_rotation':
+      return 'Rotation must be 0 or 90.';
+    case 'unknown_item':
+      return 'Unknown item.';
+    case 'unknown_entry':
+      return 'Unknown inventory entry.';
+    default:
+      return 'Could not place item.';
+  }
+}
+
 function syncAfterInventoryAction(state: AppState, controller: SessionController, message: string): AppState {
   return { ...controller.syncViewState(state), statusMessage: message };
 }
@@ -418,10 +472,96 @@ export function applyUiAction(
       if (!slot) {
         return syncAfterInventoryAction(state, controller, 'No inventory slot selected.');
       }
-      if (!discardInventorySlot(controller.inventory, slot.slotIndex)) {
+      if (!discardInventoryEntry(controller.inventory, slot.entryId)) {
         return syncAfterInventoryAction(state, controller, 'Could not discard item.');
       }
-      return syncAfterInventoryAction(state, controller, `Discarded ${slot.label}.`);
+      return syncAfterInventoryAction(
+        { ...state, inventoryPlaceInput: '' },
+        controller,
+        `Discarded ${slot.label}.`,
+      );
+    }
+    case 'tidy_inventory': {
+      const result = tidyInventory(controller.inventory, controller.itemCatalog);
+      if (!result.ok) {
+        return syncAfterInventoryAction(state, controller, 'Tidy failed — restored previous layout.');
+      }
+      return syncAfterInventoryAction(state, controller, 'Backpack tidied.');
+    }
+    case 'inventory_place_append':
+      return { ...state, inventoryPlaceInput: `${state.inventoryPlaceInput}${action.char}` };
+    case 'inventory_place_backspace':
+      return { ...state, inventoryPlaceInput: state.inventoryPlaceInput.slice(0, -1) };
+    case 'inventory_place_submit': {
+      const parsed = parsePlaceCommand(state.inventoryPlaceInput);
+      if (!parsed) {
+        return syncAfterInventoryAction(
+          { ...state, inventoryPlaceInput: '' },
+          controller,
+          'Place format: x y [0|90]  (origin top-left).',
+        );
+      }
+
+      if (state.inventoryFocus === 'loot' && state.pendingLoot.length > 0) {
+        const loot = state.pendingLoot[state.selectedLootIndex];
+        if (!loot) {
+          return syncAfterInventoryAction(
+            { ...state, inventoryPlaceInput: '' },
+            controller,
+            'No loot selected.',
+          );
+        }
+        const result = placePendingLootEntry(
+          controller.pendingLoot,
+          controller.inventory,
+          controller.itemCatalog,
+          loot.lootIndex,
+          parsed.x,
+          parsed.y,
+          parsed.rotation,
+        );
+        if (!result.ok) {
+          return syncAfterInventoryAction(
+            { ...state, inventoryPlaceInput: '' },
+            controller,
+            placeFailureMessage(result.reason),
+          );
+        }
+        return syncAfterInventoryAction(
+          { ...state, inventoryPlaceInput: '' },
+          controller,
+          `Placed ${loot.label} at (${parsed.x},${parsed.y}) rot ${parsed.rotation}.`,
+        );
+      }
+
+      const slot = state.inventorySlots[state.selectedInventorySlot];
+      if (!slot) {
+        return syncAfterInventoryAction(
+          { ...state, inventoryPlaceInput: '' },
+          controller,
+          'No backpack item selected.',
+        );
+      }
+      const moveResult = moveInventoryEntry(
+        controller.inventory,
+        controller.itemCatalog,
+        slot.entryId,
+        parsed.x,
+        parsed.y,
+        parsed.rotation,
+      );
+      if (!moveResult.ok) {
+        return syncAfterInventoryAction(
+          { ...state, inventoryPlaceInput: '' },
+          controller,
+          placeFailureMessage(moveResult.reason),
+        );
+      }
+      return syncAfterInventoryAction(
+        { ...state, inventoryPlaceInput: '' },
+        controller,
+        `Moved ${slot.label} to (${parsed.x},${parsed.y}) rot ${parsed.rotation}.`,
+      );
     }
     case 'hand_prev': {
       const next = {
