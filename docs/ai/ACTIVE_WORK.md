@@ -8,19 +8,20 @@ Last updated: 2026-07-16
 
 ## In focus
 
-**Phase: post–CORE-F12** — parameterized GA/GE + Cost GE shipped; pick next Feature.
+**Phase: post–CORE-F13** — thin GA runtime shipped; pick next Feature.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–17 | … through CORE-F12 | Params + Cost GE + hooks + `@cardgame/combat` | **Done** ([spec](./Core/CORE-F12-tech-debt-polish.md)) |
+| 1–18 | … through CORE-F13 | Thin runtime + legacy purge | **Done** ([spec](./Core/CORE-F13-thin-ga-runtime.md)) |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel) |
 
 **Architecture lock (current):**
 
-- GA = archetype Def (`parameters` + `effectBindings` + `costEffectRef` + `handlerId`); cards override `parameters`.
-- GE = JSON templates + SetByCaller; bind `$Param` → `Data.*` at apply.
-- Cost = Cost GE + `checkCost` / `applyCost` / `commitAbility`.
-- Listen = explicit in activate hook; Session = bridge only.
+- GA runtime = tag gates + hook invoke + services only (**no** auto cost / GE / listen / end).
+- GA content = archetype Def (`parameters` + `effectBindings` + `costEffectRef` + `handlerId`).
+- GE = JSON templates + SetByCaller; bind `$Param` → `Data.*` at apply (in hook).
+- Cost = Cost GE + `checkCost` / `applyCost` / `commitAbility` (hook-timed).
+- Listen = `startListen` / `stopListen` in hook only.
 - Combat host: `@cardgame/combat`; core = pure framework.
 
 ---

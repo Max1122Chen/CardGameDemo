@@ -3,12 +3,13 @@ import { settleTakeDamageOnEntity } from './settle-take-damage.js';
 
 export function createTakeDamageHandler(): AbilityActivationHandler {
   return {
-    onActivate({ host }) {
+    onActivate({ host, services }) {
       const data = settleTakeDamageOnEntity({
         getAttribute: (attribute) => host.getAttribute(attribute),
         applyGameplayEffect: (effect, context) =>
           host.applyGameplayEffectTo(host.entityId, effect, context),
       });
+      services.endAbility();
       return { ok: true, data: { takeDamage: data } };
     },
   };

@@ -29,7 +29,6 @@ import {
   type AbilityActivationContext,
   type ActivationFailureReason,
   type ActivationResult,
-  type ActiveAbilityEventInfo,
   type ActiveAbilitySnapshot,
   type GameplayAbilityDefinition,
   type GameplayAbilityEventListen,
@@ -41,23 +40,18 @@ export type GameplayAbilityHost = {
   tagManager: GameplayTagManager;
   getOwnerTags(): GameplayTagContainer;
   getAttribute(attribute: string): AttributeValue | undefined;
-  setAttributeBase(attribute: string, value: number): void;
   applyGameplayEffectTo(
     entityId: EntityId,
     effect: GameplayEffectDefinition,
     context?: GameplayEffectApplicationContext,
   ): string;
   resolveEntityTags(entityId: EntityId): GameplayTagContainer | undefined;
-  /** Subscribe while an ability is Active (or F08 grant-time passive shim). */
   subscribeAbilityEvent(
     channel: GameplayEventChannel,
     listenerId: string,
     handler: (event: GameplayEvent) => void,
   ): void;
   unsubscribeAbilityEvent(listenerId: string): void;
-  /** Optional host reaction when listenWhileActive matches (legacy / combat session). */
-  onActiveAbilityEvent?(info: ActiveAbilityEventInfo): void;
-  /** App-registered activation handlers (CORE-F11/F12). */
   activationRegistry?: AbilityActivationRegistry;
   emitTrace(entry: TraceEntryInput): void;
 };
@@ -65,8 +59,6 @@ export type GameplayAbilityHost = {
 type GrantedAbilityRecord = {
   handle: string;
   definition: GameplayAbilityDefinition;
-  /** F08 passive shim listener (grant-scoped). */
-  grantListenerId?: string;
 };
 
 type ActiveAbilityRecord = {
@@ -93,21 +85,8 @@ export class GameplayAbilityRuntime {
     this.validateDefinition(definition);
 
     const handle = `ability-${nextAbilityHandle++}`;
-    const record: GrantedAbilityRecord = { handle, definition };
+    this.granted.set(handle, { handle, definition });
 
-    if (definition.kind === 'passive' && definition.passiveTrigger) {
-      const listen = definition.passiveTrigger;
-      const channelTag = listen.channelTag ?? DEFAULT_CHANNEL_TAG;
-      const channel = createGameplayEventChannel(this.host.tagManager.resolve(channelTag));
-      const listenerId = `ga-grant-listen:${this.host.entityId}:${handle}`;
-
-      this.host.subscribeAbilityEvent(channel, listenerId, (event) => {
-        this.onGrantScopedPassiveEvent(handle, event);
-      });
-      record.grantListenerId = listenerId;
-    }
-
-    this.granted.set(handle, record);
     this.host.emitTrace({
       kind: 'ga.grant',
       entity: this.host.entityId,
@@ -116,10 +95,6 @@ export class GameplayAbilityRuntime {
       kindAbility: definition.kind,
     });
 
-    if (definition.autoActivateOnGrant) {
-      this.tryActivate(handle, { instigatorEntityId: this.host.entityId });
-    }
-
     return handle;
   }
 
@@ -127,10 +102,6 @@ export class GameplayAbilityRuntime {
     const record = this.granted.get(handle);
     if (!record) {
       return false;
-    }
-
-    if (record.grantListenerId) {
-      this.host.unsubscribeAbilityEvent(record.grantListenerId);
     }
 
     this.granted.delete(handle);
@@ -177,33 +148,6 @@ export class GameplayAbilityRuntime {
     };
     this.active.set(instanceId, activeRecord);
 
-    const costTiming = definition.costApplyTiming ?? 'activate';
-    if (costTiming === 'activate') {
-      const shouldCharge =
-        definition.costEffect !== undefined ||
-        (definition.cost !== undefined && definition.chargeCostOnActivate !== false);
-      if (shouldCharge && !this.applyCostForActive(activeRecord)) {
-        this.endAbility(instanceId);
-        return { ok: false, reason: 'insufficient_cost' };
-      }
-    }
-
-    for (const binding of definition.effectsOnActivate) {
-      const targetId = binding.target === 'self' ? this.host.entityId : ctx.targetEntityId;
-      if (!targetId) {
-        this.endAbility(instanceId);
-        return { ok: false, reason: 'missing_target' };
-      }
-      const geContext: GameplayEffectApplicationContext = {
-        instigatorEntityId: ctx.instigatorEntityId,
-        sourceEntityId: ctx.sourceEntityId,
-        targetEntityId: ctx.targetEntityId,
-        payload: ctx.payload,
-        setByCaller: ctx.setByCaller,
-      };
-      this.host.applyGameplayEffectTo(targetId, binding.effect, geContext);
-    }
-
     let activationData: (Record<string, unknown> & {
       takeDamage?: import('./types.js').TakeDamageActivationData;
     }) | undefined;
@@ -224,10 +168,6 @@ export class GameplayAbilityRuntime {
       }
     }
 
-    if (definition.listenWhileActive) {
-      this.attachDeclarativeListeners(activeRecord, definition.listenWhileActive, definition);
-    }
-
     this.host.emitTrace({
       kind: 'ga.activate.attempt',
       entity: this.host.entityId,
@@ -243,10 +183,6 @@ export class GameplayAbilityRuntime {
       sourceId: ctx.sourceEntityId,
       targetId: ctx.targetEntityId,
     });
-
-    if (this.shouldAutoEnd(definition)) {
-      this.endAbility(instanceId);
-    }
 
     return { ok: true, instanceId, activationData };
   }
@@ -385,42 +321,31 @@ export class GameplayAbilityRuntime {
 
   private checkCostForActive(active: ActiveAbilityRecord): boolean {
     const def = active.definition;
-    if (def.costEffect) {
-      return this.checkCostEffect(def.costEffect, active.parameters, def.costBindings);
+    if (!def.costEffect) {
+      return true;
     }
-    if (def.cost) {
-      return this.canAffordLegacyCost(def.cost);
-    }
-    return true;
+    return this.checkCostEffect(def.costEffect, active.parameters, def.costBindings);
   }
 
   private applyCostForActive(active: ActiveAbilityRecord): boolean {
     const def = active.definition;
-    if (def.costEffect) {
-      if (!this.checkCostEffect(def.costEffect, active.parameters, def.costBindings)) {
-        return false;
-      }
-      const raw = resolveBindingMap(def.costBindings, active.parameters);
-      // Cost GE magnitudes are "amount to spend" (positive); apply as negative Add.
-      const setByCaller = Object.fromEntries(
-        Object.entries(raw).map(([key, value]) => [key, -Math.abs(value)]),
-      );
-      this.host.applyGameplayEffectTo(this.host.entityId, def.costEffect, {
-        instigatorEntityId: active.activationCtx.instigatorEntityId,
-        sourceEntityId: active.activationCtx.sourceEntityId ?? this.host.entityId,
-        targetEntityId: this.host.entityId,
-        payload: active.activationCtx.payload,
-        setByCaller,
-      });
+    if (!def.costEffect) {
       return true;
     }
-    if (def.cost) {
-      if (!this.canAffordLegacyCost(def.cost)) {
-        return false;
-      }
-      this.spendLegacyCost(def.cost);
-      return true;
+    if (!this.checkCostEffect(def.costEffect, active.parameters, def.costBindings)) {
+      return false;
     }
+    const raw = resolveBindingMap(def.costBindings, active.parameters);
+    const setByCaller = Object.fromEntries(
+      Object.entries(raw).map(([key, value]) => [key, -Math.abs(value)]),
+    );
+    this.host.applyGameplayEffectTo(this.host.entityId, def.costEffect, {
+      instigatorEntityId: active.activationCtx.instigatorEntityId,
+      sourceEntityId: active.activationCtx.sourceEntityId ?? this.host.entityId,
+      targetEntityId: this.host.entityId,
+      payload: active.activationCtx.payload,
+      setByCaller,
+    });
     return true;
   }
 
@@ -454,7 +379,6 @@ export class GameplayAbilityRuntime {
       return false;
     }
     if (modifier.op === 'Add') {
-      // Spending resources: Add negative amount → need current >= -magnitude
       if (magnitude < 0) {
         return attr.currentValue >= -magnitude;
       }
@@ -475,10 +399,8 @@ export class GameplayAbilityRuntime {
       return mag;
     }
     if (mag.kind === 'SetByCaller') {
-      const value = setByCaller[mag.key];
-      return value;
+      return setByCaller[mag.key];
     }
-    // AttributeBased cost check not supported in F12 MVP
     return undefined;
   }
 
@@ -490,7 +412,6 @@ export class GameplayAbilityRuntime {
       }
       const setByCaller = resolveBindingMapOptional(binding.bind, active.parameters);
       if (binding.bind && Object.keys(binding.bind).length > 0 && setByCaller === undefined) {
-        // Optional params missing — skip this binding
         continue;
       }
       const targetId =
@@ -506,69 +427,6 @@ export class GameplayAbilityRuntime {
         setByCaller: setByCaller ?? active.activationCtx.setByCaller,
       });
     }
-  }
-
-  private attachDeclarativeListeners(
-    active: ActiveAbilityRecord,
-    listen: GameplayAbilityEventListen,
-    definition: GameplayAbilityDefinition,
-  ): void {
-    const handler =
-      definition.handlerId !== undefined
-        ? this.host.activationRegistry?.get(definition.handlerId)
-        : undefined;
-
-    this.startListen(active, listen, (event) => {
-      if (handler?.onActiveEvent) {
-        handler.onActiveEvent({
-          ...this.buildHandlerContext(active),
-          event,
-          ctx: {
-            ...active.activationCtx,
-            event,
-            payload: event.payload,
-            parameters: active.parameters,
-          },
-        });
-        return;
-      }
-
-      this.host.onActiveAbilityEvent?.({
-        instanceId: active.instanceId,
-        handle: active.handle,
-        abilityDefId: active.abilityDefId,
-        event,
-      });
-    });
-  }
-
-  private onGrantScopedPassiveEvent(handle: string, event: GameplayEvent): void {
-    const record = this.granted.get(handle);
-    if (!record || record.definition.kind !== 'passive' || !record.definition.passiveTrigger) {
-      return;
-    }
-
-    if (!this.eventMatchesListen(record.definition.passiveTrigger, event)) {
-      return;
-    }
-
-    this.host.emitTrace({
-      kind: 'ga.passive.trigger',
-      entity: this.host.entityId,
-      handle,
-      eventTags: [...record.definition.passiveTrigger.eventTags],
-    });
-
-    const payload = event.payload ?? {};
-    const ctx: AbilityActivationContext = {
-      instigatorEntityId: this.host.entityId,
-      sourceEntityId: typeof payload.sourceId === 'string' ? payload.sourceId : undefined,
-      targetEntityId: typeof payload.targetId === 'string' ? payload.targetId : undefined,
-      event,
-      payload,
-    };
-
-    this.tryActivate(handle, ctx);
   }
 
   private eventMatchesListen(listen: GameplayAbilityEventListen, event: GameplayEvent): boolean {
@@ -629,77 +487,17 @@ export class GameplayAbilityRuntime {
       }
     }
 
-    const needsTargetBinding =
-      def.effectsOnActivate.some((binding) => binding.target === 'target') ||
-      (def.effectBindings ?? []).some((binding) => binding.target === 'target');
+    const needsTargetBinding = (def.effectBindings ?? []).some((binding) => binding.target === 'target');
     if (needsTargetBinding && !ctx.targetEntityId) {
       return { ok: false, reason: 'missing_target', defId: def.id };
-    }
-
-    const costTiming = def.costApplyTiming ?? 'activate';
-    if (costTiming === 'activate') {
-      const parameters = this.resolveParameters(def, ctx);
-      if (def.costEffect) {
-        if (!this.checkCostEffect(def.costEffect, parameters, def.costBindings)) {
-          return { ok: false, reason: 'insufficient_cost', defId: def.id };
-        }
-      } else if (
-        def.cost &&
-        def.chargeCostOnActivate !== false &&
-        !this.canAffordLegacyCost(def.cost)
-      ) {
-        return { ok: false, reason: 'insufficient_cost', defId: def.id };
-      }
     }
 
     return { ok: true, defId: def.id };
   }
 
-  private canAffordLegacyCost(cost: NonNullable<GameplayAbilityDefinition['cost']>): boolean {
-    const value = this.host.getAttribute(cost.attribute);
-    if (!value) {
-      return false;
-    }
-    return value.currentValue >= cost.amount;
-  }
-
-  private spendLegacyCost(cost: NonNullable<GameplayAbilityDefinition['cost']>): void {
-    const value = this.host.getAttribute(cost.attribute);
-    if (!value) {
-      throw new GameplayAbilityError(`Missing cost attribute: ${cost.attribute}`);
-    }
-    this.host.setAttributeBase(cost.attribute, value.baseValue - cost.amount);
-  }
-
-  private shouldAutoEnd(definition: GameplayAbilityDefinition): boolean {
-    if (definition.endPolicy === 'manual') {
-      return false;
-    }
-    if (definition.endPolicy === 'auto') {
-      return true;
-    }
-    if (definition.handlerId && definition.effectsOnActivate.length === 0) {
-      return true;
-    }
-    if (definition.effectsOnActivate.length === 0) {
-      return true;
-    }
-    return definition.effectsOnActivate.every((binding) => binding.effect.duration.kind === 'Instant');
-  }
-
   private validateDefinition(definition: GameplayAbilityDefinition): void {
     if (!definition.id) {
       throw new GameplayAbilityError('GameplayAbilityDefinition.id is required');
-    }
-
-    if (definition.kind === 'passive' && !definition.passiveTrigger && !definition.autoActivateOnGrant) {
-      throw new GameplayAbilityError(
-        `Passive ability ${definition.id} requires passiveTrigger or autoActivateOnGrant`,
-      );
-    }
-
-    if (definition.kind === 'active' && definition.passiveTrigger) {
-      throw new GameplayAbilityError(`Active ability ${definition.id} cannot have passiveTrigger (use listenWhileActive)`);
     }
   }
 }

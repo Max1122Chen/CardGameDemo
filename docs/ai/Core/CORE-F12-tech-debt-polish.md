@@ -540,6 +540,8 @@ See `data/effects/damage-face.json` — SetByCaller declares the apply-time hole
 - [x] F03 + session + CLI tests green (`npm run verify`)
 - [x] ACTIVE_WORK / FEATURE_REGISTRY / PROGRESS updated
 
+**Follow-up:** Runtime policy slimming → [CORE-F13](./CORE-F13-thin-ga-runtime.md) (**Done**).
+
 ---
 
 ## Pre-flight

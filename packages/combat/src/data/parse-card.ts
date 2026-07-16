@@ -1,4 +1,4 @@
-import type { GameplayTagManager } from '@cardgame/core';
+import type { GameplayTagManager, GameplayAbilityDefinition } from '@cardgame/core';
 import {
   DefinitionParseError,
   parseGameplayAbilityDefinition,
@@ -9,6 +9,7 @@ import {
 } from '@cardgame/core';
 import type { CardCommitEffectTarget, CardDefinition, CardTargeting } from '../card-definition.js';
 import type { CardId } from '../types.js';
+import { TAKE_DAMAGE_ABILITY_ID } from '../set-by-caller-keys.js';
 
 export type WireCardCommitEffect = {
   target: CardCommitEffectTarget;
@@ -47,6 +48,7 @@ export type DefinitionAssetCatalog = {
 export type CombatCardBootstrap = {
   cardCatalog: Record<CardId, CardDefinition>;
   deckIds: readonly CardId[];
+  takeDamageAbility: GameplayAbilityDefinition;
 };
 
 function resolveAbilityWire(
@@ -168,7 +170,13 @@ export function buildCombatCardBootstrap(
     return id;
   });
 
-  return { cardCatalog, deckIds: parsedDeck };
+  const takeDamageWire = catalog?.abilities[TAKE_DAMAGE_ABILITY_ID];
+  if (!takeDamageWire) {
+    throw new DefinitionParseError(`Missing ability in catalog: ${TAKE_DAMAGE_ABILITY_ID}`);
+  }
+  const takeDamageAbility = parseGameplayAbilityDefinition(takeDamageWire, manager, catalog);
+
+  return { cardCatalog, deckIds: parsedDeck, takeDamageAbility };
 }
 
 export function catalogToDisplaySpecs(

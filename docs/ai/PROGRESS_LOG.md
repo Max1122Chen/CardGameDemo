@@ -10,6 +10,14 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-16 — CORE-F13 implemented: thin GA runtime + legacy purge
+
+- **Runtime:** `tryActivate` = tag gates + hook only; removed auto cost/GE/listen/end and F08 APIs (`listenWhileActive`, `endPolicy`, `GameplayAbilityCost`, `onActiveAbilityEvent`, etc.).
+- **Combat:** TakeDamage from `data/abilities/take-damage.json` only; hook calls `endAbility`; deleted `spendActionPointsEffect` and TS factory.
+- **Tests:** Rewrote `gameplay-ability.test.ts` for thin-runtime contract; updated data-f01 / attribute probe 11.
+- **Verify:** typecheck + 131 tests + lint green.
+- **Spec:** [CORE-F13-thin-ga-runtime.md](./Core/CORE-F13-thin-ga-runtime.md) → Done.
+
 ### 2026-07-16 — CORE-F12 implemented: parameterized defs + Cost GE + @cardgame/combat
 
 - **Shipped:** GA `parameters` / `effectBindings` / `costEffectRef`; `checkCost`/`applyCost`/`commitAbility`; hook `startListen`; three card-play hooks + TakeDamage archetype; `dealDamageToEntity`; open `CardId`; combat moved to `@cardgame/combat`.

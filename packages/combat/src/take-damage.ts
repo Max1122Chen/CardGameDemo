@@ -1,7 +1,6 @@
-import type { GameplayTagManager } from '@cardgame/core';
+import type { GameplayAbilityDefinition, GameplayTagManager } from '@cardgame/core';
 import type { GameplayFrameworkComponent } from '@cardgame/core';
 import { CombatAttributes } from './combat-attributes.js';
-import { createTakeDamageAbilityDefinition } from './take-damage-ability.js';
 import { settleTakeDamageOnEntity } from './settle-take-damage.js';
 
 /** Settle Block then Health from DamageToTake using Instant GE only. */
@@ -26,7 +25,12 @@ export function resetCombatMeta(entity: GameplayFrameworkComponent): void {
 
 export function bootstrapCombatAttributes(
   gfc: GameplayFrameworkComponent,
-  options: { health: number; block?: number; actionPoints?: number },
+  options: {
+    health: number;
+    block?: number;
+    actionPoints?: number;
+    takeDamageAbility: GameplayAbilityDefinition;
+  },
   tagManager: GameplayTagManager,
 ): string {
   gfc.setAttributeBase(CombatAttributes.Health, options.health);
@@ -57,5 +61,5 @@ export function bootstrapCombatAttributes(
     ],
   });
 
-  return gfc.grantAbility(createTakeDamageAbilityDefinition());
+  return gfc.grantAbility(options.takeDamageAbility);
 }

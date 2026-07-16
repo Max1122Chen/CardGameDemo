@@ -8,12 +8,6 @@ import type {
 
 export type GameplayAbilityKind = 'active' | 'passive';
 
-/** Who ends an Active instance after activate effects run. */
-export type GameplayAbilityEndPolicy = 'auto' | 'manual';
-
-/** When Cost GE is applied (UE CommitAbility timing). */
-export type GameplayAbilityCostApplyTiming = 'activate' | 'manual';
-
 export type GameplayAbilityTagGates = {
   activationRequiredTags?: readonly string[];
   activationBlockedTags?: readonly string[];
@@ -24,20 +18,7 @@ export type GameplayAbilityTagGates = {
   abilityTags?: readonly string[];
 };
 
-/**
- * @deprecated CORE-F12 — prefer `costEffect` + `costBindings`. Kept for transitional tests.
- */
-export type GameplayAbilityCost = {
-  attribute: string;
-  amount: number;
-};
-
 export type GameplayAbilityEffectTarget = 'self' | 'target';
-
-export type GameplayAbilityEffectBinding = {
-  target: GameplayAbilityEffectTarget;
-  effect: GameplayEffectDefinition;
-};
 
 /** Data-driven GE apply with `$Param` → SetByCaller bindings (CORE-F12). */
 export type GameplayAbilityEffectBindingSpec = {
@@ -48,7 +29,7 @@ export type GameplayAbilityEffectBindingSpec = {
   bind?: Readonly<Record<string, string>>;
 };
 
-/** Event filter shared by grant-time passive shim and Active-instance listening. */
+/** Event filter for hook `startListen`. */
 export type GameplayAbilityEventListen = {
   channelTag?: string;
   eventTags: readonly string[];
@@ -57,35 +38,15 @@ export type GameplayAbilityEventListen = {
   payloadMatch?: Readonly<Record<string, string | number | boolean>>;
 };
 
-/** @deprecated Prefer listenWhileActive + autoActivateOnGrant; kept as F08 passiveTrigger alias. */
-export type GameplayAbilityPassiveTrigger = GameplayAbilityEventListen;
-
 export type GameplayAbilityDefinition = {
   id: string;
   kind: GameplayAbilityKind;
   name?: string;
   tags: GameplayAbilityTagGates;
-  /**
-   * @deprecated Prefer `costEffect` + `costBindings` (CORE-F12).
-   */
-  cost?: GameplayAbilityCost;
-  /**
-   * @deprecated Prefer `costApplyTiming: 'manual'` (CORE-F12).
-   * Default true when using legacy `cost`.
-   */
-  chargeCostOnActivate?: boolean;
   /** Cost GE applied via checkCost / applyCost / commitAbility. */
   costEffect?: GameplayEffectDefinition;
   /** `$Param` → SetByCaller keys for cost GE. */
   costBindings?: Readonly<Record<string, string>>;
-  /** Default `activate`. Card preview uses `manual` (pay on TryPlay). */
-  costApplyTiming?: GameplayAbilityCostApplyTiming;
-  /**
-   * `auto` (default): end after Instant-only activate effects (F08 behavior).
-   * `manual`: stay Active until `endAbility` (card preview / long-lived listens).
-   */
-  endPolicy?: GameplayAbilityEndPolicy;
-  effectsOnActivate: readonly GameplayAbilityEffectBinding[];
   /** Parameterized effect applies (preview/commit); resolved at load. */
   effectBindings?: readonly GameplayAbilityEffectBindingSpec[];
   /** Declared parameter schema (CDO defaults). */
@@ -97,17 +58,6 @@ export type GameplayAbilityDefinition = {
    * Core dispatches via AbilityActivationRegistry; combat logic stays out of core.
    */
   handlerId?: string;
-  /**
-   * @deprecated Prefer hook `startListen` (CORE-F12). Kept as optional sugar / F08 path.
-   */
-  listenWhileActive?: GameplayAbilityEventListen;
-  /**
-   * After grant, immediately tryActivate with a minimal self context.
-   * Together with listenWhileActive, this is the UE-aligned “passive” shape.
-   */
-  autoActivateOnGrant?: boolean;
-  /** F08 shim: grant-time listen that tryActivates on match (kind === 'passive'). */
-  passiveTrigger?: GameplayAbilityPassiveTrigger;
 };
 
 export type AbilityActivationContext = {
@@ -126,8 +76,7 @@ export type ActivationFailureReason =
   | 'not_granted'
   | 'cannot_activate'
   | 'missing_target'
-  | 'missing_source'
-  | 'insufficient_cost';
+  | 'missing_source';
 
 export type TakeDamageActivationData = {
   blocked: number;
@@ -153,13 +102,6 @@ export type ActiveAbilitySnapshot = {
   instanceId: string;
   handle: string;
   abilityDefId: string;
-};
-
-export type ActiveAbilityEventInfo = {
-  instanceId: string;
-  handle: string;
-  abilityDefId: string;
-  event: GameplayEvent;
 };
 
 export class GameplayAbilityError extends Error {

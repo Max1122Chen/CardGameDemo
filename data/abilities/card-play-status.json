@@ -6,9 +6,6 @@
   "handlerId": "combat.cardPlayStatus",
   "costEffectRef": "ge.template.spend-ap",
   "costBindings": { "Data.Amount": "$ApCost" },
-  "costApplyTiming": "manual",
-  "endPolicy": "manual",
-  "effectsOnActivate": [],
   "parameterSchema": {
     "ApCost": { "type": "number", "default": 0 }
   },

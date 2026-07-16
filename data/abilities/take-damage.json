@@ -4,8 +4,5 @@
   "name": "TakeDamage",
   "tags": {},
   "handlerId": "combat.takeDamage",
-  "costApplyTiming": "manual",
-  "endPolicy": "auto",
-  "effectsOnActivate": [],
   "parameterSchema": {}
 }

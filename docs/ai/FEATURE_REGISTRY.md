@@ -35,6 +35,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `DATA-F01` | Card & effect JSON schema + loader | Done | ? | [DATA-F01-card-asset-pipeline.md](./Data/DATA-F01-card-asset-pipeline.md) |
 | `CORE-F11` | Extensible GA activation, SetByCaller, reusable GE/GA assets | Done | — | [CORE-F11-extensible-ga-assets.md](./Core/CORE-F11-extensible-ga-assets.md) |
 | `CORE-F12` | Parameterized GA/GE defs, activate hooks, Cost GE, F11 debt polish | Done | — | [CORE-F12-tech-debt-polish.md](./Core/CORE-F12-tech-debt-polish.md) |
+| `CORE-F13` | Thin GA runtime (no framework policy) + legacy test/code purge | Done | — | [CORE-F13-thin-ga-runtime.md](./Core/CORE-F13-thin-ga-runtime.md) |
 
 ---
 
@@ -43,7 +44,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | DOMAIN | Next Feature # | Notes |
 |--------|----------------|-------|
 | `WF` | F02 | Workflow / docs |
-| `CORE` | F13 | F12 parameterized GA/GE + Cost GE Done |
+| `CORE` | F14 | F13 thin GA runtime Done |
 | `COMBAT` | F04 | F03 describability probes registered |
 | `DUNGEON` | F01 | Map, encounters, loot |
 | `DATA` | F02 | F01 card asset pipeline registered |

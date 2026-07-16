@@ -45,7 +45,6 @@ export type GameplayFrameworkComponentOptions = {
   eventSystem: GameplayEventSystem;
   sink?: TraceSink;
   getGfc?: (entityId: EntityId) => GameplayFrameworkComponent | undefined;
-  onActiveAbilityEvent?: (info: import('../ga/types.js').ActiveAbilityEventInfo) => void;
   activationRegistry?: AbilityActivationRegistry;
   /** Notifies when any entity's tags change (for cross-entity ongoing GE gates). */
   onEntityTagChange?: (entityId: EntityId) => void;
@@ -98,9 +97,6 @@ export class GameplayFrameworkComponent {
         const value = this.attributes.get(attribute);
         return value ? { ...value } : undefined;
       },
-      setAttributeBase: (attribute, value) => {
-        this.setAttributeBase(attribute, value);
-      },
       applyGameplayEffectTo: (entityId, effect, geContext) => {
         const gfc = this.resolveGfc(entityId);
         if (!gfc) {
@@ -120,7 +116,6 @@ export class GameplayFrameworkComponent {
           this.passiveListenerIds.splice(index, 1);
         }
       },
-      onActiveAbilityEvent: options.onActiveAbilityEvent,
       activationRegistry: options.activationRegistry,
       emitTrace: (entry) => {
         this.sink?.emit(entry);

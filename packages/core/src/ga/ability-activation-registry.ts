@@ -43,7 +43,6 @@ export type AbilityHandlerResult = {
 
 export type AbilityActivationHandler = {
   onActivate(args: AbilityHandlerContext): AbilityHandlerResult;
-  onActiveEvent?(args: AbilityHandlerContext & { event: GameplayEvent }): void;
 };
 
 export class AbilityActivationRegistry {

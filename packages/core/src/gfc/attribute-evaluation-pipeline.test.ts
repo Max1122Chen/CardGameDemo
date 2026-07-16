@@ -320,46 +320,36 @@ describe('CORE-F09 attribute evaluation pipeline', () => {
     expect(attacker.getAttribute('Damage')?.currentValue).toBe(33);
   });
 
-  it('probe 11: GA tryActivate forwards GE application context', () => {
+  it('probe 11: applyGameplayEffect forwards GE application context', () => {
     const engine = RuleEngine.create();
     const player = engine.createEntityWithGfc('player');
     const enemy = engine.createEntityWithGfc('enemy');
     player.setAttributeBase('Constitution', 4);
 
-    const handle = player.grantAbility({
-      id: 'ability.buff.health',
-      kind: 'active',
-      tags: {},
-      effectsOnActivate: [
-        {
-          target: 'self',
-          effect: {
-            id: 'ge.ga.health',
-            duration: { kind: 'Infinite' },
-            modifiers: [
-              {
-                attribute: 'Health',
-                op: 'Add',
-                magnitude: {
-                  kind: 'AttributeBased',
-                  captureFrom: 'Source',
-                  attribute: 'Constitution',
-                  valueKind: 'Current',
-                },
-              },
-            ],
+    player.applyGameplayEffect(
+      {
+        id: 'ge.ga.health',
+        duration: { kind: 'Infinite' },
+        modifiers: [
+          {
+            attribute: 'Health',
+            op: 'Add',
+            magnitude: {
+              kind: 'AttributeBased',
+              captureFrom: 'Source',
+              attribute: 'Constitution',
+              valueKind: 'Current',
+            },
           },
-        },
-      ],
-    });
+        ],
+      },
+      {
+        instigatorEntityId: 'player',
+        sourceEntityId: 'player',
+        targetEntityId: 'enemy',
+      },
+    );
 
-    const result = player.tryActivate(handle, {
-      instigatorEntityId: 'player',
-      sourceEntityId: 'player',
-      targetEntityId: 'enemy',
-    });
-
-    expect(result.ok).toBe(true);
     expect(player.getAttribute('Health')?.currentValue).toBe(4);
   });
 });

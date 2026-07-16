@@ -33,7 +33,6 @@ describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
     expect(cardCatalog.strike.name).toBe('Strike');
     expect(cardCatalog.strike.ability.id).toBe('ga.archetype.cardPlayDamage');
     expect(cardCatalog.strike.ability.handlerId).toBe('combat.cardPlayDamage');
-    expect(cardCatalog.strike.ability.effectsOnActivate).toHaveLength(0);
     expect(cardCatalog.strike.ability.parameterValues?.Damage).toBe(6);
     expect(cardCatalog.strike.ability.parameterValues?.ApCost).toBe(1);
   });
@@ -103,32 +102,24 @@ describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
     ).toThrow(/unknown card/i);
   });
 
-  it('round-trips a minimal wire card through parseCardDefinition', () => {
+  it('round-trips abilityRef card through parseCardDefinition', () => {
     const engine = RuleEngine.create();
+    const dataRoot = resolveRepoDataRoot();
+    const catalog = loadDefinitionAssetCatalog(dataRoot);
     const wire = {
       id: 'wait',
       name: 'Wait',
       cost: 1,
       targeting: 'none' as const,
-      ability: {
-        id: 'ga.card.wait',
-        kind: 'active' as const,
-        name: 'Wait',
-        tags: { abilityTags: ['Card.wait'] },
-        chargeCostOnActivate: false,
-        endPolicy: 'manual' as const,
-        effectsOnActivate: [],
-        listenWhileActive: {
-          channelTag: 'Combat',
-          eventTags: ['GameplayEvent.Combat.TryPlayCard'],
-          match: 'any' as const,
-        },
-      },
+      abilityRef: 'ga.archetype.cardPlayStatus',
+      parameters: { ApCost: 1 },
     };
 
-    const parsed = parseCardDefinition(wire, engine.tagManager);
+    const parsed = parseCardDefinition(wire, engine.tagManager, catalog);
     expect(parsed.id).toBe('wait');
-    expect(parsed.ability.id).toBe('ga.card.wait');
+    expect(parsed.ability.id).toBe('ga.archetype.cardPlayStatus');
+    expect(parsed.ability.handlerId).toBe('combat.cardPlayStatus');
+    expect(parsed.ability.parameterValues?.ApCost).toBe(1);
   });
 
   it('starter deck file lists twelve card ids', () => {

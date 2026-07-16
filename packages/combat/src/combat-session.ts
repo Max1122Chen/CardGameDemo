@@ -75,7 +75,7 @@ export class CombatSession {
   static bootstrap(
     engine: RuleEngine,
     config: Partial<CombatSessionTuneables> &
-      Pick<CombatSessionConfig, 'cardCatalog' | 'deckIds'>,
+      Pick<CombatSessionConfig, 'cardCatalog' | 'deckIds' | 'takeDamageAbility'>,
   ): CombatSession {
     const merged = { ...DEFAULT_COMBAT_CONFIG, ...config };
     if (!merged.cardCatalog || !merged.deckIds) {
@@ -331,6 +331,7 @@ export class CombatSession {
           health: this.config.playerStartHealth,
           block: 0,
           actionPoints: this.config.actionPointsPerTurn,
+          takeDamageAbility: this.config.takeDamageAbility,
         },
         this.engine.tagManager,
       ),
@@ -339,12 +340,16 @@ export class CombatSession {
       COMBAT_ENEMY_ID,
       bootstrapCombatAttributes(
         enemy,
-        { health: this.config.enemyStartHealth, block: 0 },
+        {
+          health: this.config.enemyStartHealth,
+          block: 0,
+          takeDamageAbility: this.config.takeDamageAbility,
+        },
         this.engine.tagManager,
       ),
     );
 
-    // Per-card grant so each keeps its own parameterValues (shared archetype id ‚â?shared params).
+    // Per-card grant so each keeps its own parameterValues (shared archetype id ù?shared params).
     for (const def of Object.values(this.cardDefinitions)) {
       this.cardAbilityHandles.set(def.id, player.grantAbility(def.ability));
     }

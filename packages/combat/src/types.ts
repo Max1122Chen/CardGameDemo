@@ -7,7 +7,7 @@ export type CombatPhase = 'Setup' | 'PlayerTurn' | 'EnemyTurn' | 'Victory' | 'De
 export type CombatTurnOwner = 'player' | 'enemy';
 export type CombatResult = 'victory' | 'defeat';
 export type CardId = string;
-/** @deprecated Prefer CardId ‚Ä?open string ids (CORE-F12 D6). */
+/** @deprecated Prefer CardId ù?open string ids (CORE-F12 D6). */
 export type CardActionId = CardId;
 
 /** Starter deck card ids (catalog membership validated at load). */
@@ -78,6 +78,7 @@ export type CombatSnapshot = {
 };
 
 import type { CardDefinition } from './card-definition.js';
+import type { GameplayAbilityDefinition } from '@cardgame/core';
 
 export type CardActionSpec = {
   id: CardId;
@@ -99,6 +100,7 @@ export type CombatSessionTuneables = {
 export type CombatSessionConfig = CombatSessionTuneables & {
   cardCatalog: Record<CardId, CardDefinition>;
   deckIds: readonly CardId[];
+  takeDamageAbility: GameplayAbilityDefinition;
 };
 
 export const DEFAULT_COMBAT_CONFIG: CombatSessionTuneables = {

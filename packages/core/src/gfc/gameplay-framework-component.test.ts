@@ -323,7 +323,6 @@ describe('GameplayFrameworkComponent', () => {
       id: 'passive.equip',
       kind: 'active',
       tags: {},
-      effectsOnActivate: [],
     });
 
     expect(handle).toMatch(/^ability-\d+$/);

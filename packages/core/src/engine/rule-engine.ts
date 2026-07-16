@@ -1,6 +1,6 @@
 import { AbilityActivationRegistry } from '../ga/ability-activation-registry.js';
 import { GameplayEventSystem } from '../events/gameplay-event-system.js';
-import { GameplayFrameworkComponent, type GameplayFrameworkComponentOptions } from '../gfc/gameplay-framework-component.js';
+import { GameplayFrameworkComponent } from '../gfc/gameplay-framework-component.js';
 import { GfcComponentType } from '../gfc/gfc-component-type.js';
 import { NATIVE_GAMEPLAY_TAGS } from '../tags/native-tags.js';
 import { GameplayTagManager, type TagDefinitionsInput } from '../tags/gameplay-tag-manager.js';
@@ -63,12 +63,7 @@ export class RuleEngine {
     }
   }
 
-  createEntityWithGfc(
-    entityId?: EntityId,
-    options?: {
-      onActiveAbilityEvent?: GameplayFrameworkComponentOptions['onActiveAbilityEvent'];
-    },
-  ): GameplayFrameworkComponent {
+  createEntityWithGfc(entityId?: EntityId): GameplayFrameworkComponent {
     const id = this.gameWorld.createEntity(entityId);
 
     if (this.gameWorld.hasComponent(id, GfcComponentType)) {
@@ -82,7 +77,6 @@ export class RuleEngine {
       sink: this.traceSink,
       getGfc: (entity) => this.getGfc(entity),
       onEntityTagChange: (entityId) => this.notifyEntityTagChange(entityId),
-      onActiveAbilityEvent: options?.onActiveAbilityEvent,
       activationRegistry: this.activationRegistry,
     });
     this.gameWorld.addComponent(id, GfcComponentType, gfc);

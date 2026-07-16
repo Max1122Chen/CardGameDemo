@@ -79,21 +79,13 @@ export type WireGameplayAbilityDefinition = {
   kind: 'active' | 'passive';
   name?: string;
   tags: GameplayAbilityDefinition['tags'];
-  cost?: GameplayAbilityDefinition['cost'];
-  chargeCostOnActivate?: boolean;
   costEffectRef?: string;
   costEffect?: WireGameplayEffectDefinition;
   costBindings?: Readonly<Record<string, string>>;
-  costApplyTiming?: GameplayAbilityDefinition['costApplyTiming'];
-  endPolicy?: GameplayAbilityDefinition['endPolicy'];
-  effectsOnActivate?: readonly WireGameplayAbilityEffectBinding[];
   effectBindings?: readonly WireGameplayAbilityEffectBindingSpec[];
   parameterSchema?: Readonly<Record<string, WireGameplayAbilityParameterSchemaEntry>>;
   parameterValues?: Readonly<Record<string, number | boolean>>;
-  listenWhileActive?: GameplayAbilityDefinition['listenWhileActive'];
   handlerId?: string;
-  autoActivateOnGrant?: boolean;
-  passiveTrigger?: GameplayAbilityDefinition['passiveTrigger'];
 };
 
 export class DefinitionParseError extends Error {
@@ -205,15 +197,6 @@ export function parseGameplayAbilityDefinition(
     throw new DefinitionParseError('GameplayAbilityDefinition.id is required');
   }
 
-  const effectsOnActivate = (wire.effectsOnActivate ?? []).map((binding, index) => ({
-    target: binding.target,
-    effect: parseGameplayEffectDefinition(
-      binding.effect,
-      manager,
-      `effectsOnActivate[${index}].effect`,
-    ),
-  }));
-
   const effectBindings = wire.effectBindings?.map((binding, index) => {
     let effectWire = binding.effect;
     if (binding.effectRef) {
@@ -257,19 +240,11 @@ export function parseGameplayAbilityDefinition(
     kind: wire.kind,
     name: wire.name,
     tags: wire.tags,
-    cost: wire.cost,
-    chargeCostOnActivate: wire.chargeCostOnActivate,
     costEffect,
     costBindings: wire.costBindings,
-    costApplyTiming: wire.costApplyTiming,
-    endPolicy: wire.endPolicy,
-    effectsOnActivate,
     effectBindings,
     parameterSchema: wire.parameterSchema,
     parameterValues: wire.parameterValues,
-    listenWhileActive: wire.listenWhileActive,
     handlerId: wire.handlerId,
-    autoActivateOnGrant: wire.autoActivateOnGrant,
-    passiveTrigger: wire.passiveTrigger,
   };
 }
