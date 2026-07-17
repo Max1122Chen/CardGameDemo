@@ -2,7 +2,7 @@
 
 ## Meta
 - **ID:** CORE-F14
-- **Status:** Review
+- **Status:** Done
 - **Owner:** —
 - **Last updated:** 2026-07-17
 - **Related:** [CORE-F08](./CORE-F08-gameplay-ability-framework.md), [COMBAT-F05](../Combat/COMBAT-F05-enemy-data-driven.md), [COMBAT-F06](../Combat/COMBAT-F06-enemy-bt-ai.md)
@@ -127,10 +127,10 @@ COMBAT-F05 consumes CORE-F14-S02+.
 
 ## Acceptance
 
-- [ ] BT loads from JSON; invalid trees fail at load
-- [ ] Sequence/Selector/Repeat/Inverter tested in core
-- [ ] No imports from combat/cli/items in core BT module
-- [ ] Slime cycle expressible as single BT asset
+- [x] BT loads from JSON; invalid trees fail at load
+- [x] Sequence/Selector/Repeat/Inverter tested in core
+- [x] No imports from combat/cli/items in core BT module
+- [x] Slime cycle expressible as single BT asset (`data/behavior-trees/bt.slime_cycle.json`)
 
 ---
 
@@ -139,3 +139,4 @@ COMBAT-F05 consumes CORE-F14-S02+.
 | Date | Note |
 |------|------|
 | 2026-07-17 | Initial spec (Review); user: unified BT for all enemy AI |
+| 2026-07-17 | Implemented: loader, composites, blackboard, task registry, leafBudget; verify green |

@@ -10,6 +10,12 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-17 — CORE-F14 implemented: behavior tree runtime
+
+- **`packages/core/src/bt/`** — loader, Sequence/Selector/Repeat/Inverter, BlackboardCompare, Task registry, `leafBudget` for one-leaf-per-tick enemy turns.
+- Asset: `data/behavior-trees/bt.slime_cycle.json`
+- **Verify:** 209 tests green.
+
 ### 2026-07-17 — CORE-F14 / CHAR-F01 / COMBAT-F05–F06 design Review
 
 - **User locked:** unified BT AI (core runtime); `@cardgame/characters`; play costs AP; target player; slime + orc; enemy grid; F06 smart orc.
