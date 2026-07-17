@@ -25,6 +25,17 @@ export const ANSI = {
     brightCyan: '\u001b[96m',
     brightWhite: '\u001b[97m',
   },
+  bg: {
+    black: '\u001b[40m',
+    red: '\u001b[41m',
+    green: '\u001b[42m',
+    yellow: '\u001b[43m',
+    blue: '\u001b[44m',
+    magenta: '\u001b[45m',
+    cyan: '\u001b[46m',
+    white: '\u001b[47m',
+    brightCyan: '\u001b[106m',
+  },
 } as const;
 
 // eslint-disable-next-line no-control-regex -- ANSI escape sequences must be stripped for layout width

@@ -8,12 +8,12 @@ Last updated: 2026-07-16
 
 ## In focus
 
-**Phase:** CLI-F04 Done — next: EQUIP-F02 / COMBAT-F05 when promoted; inventory UI later.
+**Phase:** CLI-F05 Done — next: EQUIP-F02 / COMBAT-F05 when promoted.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–23 | … through CLI-F03 | Host IMC/paint/ScrollZone | **Done** |
-| 24 | **CLI-F04** | Two-column combat UI, hand\|log row, in-pane P/E stats | **Done** ([spec](./CLI/CLI-F04-combat-ui-layout.md)) |
+| 1–24 | … through CLI-F04 | Combat two-column UI | **Done** |
+| 25 | **CLI-F05** | Victory/Defeat banner, Hand→Loot, bag replaces top row | **Done** ([spec](./CLI/CLI-F05-postcombat-inventory-layout.md)) |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel) |
 
 ---

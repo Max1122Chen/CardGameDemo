@@ -1,6 +1,7 @@
 import type { SessionController } from '../session/session-controller.js';
 import type { AppState, EnemyView, EntityStatsView } from '../types.js';
-import { style, ANSI } from './ansi.js';
+import { isLootHandMode } from '../ui-mode.js';
+import { style, ANSI, visibleLength } from './ansi.js';
 import { resolveTerminalSize } from './frame-buffer.js';
 import {
   formatPlainField,
@@ -20,6 +21,12 @@ const TRACE_VIEWPORT = 6;
 /** Max visible rows for Combat Log (ScrollZone + row height cap). */
 const COMBAT_LOG_MAX_VIEWPORT = 8;
 const HAND_LOG_RATIO = 0.65;
+const EQUIP_GRID_RATIO = 0.35;
+
+function centerVisible(text: string, width: number): string {
+  const pad = Math.max(0, Math.floor((width - visibleLength(text)) / 2));
+  return `${' '.repeat(pad)}${text}`;
+}
 
 function formatDamageBreakdown(preview: NonNullable<AppState['preview']>): string | undefined {
   const breakdown = preview.damageBreakdown;
@@ -104,7 +111,17 @@ function playerPaneLines(state: AppState): string[] {
   return lines;
 }
 
-function enemyPaneLines(state: AppState): string[] {
+function enemyPaneLines(state: AppState, innerWidth: number): string[] {
+  if (state.combatResult !== undefined) {
+    const word = state.combatResult === 'victory' ? 'VICTORY' : 'DEFEAT';
+    const banner =
+      state.combatResult === 'victory'
+        ? style(word, ANSI.bold, ANSI.fg.brightGreen)
+        : style(word, ANSI.bold, ANSI.fg.brightRed);
+    const width = Math.max(innerWidth, visibleLength(word));
+    return ['', '', centerVisible(banner, width), '', ''];
+  }
+
   if (state.enemies.length === 0) {
     return [theme.muted('(no enemies)')];
   }
@@ -159,113 +176,27 @@ function renderHandLines(state: AppState): string[] {
   });
 }
 
-function renderGameplay(state: AppState, cols: number): string[] {
-  const phaseLine =
-    state.combatResult !== undefined
-      ? theme.header(`${state.combatResult === 'victory' ? 'Victory' : 'Defeat'}!`)
-      : theme.muted(`Phase:${state.combatPhase} | Turn:${state.turnOwner}`);
-
-  const contentWidth = Math.max(cols - 2, 40);
-  const playerLines = playerPaneLines(state);
-  const enemyLines = enemyPaneLines(state);
-  const handInnerLines = renderHandLines(state);
-  const logSource =
-    state.combatLog.length > 0
-      ? state.combatLog.map((line) => theme.log(line))
-      : [theme.muted('Battle ready.')];
-
-  if (cols < NARROW_COLS) {
-    const paneWidth = contentWidth;
-    const logInner = Math.max(paneWidth - 4, 8);
-    const wrappedLog = wrapAllVisible(logSource, logInner);
-    const topHeight = Math.max(playerLines.length, enemyLines.length);
-    const paddedPlayer = [...playerLines, ...Array.from({ length: topHeight - playerLines.length }, () => '')];
-    const paddedEnemy = [...enemyLines, ...Array.from({ length: topHeight - enemyLines.length }, () => '')];
-    const logViewport = Math.min(Math.max(wrappedLog.length, 1), COMBAT_LOG_MAX_VIEWPORT);
-    const logLines = renderScrollZone({
-      lines: wrappedLog,
-      viewportHeight: logViewport,
-      autoTail: true,
-    });
-    return [
-      phaseLine,
-      ...renderBox('Player', paddedPlayer, paneWidth),
-      ...renderBox('Enemies', paddedEnemy, paneWidth),
-      ...renderBox('Hand', handInnerLines, paneWidth),
-      ...renderBox('Combat Log', logLines, paneWidth),
-    ];
+function renderLootHandLines(state: AppState): string[] {
+  if (state.pendingLoot.length === 0) {
+    return [theme.muted('(empty)')];
   }
-
-  const top = splitSharedPairWidths(contentWidth, 0.5);
-  const bottom = splitSharedPairWidths(contentWidth, HAND_LOG_RATIO);
-  const logInner = Math.max(bottom.right - 4, 8);
-  const wrappedLog = wrapAllVisible(logSource, logInner);
-
-  const topRow = renderTwinBoxes(
-    'Player',
-    playerLines,
-    top.left,
-    'Enemies',
-    enemyLines,
-    top.right,
-  );
-
-  const logViewport = Math.min(Math.max(wrappedLog.length, 1), COMBAT_LOG_MAX_VIEWPORT);
-  const logLines = renderScrollZone({
-    lines: wrappedLog,
-    viewportHeight: logViewport,
-    autoTail: true,
+  return state.pendingLoot.map((entry, index) => {
+    const selected = index === state.selectedLootIndex;
+    const marker = selected ? theme.selected('>') : ' ';
+    const line = `${marker} [${index + 1}] ${entry.label} (sell ${entry.sellValue})`;
+    return selected ? theme.selected(line) : line;
   });
-  const bottomRow = renderTwinBoxes(
-    'Hand',
-    handInnerLines,
-    bottom.left,
-    'Combat Log',
-    logLines,
-    bottom.right,
-  );
-
-  return [phaseLine, ...topRow, ...bottomRow];
 }
 
-function renderInventoryOverlay(state: AppState): string[] {
-  const lootLines =
-    state.pendingLoot.length === 0
-      ? [theme.muted('(no loot)')]
-      : state.pendingLoot.map((entry, index) => {
-          const selected = state.inventoryFocus === 'loot' && index === state.selectedLootIndex;
-          const marker = selected ? theme.selected('>') : ' ';
-          const line = `${marker} [${index}] ${entry.label} (sell ${entry.sellValue})`;
-          return selected ? theme.selected(line) : line;
-        });
-
-  const gridLines =
-    state.inventoryGrid.length === 0
-      ? [theme.muted('(empty grid)')]
-      : state.inventoryGrid.map((row, y) => {
-          const cells = row
-            .map((cell) => (cell.selected ? theme.selected(cell.glyph) : cell.glyph))
-            .join(' ');
-          return theme.muted(`${y}|`) + ` ${cells}`;
-        });
-  if (gridLines.length > 0 && state.inventoryWidth > 0) {
-    const header = Array.from({ length: state.inventoryWidth }, (_, x) => String(x)).join(' ');
-    gridLines.unshift(theme.muted(`  ${header}`));
+function bottomLeftPane(state: AppState): { title: string; lines: string[] } {
+  if (isLootHandMode(state)) {
+    return { title: 'Loot', lines: renderLootHandLines(state) };
   }
+  return { title: 'Hand', lines: renderHandLines(state) };
+}
 
-  const backpackLines =
-    state.inventorySlots.length === 0
-      ? [theme.muted('(empty)')]
-      : state.inventorySlots.map((slot, index) => {
-          const selected = state.inventoryFocus === 'backpack' && index === state.selectedInventorySlot;
-          const marker = selected ? theme.selected('>') : ' ';
-          const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-          const glyph = glyphs[index % glyphs.length] ?? '?';
-          const line = `${marker} ${glyph} ${slot.label} @(${slot.x},${slot.y}) ${slot.width}x${slot.height} r${slot.rotation}`;
-          return selected ? theme.selected(line) : line;
-        });
-
-  const equipmentLines =
+function renderEquipmentLines(state: AppState): string[] {
+  const lines =
     state.equipmentSlots.length === 0
       ? [theme.muted('(no slots)')]
       : state.equipmentSlots.map((slot, index) => {
@@ -274,31 +205,167 @@ function renderInventoryOverlay(state: AppState): string[] {
           const line = `${marker} ${slot.label}`;
           return selected ? theme.selected(line) : line;
         });
+  lines.push('');
+  lines.push(theme.consolePrompt(`place> ${state.inventoryPlaceInput}_`));
+  return lines;
+}
 
-  const placePrompt = theme.consolePrompt(`place> ${state.inventoryPlaceInput}_`);
-  const lootHint =
-    state.pendingLoot.length > 0
-      ? theme.status('Loot:P auto | Enter place | A all | Tab panel')
-      : theme.muted('No pending loot.');
+function renderGridLines(state: AppState): string[] {
+  const gridLines =
+    state.inventoryGrid.length === 0
+      ? [theme.muted('(empty grid)')]
+      : state.inventoryGrid.map((row, y) => {
+          const cells = row
+            .map((cell) => (cell.selected ? theme.selectedCell(cell.glyph) : cell.glyph))
+            .join(' ');
+          return theme.muted(`${y}|`) + ` ${cells}`;
+        });
+  if (gridLines.length > 0 && state.inventoryWidth > 0) {
+    const header = Array.from({ length: state.inventoryWidth }, (_, x) => String(x)).join(' ');
+    gridLines.unshift(theme.muted(`  ${header}`));
+  }
 
-  const width = 72;
-  return [
-    ...renderBox('Loot', lootLines, width),
-    ...renderBox(`Grid ${state.inventoryWidth}x${state.inventoryHeight}`, gridLines, width),
-    ...renderBox('Backpack', backpackLines, width),
-    ...renderBox('Equipment', equipmentLines, width),
-    placePrompt,
-    lootHint,
-    theme.muted(
-      'Bag:Tab panel | E equip | U unequip | T tidy | D discard | Enter x y [rot] | Esc',
-    ),
-  ];
+  if (state.inventorySlots.length > 0) {
+    gridLines.push('');
+    for (const [index, slot] of state.inventorySlots.entries()) {
+      const selected = state.inventoryFocus === 'backpack' && index === state.selectedInventorySlot;
+      const marker = selected ? theme.selected('>') : ' ';
+      const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const glyph = glyphs[index % glyphs.length] ?? '?';
+      const line = `${marker} ${glyph} ${slot.label} @(${slot.x},${slot.y})`;
+      gridLines.push(selected ? theme.selected(line) : line);
+    }
+  }
+  return gridLines;
+}
+
+function renderLogPane(logSource: string[], logInner: number): string[] {
+  const wrappedLog = wrapAllVisible(logSource, Math.max(1, logInner));
+  const logViewport = Math.min(Math.max(wrappedLog.length, 1), COMBAT_LOG_MAX_VIEWPORT);
+  return renderScrollZone({
+    lines: wrappedLog,
+    viewportHeight: logViewport,
+    autoTail: true,
+  });
+}
+
+function renderGameplay(state: AppState, cols: number): string[] {
+  const bagOpen = state.overlay === 'inventory';
+  const phaseLine =
+    state.combatResult !== undefined
+      ? theme.muted(
+          state.combatResult === 'victory'
+            ? 'Combat ended — pick loot (1-9) | P pickup | A all | B bag'
+            : 'Combat ended — defeat',
+        )
+      : theme.muted(`Phase:${state.combatPhase} | Turn:${state.turnOwner}`);
+
+  const contentWidth = Math.max(cols - 2, 40);
+  const bottom = bottomLeftPane(state);
+  const logSource =
+    state.combatLog.length > 0
+      ? state.combatLog.map((line) => theme.log(line))
+      : [theme.muted('Battle ready.')];
+
+  if (cols < NARROW_COLS) {
+    const paneWidth = contentWidth;
+    const logInner = Math.max(paneWidth - 4, 8);
+    const logLines = renderLogPane(logSource, logInner);
+    const topBlocks = bagOpen
+      ? [
+          ...renderBox('Equipment', renderEquipmentLines(state), paneWidth),
+          ...renderBox(
+            `Grid ${state.inventoryWidth}x${state.inventoryHeight}`,
+            renderGridLines(state),
+            paneWidth,
+          ),
+        ]
+      : (() => {
+          const enemyInner = Math.max(paneWidth - 4, 8);
+          const playerLines = playerPaneLines(state);
+          const enemyLines = enemyPaneLines(state, enemyInner);
+          const topHeight = Math.max(playerLines.length, enemyLines.length);
+          const paddedPlayer = [
+            ...playerLines,
+            ...Array.from({ length: topHeight - playerLines.length }, () => ''),
+          ];
+          const paddedEnemy = [
+            ...enemyLines,
+            ...Array.from({ length: topHeight - enemyLines.length }, () => ''),
+          ];
+          return [
+            ...renderBox('Player', paddedPlayer, paneWidth),
+            ...renderBox('Enemies', paddedEnemy, paneWidth),
+          ];
+        })();
+
+    const bagHints = bagOpen
+      ? [
+          theme.muted(
+            'Bag:Tab | E equip | U unequip | T tidy | D discard | Enter x y [rot] | Esc',
+          ),
+        ]
+      : [];
+
+    return [
+      phaseLine,
+      ...topBlocks,
+      ...renderBox(bottom.title, bottom.lines, paneWidth),
+      ...renderBox('Combat Log', logLines, paneWidth),
+      ...bagHints,
+    ];
+  }
+
+  const topPair = bagOpen
+    ? splitSharedPairWidths(contentWidth, EQUIP_GRID_RATIO)
+    : splitSharedPairWidths(contentWidth, 0.5);
+  const bottomPair = splitSharedPairWidths(contentWidth, HAND_LOG_RATIO);
+  const logInner = Math.max(bottomPair.right - 4, 8);
+  const logLines = renderLogPane(logSource, logInner);
+
+  const topRow = bagOpen
+    ? renderTwinBoxes(
+        'Equipment',
+        renderEquipmentLines(state),
+        topPair.left,
+        `Grid ${state.inventoryWidth}x${state.inventoryHeight}`,
+        renderGridLines(state),
+        topPair.right,
+      )
+    : renderTwinBoxes(
+        'Player',
+        playerPaneLines(state),
+        topPair.left,
+        'Enemies',
+        enemyPaneLines(state, Math.max(topPair.right - 4, 8)),
+        topPair.right,
+      );
+
+  const bottomRow = renderTwinBoxes(
+    bottom.title,
+    bottom.lines,
+    bottomPair.left,
+    'Combat Log',
+    logLines,
+    bottomPair.right,
+  );
+
+  const bagHints = bagOpen
+    ? [
+        theme.muted(
+          'Bag:Tab panel | E equip | U unequip | T tidy | D discard | Enter x y [rot] | Esc',
+        ),
+      ]
+    : [];
+
+  return [phaseLine, ...topRow, ...bottomRow, ...bagHints];
 }
 
 function renderOverlay(state: AppState): string[] {
   switch (state.overlay) {
     case 'inventory':
-      return renderInventoryOverlay(state);
+      // Inventory is drawn in-frame (top row); no stacked overlay.
+      return [];
     case 'settings':
       return renderBox(
         'Settings',
@@ -350,6 +417,21 @@ function renderTracePane(controller: SessionController): string[] {
   return renderBox('Trace', lines.length > 0 ? lines : [theme.muted('(no trace entries)')], 72);
 }
 
+function footerForState(state: AppState): string {
+  if (state.overlay === 'inventory') {
+    return 'Tab Panel | E/U Equip | T Tidy | D Discard | B/Esc Close bag | Q Quit';
+  }
+  if (isLootHandMode(state)) {
+    return state.pendingLoot.length > 0
+      ? '1-9 Select loot | P Pickup | A All | B Bag | ~ Console | Q Quit'
+      : 'Loot clear | B Bag | ~ Console | console:battle restart | Q Quit';
+  }
+  if (state.combatResult === 'defeat') {
+    return 'B Bag | ~ Console | console:battle restart | Q Quit';
+  }
+  return 'Space Commit | Esc/x Cancel | F End Turn | P/E Stats | B Bag | ~ Console | Q Quit';
+}
+
 export function renderFrame(
   state: AppState,
   controller: SessionController,
@@ -365,14 +447,12 @@ export function renderFrame(
     lines.push(...renderTracePane(controller));
   }
 
-  if (state.overlay !== 'none') {
+  if (state.overlay !== 'none' && state.overlay !== 'inventory') {
     lines.push('');
     lines.push(...renderOverlay(state));
   }
 
   lines.push('');
-  lines.push(
-    theme.footer('Space Commit | Esc/x Cancel | F End Turn | P/E Stats | B Bag | ~ Console | Q Quit'),
-  );
+  lines.push(theme.footer(footerForState(state)));
   return `${lines.join('\n')}\n`;
 }

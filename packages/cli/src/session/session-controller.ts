@@ -160,7 +160,7 @@ function maybeSpawnVictoryLoot(controller: SessionController, snapshot: CombatSn
   const rewards = loadBattleRewards(dataRoot);
   controller.pendingLoot = createPendingLootFromTable(rewards);
   controller.lootSpawned = true;
-  return 'Victory! Loot available — press B. Equip after battle, then console: battle';
+  return 'Victory! Select loot with 1-9. P pickup | A all | B bag. Then console: battle';
 }
 
 export function createSessionController(options: {
@@ -697,6 +697,16 @@ export function applyUiAction(
       );
     }
     case 'hand_prev': {
+      if (state.combatResult === 'victory') {
+        if (state.pendingLoot.length === 0) {
+          return state;
+        }
+        return {
+          ...state,
+          selectedLootIndex: clampIndex(state.selectedLootIndex - 1, state.pendingLoot.length),
+          inventoryFocus: 'loot',
+        };
+      }
       const next = {
         ...state,
         selectedHandIndex: clampIndex(state.selectedHandIndex - 1, state.hand.length),
@@ -704,6 +714,16 @@ export function applyUiAction(
       return refreshCardPreview(next, controller);
     }
     case 'hand_next': {
+      if (state.combatResult === 'victory') {
+        if (state.pendingLoot.length === 0) {
+          return state;
+        }
+        return {
+          ...state,
+          selectedLootIndex: clampIndex(state.selectedLootIndex + 1, state.pendingLoot.length),
+          inventoryFocus: 'loot',
+        };
+      }
       const next = {
         ...state,
         selectedHandIndex: clampIndex(state.selectedHandIndex + 1, state.hand.length),
@@ -725,6 +745,16 @@ export function applyUiAction(
       return refreshCardPreview(next, controller);
     }
     case 'select_hand': {
+      if (state.combatResult === 'victory') {
+        if (state.pendingLoot.length === 0) {
+          return state;
+        }
+        return {
+          ...state,
+          selectedLootIndex: clampIndex(action.index, state.pendingLoot.length),
+          inventoryFocus: 'loot',
+        };
+      }
       const next = {
         ...state,
         selectedHandIndex: clampIndex(action.index, state.hand.length),

@@ -73,8 +73,11 @@ export function routeInput(state: AppState, key: ParsedKey): UiAction[] {
 
 export function applyOverlayToggle(state: AppState, overlay: AppState['overlay']): AppState {
   const nextOverlay = state.overlay === overlay ? 'none' : overlay;
+  // Loot stays on the bottom Hand pane; bag opens focused on equipment (left).
   const inventoryFocus =
-    nextOverlay === 'inventory' && state.pendingLoot.length > 0 ? 'loot' : state.inventoryFocus;
+    nextOverlay === 'inventory'
+      ? 'equipment'
+      : state.inventoryFocus;
   return {
     ...state,
     overlay: nextOverlay,

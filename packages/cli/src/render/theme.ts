@@ -17,6 +17,8 @@ export const theme = {
   cardName: (text: string) => style(text, ANSI.fg.brightWhite),
   cardCost: (value: number) => style(String(value), ANSI.fg.yellow),
   selected: (text: string) => style(text, ANSI.bold, ANSI.fg.brightCyan),
+  /** Grid cell highlight: solid cyan fill behind the glyph (shape readout). */
+  selectedCell: (text: string) => style(text, ANSI.bold, ANSI.fg.black, ANSI.bg.brightCyan),
   log: (text: string) => style(text, ANSI.fg.white),
   consolePrompt: (text: string) => style(text, ANSI.fg.brightGreen),
   footer: (text: string) => style(text, ANSI.dim, ANSI.fg.brightWhite),

@@ -1,3 +1,4 @@
+import { isLootHandMode } from '../ui-mode.js';
 import type { AppState, UiAction } from '../types.js';
 import { IA, type TriggeredInputAction } from './input-action.js';
 
@@ -10,6 +11,7 @@ export function mapTriggeredToUiActions(
   triggered: readonly TriggeredInputAction[],
 ): UiAction[] {
   const actions: UiAction[] = [];
+  const lootMode = isLootHandMode(state);
 
   for (const event of triggered) {
     switch (event.id) {
@@ -53,10 +55,13 @@ export function mapTriggeredToUiActions(
         actions.push({ type: 'cancel_card_preview' });
         break;
       case IA.TogglePlayerStats:
-        actions.push({ type: 'toggle_player_stats' });
+        // Post-combat loot: P = pickup (stats idle until next battle).
+        actions.push({ type: lootMode ? 'pickup_selected_loot' : 'toggle_player_stats' });
         break;
       case IA.ToggleEnemyStats:
-        actions.push({ type: 'toggle_enemy_stats' });
+        if (!lootMode && state.combatResult === undefined) {
+          actions.push({ type: 'toggle_enemy_stats' });
+        }
         break;
       case IA.SelectHand:
         if (event.digit !== undefined) {
@@ -76,7 +81,9 @@ export function mapTriggeredToUiActions(
         actions.push({ type: 'pickup_selected_loot' });
         break;
       case IA.PickupAllLoot:
-        actions.push({ type: 'pickup_all_loot' });
+        if (lootMode || state.focusLayer === 'inventory') {
+          actions.push({ type: 'pickup_all_loot' });
+        }
         break;
       case IA.DiscardInventory:
         actions.push({ type: 'discard_selected_inventory_slot' });

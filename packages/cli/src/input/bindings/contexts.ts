@@ -62,6 +62,7 @@ export const IMC_Gameplay: InputMappingContext = {
     { actionId: IA.EndTurn, match: { type: 'char', char: 'f', ignoreCase: true } },
     { actionId: IA.TogglePlayerStats, match: { type: 'char', char: 'p', ignoreCase: true } },
     { actionId: IA.ToggleEnemyStats, match: { type: 'char', char: 'e', ignoreCase: true } },
+    { actionId: IA.PickupAllLoot, match: { type: 'char', char: 'a', ignoreCase: true } },
     { actionId: IA.CancelPreview, match: { type: 'char', char: 'x', ignoreCase: true } },
     { actionId: IA.SelectHand, match: { type: 'digit' } },
   ],

@@ -30,6 +30,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CLI-F02` | Terminal gameplay UI shell with overlays and immediate input | Done | ? | [CLI-F02-terminal-tui.md](./CLI/CLI-F02-terminal-tui.md), [demo-minimal-feature-set.md](../design/systems/demo-minimal-feature-set.md) |
 | `CLI-F03` | Host foundation: Enhanced Input IMC/IA, frame buffer, TUI widgets | Done | — | [CLI-F03-host-foundation.md](./CLI/CLI-F03-host-foundation.md) |
 | `CLI-F04` | Combat main UI: two-column layout, in-pane stats, field typography | Done | — | [CLI-F04-combat-ui-layout.md](./CLI/CLI-F04-combat-ui-layout.md) |
+| `CLI-F05` | Post-combat VICTORY/DEFEAT + loot in Hand pane + inventory top-row | Done | — | [CLI-F05-postcombat-inventory-layout.md](./CLI/CLI-F05-postcombat-inventory-layout.md) |
 | `COMBAT-F01` | BattleOnly vertical slice (minimal scenario after CORE-F06) | Done | ? | [COMBAT-F01-minimal-battle-slice.md](./Combat/COMBAT-F01-minimal-battle-slice.md), [combat.md](../design/systems/combat.md) |
 | `COMBAT-F02` | GFC-language combat: CORE GA gaps + preview/commit card loop | Done | ? | [COMBAT-F02-gfc-combat-integration.md](./Combat/COMBAT-F02-gfc-combat-integration.md), [combat.md](../design/systems/combat.md) ?????????? |
 | `COMBAT-F03` | Combat describability probes (pre?JSON cards) | Done | ? | [COMBAT-F03-combat-describability-probes.md](./Combat/COMBAT-F03-combat-describability-probes.md) |

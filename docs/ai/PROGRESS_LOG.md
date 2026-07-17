@@ -1,6 +1,6 @@
 # CardGameDemo Progress Log (for AI)
 
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 ## Purpose
 
@@ -9,6 +9,19 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 ---
 
 ## Recent entries
+
+### 2026-07-17 — CLI-F05 polish: empty loot pane + grid selection fill
+
+- Victory bottom-left stays **Loot** after all items claimed (`(empty)`), no longer flips back to Hand.
+- Selected backpack grid cells use cyan **background** fill (`theme.selectedCell`).
+
+### 2026-07-17 — CLI-F05: post-combat + inventory in-frame layout
+
+- **Victory/Defeat:** centered `VICTORY`/`DEFEAT` replaces Enemies pane content.
+- **Loot:** victory pending loot shown in bottom-left pane (was Hand); `1–9` select; no auto-open bag; `P`/`A` pickup.
+- **Bag (`B`):** top row becomes Equipment | Grid; bottom Hand/Loot | Log unchanged; Esc/B closes.
+- **Spec:** [CLI-F05-postcombat-inventory-layout.md](./CLI/CLI-F05-postcombat-inventory-layout.md) → Done.
+- **Verify:** `npm run verify` green (199 tests).
 
 ### 2026-07-17 — CLI-F04: combat log max viewport (D15)
 
