@@ -35,6 +35,8 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `COMBAT-F02` | GFC-language combat: CORE GA gaps + preview/commit card loop | Done | ? | [COMBAT-F02-gfc-combat-integration.md](./Combat/COMBAT-F02-gfc-combat-integration.md), [combat.md](../design/systems/combat.md) ?????????? |
 | `COMBAT-F03` | Combat describability probes (pre?JSON cards) | Done | ? | [COMBAT-F03-combat-describability-probes.md](./Combat/COMBAT-F03-combat-describability-probes.md) |
 | `COMBAT-F04` | Combat numeric depth: caps, six stats, damage pipeline, probes | Done | — | [COMBAT-F04-combat-numeric-depth.md](./Combat/COMBAT-F04-combat-numeric-depth.md) |
+| `COMBAT-F05` | Data-driven enemies: characters pkg, BT-driven turns, slime+orc spawn | Review | — | [COMBAT-F05-enemy-data-driven.md](./Combat/COMBAT-F05-enemy-data-driven.md) |
+| `COMBAT-F06` | Context-aware enemy BT AI (orc tactical, blackboard + Wisdom) | Planned | — | [COMBAT-F06-enemy-bt-ai.md](./Combat/COMBAT-F06-enemy-bt-ai.md) |
 | `ITEM-F01` | Item definitions, fragments, inventory, battle loot pickup/discard | Done | — | [ITEM-F01-item-foundation.md](./Items/ITEM-F01-item-foundation.md) |
 | `ITEM-F02` | Rectangular grid backpack (4×6), place/move/tidy | Done | — | [ITEM-F02-grid-backpack.md](./Items/ITEM-F02-grid-backpack.md) |
 | `EQUIP-F01` | Equipment loadout, equip/unequip, deck injection | Done | — | [EQUIP-F01-equipment-loadout.md](./Equipment/EQUIP-F01-equipment-loadout.md) |
@@ -43,6 +45,8 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F11` | Extensible GA activation, SetByCaller, reusable GE/GA assets | Done | — | [CORE-F11-extensible-ga-assets.md](./Core/CORE-F11-extensible-ga-assets.md) |
 | `CORE-F12` | Parameterized GA/GE defs, activate hooks, Cost GE, F11 debt polish | Done | — | [CORE-F12-tech-debt-polish.md](./Core/CORE-F12-tech-debt-polish.md) |
 | `CORE-F13` | Thin GA runtime (no framework policy) + legacy test/code purge | Done | — | [CORE-F13-thin-ga-runtime.md](./Core/CORE-F13-thin-ga-runtime.md) |
+| `CORE-F14` | Behavior tree runtime: JSON assets, tick, blackboard, task registry | Review | — | [CORE-F14-behavior-tree.md](./Core/CORE-F14-behavior-tree.md) |
+| `CHAR-F01` | `@cardgame/characters` package: defs, spawn, instances | Review | — | [CHAR-F01-character-package.md](./Characters/CHAR-F01-character-package.md) |
 
 ---
 
@@ -51,8 +55,9 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | DOMAIN | Next Feature # | Notes |
 |--------|----------------|-------|
 | `WF` | F02 | Workflow / docs |
-| `CORE` | F14 | F13 thin GA runtime Done |
-| `COMBAT` | F05 | F04 Done |
+| `CORE` | F15 | F14 Review |
+| `COMBAT` | F07 | F06 Planned |
+| `CHAR` | F02 | F01 Review |
 | `ITEM` | F03 | F02 Done |
 | `EQUIP` | F02 | F01 equipment loadout registered |
 | `DUNGEON` | F01 | Map, encounters, loot |

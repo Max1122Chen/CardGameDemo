@@ -10,6 +10,15 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-17 — CORE-F14 / CHAR-F01 / COMBAT-F05–F06 design Review
+
+- **User locked:** unified BT AI (core runtime); `@cardgame/characters`; play costs AP; target player; slime + orc; enemy grid; F06 smart orc.
+- **Specs:** [CORE-F14](./Core/CORE-F14-behavior-tree.md), [CHAR-F01](./Characters/CHAR-F01-character-package.md), [COMBAT-F05](./Combat/COMBAT-F05-enemy-data-driven.md), [COMBAT-F06](./Combat/COMBAT-F06-enemy-bt-ai.md) — await confirm + 「开始做」.
+
+### 2026-07-17 — COMBAT-F05 design Review: data-driven enemies
+
+- Spec: [COMBAT-F05-enemy-data-driven.md](./Combat/COMBAT-F05-enemy-data-driven.md) — catalog, loadout, innate gear, script AI v1; await user confirm + 「开始做」.
+
 ### 2026-07-17 — CLI-F05 polish: empty loot pane + grid selection fill
 
 - Victory bottom-left stays **Loot** after all items claimed (`(empty)`), no longer flips back to Hand.

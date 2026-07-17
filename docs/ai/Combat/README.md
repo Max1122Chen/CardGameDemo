@@ -8,7 +8,10 @@ Engineering **how** for battle rules. Gameplay **what** stays in [docs/design/sy
 |-----|---------|--------|
 | [COMBAT-F01-minimal-battle-slice.md](./COMBAT-F01-minimal-battle-slice.md) | COMBAT-F01 | Done |
 | [COMBAT-F02-gfc-combat-integration.md](./COMBAT-F02-gfc-combat-integration.md) | COMBAT-F02 | Done |
-| [COMBAT-F03-combat-describability-probes.md](./COMBAT-F03-combat-describability-probes.md) | COMBAT-F03 | Review |
+| [COMBAT-F03-combat-describability-probes.md](./COMBAT-F03-combat-describability-probes.md) | COMBAT-F03 | Done |
+| [COMBAT-F04-combat-numeric-depth.md](./COMBAT-F04-combat-numeric-depth.md) | COMBAT-F04 | Done |
+| [COMBAT-F05-enemy-data-driven.md](./COMBAT-F05-enemy-data-driven.md) | COMBAT-F05 | Review |
+| [COMBAT-F06-enemy-bt-ai.md](./COMBAT-F06-enemy-bt-ai.md) | COMBAT-F06 | Planned |
 
 ## Conventions
 
