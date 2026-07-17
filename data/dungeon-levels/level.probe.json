@@ -1,0 +1,33 @@
+{
+  "id": "level.probe",
+  "source": "wire",
+  "startRoomId": "start",
+  "rooms": [
+    {
+      "id": "start",
+      "kind": "safe",
+      "grid": { "x": 0, "y": 0 },
+      "exits": { "east": "hall_a" }
+    },
+    {
+      "id": "hall_a",
+      "kind": "normal",
+      "grid": { "x": 1, "y": 0 },
+      "exits": { "west": "start", "east": "hall_b" },
+      "encounter": { "characterId": "slime" }
+    },
+    {
+      "id": "hall_b",
+      "kind": "normal",
+      "grid": { "x": 2, "y": 0 },
+      "exits": { "west": "hall_a", "east": "exit" },
+      "encounter": { "characterId": "orc_brute" }
+    },
+    {
+      "id": "exit",
+      "kind": "exit",
+      "grid": { "x": 3, "y": 0 },
+      "exits": { "west": "hall_b" }
+    }
+  ]
+}

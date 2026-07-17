@@ -24,6 +24,7 @@ export default tseslint.config(
       'packages/combat/src/**/*.ts',
       'packages/items/src/**/*.ts',
       'packages/characters/src/**/*.ts',
+      'packages/dungeon/src/**/*.ts',
       'packages/cli/src/**/*.ts',
     ],
     languageOptions: {

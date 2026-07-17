@@ -10,6 +10,33 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-17 — DUNGEON-F01 S07: movement GA
+
+- `data/abilities/dungeon-move.json` → `ga.dungeon.move` handler `dungeon.move`.
+- `activateDungeonMove` / `ensureExplorePlayerForMove`; AdventureSession `getMovementCost` + `commitMove`.
+- CLI explore WASD routes through GA activation (F01 cost = 0).
+- **DUNGEON-F01 slice complete** (S01–S07). **Verify:** green.
+
+### 2026-07-17 — DUNGEON-F01 S06: CLI explore UI + BattleOnly virtual
+
+- `cardgame dungeon` / `cardgame battle [enemy]`: AdventureSession explore chrome (Map + Room).
+- BattleOnly = virtual single-room level; Enter/C ConfirmCombat before fight.
+- Victory loot drops on room floor (Room pane); no VICTORY Hand overlay on adventure path.
+- Console: `dungeon [levelId]`, `battle [enemyId]` restart BattleOnly.
+- **Verify:** 245 tests green. Remaining F01: S07 movement GA (optional).
+
+### 2026-07-17 — DUNGEON-F01 S01–S05: dungeon package + combat attach/detach
+
+- `@cardgame/dungeon`: level JSON/generator, `AdventureSession`, ConfirmCombat pause, room loot.
+- `CombatSession.attach` / `detach` + `clearCombatTransientState`; HP persists across fights.
+- Bridge: `beginAdventureCombat` / `finishAdventureCombat` (victory loot → room pile).
+- Next: **S06** CLI explore UI (map + room panel; BattleOnly virtual level).
+
+### 2026-07-17 — DUNGEON-F01 spec: minimal level slice (explore ↔ combat)
+
+- Locked: **level** naming; JSON + generator; virtual BattleOnly room; GA move (cost 0); explore UI map + room loot.
+- Spec: [DUNGEON-F01-minimal-level-slice.md](./Dungeon/DUNGEON-F01-minimal-level-slice.md) — await 「开始做」.
+
 ### 2026-07-17 — COMBAT-F06 polish: enemy prep at player turn start
 
 - Enemy discard hand + AP refill + draw 5 when **player turn begins** (`prepareEnemyForUpcomingTurn`).

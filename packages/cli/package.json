@@ -9,6 +9,7 @@
   "dependencies": {
     "@cardgame/core": "*",
     "@cardgame/combat": "*",
+    "@cardgame/dungeon": "*",
     "@cardgame/items": "*"
   },
   "scripts": {

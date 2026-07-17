@@ -1,6 +1,6 @@
 import type { SessionController } from '../session/session-controller.js';
 import type { AppState, EnemyView, EntityStatsView } from '../types.js';
-import { isLootHandMode } from '../ui-mode.js';
+import { isExplorePhase, isLootHandMode } from '../ui-mode.js';
 import { style, ANSI, visibleLength } from './ansi.js';
 import { resolveTerminalSize } from './frame-buffer.js';
 import {
@@ -112,6 +112,13 @@ function playerPaneLines(state: AppState): string[] {
 }
 
 function enemyPaneLines(state: AppState, innerWidth: number): string[] {
+  if (isExplorePhase(state) || state.sessionPhase === 'adventure_victory' || state.sessionPhase === 'adventure_defeat') {
+    if (state.mapLines.length > 0) {
+      return state.mapLines.map((line) => theme.muted(line));
+    }
+    return [theme.muted('(no map)')];
+  }
+
   if (state.combatResult !== undefined) {
     const word = state.combatResult === 'victory' ? 'VICTORY' : 'DEFEAT';
     const banner =
@@ -156,6 +163,23 @@ function enemyPaneLines(state: AppState, innerWidth: number): string[] {
   return lines;
 }
 
+function renderRoomLootLines(state: AppState): string[] {
+  const room = state.currentRoomId ?? '?';
+  const header = theme.muted(`Room: ${room}`);
+  if (state.roomLoot.length === 0) {
+    return [header, theme.muted('(empty floor)')];
+  }
+  return [
+    header,
+    ...state.roomLoot.map((entry, index) => {
+      const selected = index === state.selectedRoomLootIndex;
+      const marker = selected ? theme.selected('>') : ' ';
+      const line = `${marker} [${index + 1}] ${entry.label}`;
+      return selected ? theme.selected(line) : line;
+    }),
+  ];
+}
+
 function renderHandLines(state: AppState): string[] {
   if (state.hand.length === 0) {
     return [theme.muted('(empty hand)')];
@@ -189,6 +213,9 @@ function renderLootHandLines(state: AppState): string[] {
 }
 
 function bottomLeftPane(state: AppState): { title: string; lines: string[] } {
+  if (isExplorePhase(state) || state.sessionPhase === 'adventure_victory') {
+    return { title: 'Room', lines: renderRoomLootLines(state) };
+  }
   if (isLootHandMode(state)) {
     return { title: 'Loot', lines: renderLootHandLines(state) };
   }
@@ -251,8 +278,18 @@ function renderLogPane(logSource: string[], logInner: number): string[] {
 
 function renderGameplay(state: AppState, cols: number): string[] {
   const bagOpen = state.overlay === 'inventory';
-  const phaseLine =
-    state.combatResult !== undefined
+  const explore = isExplorePhase(state) || state.sessionPhase === 'adventure_victory' || state.sessionPhase === 'adventure_defeat';
+  const phaseLine = explore
+    ? theme.muted(
+        state.sessionPhase === 'adventure_victory'
+          ? 'Adventure victory — level cleared'
+          : state.sessionPhase === 'adventure_defeat'
+            ? 'Adventure defeat'
+            : state.pendingCombat
+              ? `Explore — confirm fight in ${state.currentRoomId ?? '?'}`
+              : `Explore — room ${state.currentRoomId ?? '?'}`,
+      )
+    : state.combatResult !== undefined
       ? theme.muted(
           state.combatResult === 'victory'
             ? 'Combat ended — pick loot (1-9) | P pickup | A all | B bag'
@@ -262,10 +299,12 @@ function renderGameplay(state: AppState, cols: number): string[] {
 
   const contentWidth = Math.max(cols - 2, 40);
   const bottom = bottomLeftPane(state);
+  const rightTitle = explore ? 'Map' : 'Enemies';
+  const logTitle = explore ? 'Explore Log' : 'Combat Log';
   const logSource =
     state.combatLog.length > 0
       ? state.combatLog.map((line) => theme.log(line))
-      : [theme.muted('Battle ready.')];
+      : [theme.muted(explore ? 'Ready to explore.' : 'Battle ready.')];
 
   if (cols < NARROW_COLS) {
     const paneWidth = contentWidth;
@@ -295,7 +334,7 @@ function renderGameplay(state: AppState, cols: number): string[] {
           ];
           return [
             ...renderBox('Player', paddedPlayer, paneWidth),
-            ...renderBox('Enemies', paddedEnemy, paneWidth),
+            ...renderBox(rightTitle, paddedEnemy, paneWidth),
           ];
         })();
 
@@ -311,7 +350,7 @@ function renderGameplay(state: AppState, cols: number): string[] {
       phaseLine,
       ...topBlocks,
       ...renderBox(bottom.title, bottom.lines, paneWidth),
-      ...renderBox('Combat Log', logLines, paneWidth),
+      ...renderBox(logTitle, logLines, paneWidth),
       ...bagHints,
     ];
   }
@@ -336,7 +375,7 @@ function renderGameplay(state: AppState, cols: number): string[] {
         'Player',
         playerPaneLines(state),
         topPair.left,
-        'Enemies',
+        rightTitle,
         enemyPaneLines(state, Math.max(topPair.right - 4, 8)),
         topPair.right,
       );
@@ -345,7 +384,7 @@ function renderGameplay(state: AppState, cols: number): string[] {
     bottom.title,
     bottom.lines,
     bottomPair.left,
-    'Combat Log',
+    logTitle,
     logLines,
     bottomPair.right,
   );
@@ -420,6 +459,14 @@ function renderTracePane(controller: SessionController): string[] {
 function footerForState(state: AppState): string {
   if (state.overlay === 'inventory') {
     return 'Tab Panel | E/U Equip | T Tidy | D Discard | B/Esc Close bag | Q Quit';
+  }
+  if (isExplorePhase(state)) {
+    return state.pendingCombat
+      ? 'Enter/C Fight | P Pickup | WASD Move | B Bag | ~ Console | Q Quit'
+      : 'WASD/Arrows Move | 1-9 Select loot | P Pickup | L Leave | B Bag | Q Quit';
+  }
+  if (state.sessionPhase === 'adventure_victory' || state.sessionPhase === 'adventure_defeat') {
+    return 'console:dungeon | console:battle | B Bag | Q Quit';
   }
   if (isLootHandMode(state)) {
     return state.pendingLoot.length > 0

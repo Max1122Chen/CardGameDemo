@@ -22,32 +22,54 @@ export function handleKeypress(
   return controller.syncViewState(nextState);
 }
 
-export function createBootstrappedShell(options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId'>): {
+function resolveSessionBoot(options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId' | 'enemyId'>) {
+  if (options.mode === 'dungeon') {
+    return {
+      sessionKind: 'adventure' as const,
+      adventureKind: 'dungeon' as const,
+      sessionPhase: 'adventure_explore' as const,
+      runtimeMode: 'dungeon' as const,
+    };
+  }
+  // battle + debug: BattleOnly virtual level with ConfirmCombat beat
+  return {
+    sessionKind: 'adventure' as const,
+    adventureKind: 'battle_only' as const,
+    sessionPhase: 'adventure_explore' as const,
+    runtimeMode: options.mode === 'debug' ? ('debug' as const) : ('battle' as const),
+  };
+}
+
+export function createBootstrappedShell(
+  options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId'> & { enemyId?: string },
+): {
   state: AppState;
   controller: SessionController;
 } {
+  const boot = resolveSessionBoot(options);
   const controller = createSessionController({
     seed: options.seed,
     scenarioId: options.scenarioId,
-    traceToBuffer: options.mode === 'debug' || options.mode === 'battle',
+    traceToBuffer: options.mode === 'debug' || options.mode === 'battle' || options.mode === 'dungeon',
+    sessionKind: boot.sessionKind,
+    adventureKind: boot.adventureKind,
+    enemyCharacterId: options.enemyId,
   });
   const initial = createInitialAppState({
-    runtimeMode: options.mode === 'debug' ? 'debug' : 'battle',
+    runtimeMode: boot.runtimeMode,
     seed: options.seed,
     scenarioId: options.scenarioId,
+    sessionPhase: boot.sessionPhase,
   });
   return {
     controller,
-    state: (() => {
-      const synced = controller.syncViewState(initial);
-      return applyUiActions(synced, controller, [{ type: 'select_hand', index: synced.selectedHandIndex }]);
-    })(),
+    state: controller.syncViewState(initial),
   };
 }
 
 export async function runAppShell(options: CliOptions, io: TerminalIO): Promise<number> {
   if (!io.isInteractive) {
-    throw new Error('Battle/debug mode requires an interactive terminal (TTY).');
+    throw new Error('Battle/debug/dungeon mode requires an interactive terminal (TTY).');
   }
 
   const { controller, state: bootState } = createBootstrappedShell(options);
@@ -76,7 +98,9 @@ export async function runAppShell(options: CliOptions, io: TerminalIO): Promise<
   });
 }
 
-export function renderBootFrame(options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId'>): string {
+export function renderBootFrame(
+  options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId'> & { enemyId?: string },
+): string {
   const { controller, state } = createBootstrappedShell(options);
   return paintBufferedFrame(renderFrame(state, controller), resolveTerminalSize());
 }

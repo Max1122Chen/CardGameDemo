@@ -1,4 +1,11 @@
-export type CliRuntimeMode = 'trace' | 'battle' | 'debug';
+export type CliRuntimeMode = 'trace' | 'battle' | 'debug' | 'dungeon';
+
+export type GameSessionPhase =
+  | 'standalone_combat'
+  | 'adventure_explore'
+  | 'adventure_combat'
+  | 'adventure_victory'
+  | 'adventure_defeat';
 
 export type StatsOverlayTarget = 'none' | 'player' | 'enemy';
 
@@ -99,8 +106,17 @@ export type EquipmentSlotView = {
   label: string;
 };
 
+export type RoomLootView = {
+  index: number;
+  itemId: string;
+  name: string;
+  quantity: number;
+  label: string;
+};
+
 export type AppState = {
   runtimeMode: CliRuntimeMode;
+  sessionPhase: GameSessionPhase;
   overlay: OverlayId;
   focusLayer: FocusLayer;
   showTracePane: boolean;
@@ -137,6 +153,13 @@ export type AppState = {
   selectedInventorySlot: number;
   selectedEquipmentSlot: number;
   inventoryPlaceInput: string;
+  levelId?: string;
+  currentRoomId?: string;
+  pendingCombat?: boolean;
+  mapLines: string[];
+  roomLoot: RoomLootView[];
+  selectedRoomLootIndex: number;
+  adventureLog: string[];
 };
 
 export type UiAction =
@@ -171,4 +194,9 @@ export type UiAction =
   | { type: 'inventory_place_submit' }
   | { type: 'console_append'; char: string }
   | { type: 'console_backspace' }
-  | { type: 'console_submit' };
+  | { type: 'console_submit' }
+  | { type: 'explore_move'; direction: 'north' | 'south' | 'east' | 'west' }
+  | { type: 'confirm_combat' }
+  | { type: 'leave_level' }
+  | { type: 'pickup_room_loot' }
+  | { type: 'select_room_loot'; index: number };

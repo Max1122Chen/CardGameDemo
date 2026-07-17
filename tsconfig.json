@@ -5,6 +5,7 @@
     { "path": "./packages/items" },
     { "path": "./packages/characters" },
     { "path": "./packages/combat" },
+    { "path": "./packages/dungeon" },
     { "path": "./packages/cli" }
   ]
 }

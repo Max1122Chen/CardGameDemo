@@ -46,6 +46,14 @@ export const IA = {
   ConsoleChar: 'IA_ConsoleChar',
   ConsoleBackspace: 'IA_ConsoleBackspace',
   ConsoleSubmit: 'IA_ConsoleSubmit',
+  ExploreMoveNorth: 'IA_ExploreMoveNorth',
+  ExploreMoveSouth: 'IA_ExploreMoveSouth',
+  ExploreMoveEast: 'IA_ExploreMoveEast',
+  ExploreMoveWest: 'IA_ExploreMoveWest',
+  ConfirmCombat: 'IA_ConfirmCombat',
+  LeaveLevel: 'IA_LeaveLevel',
+  PickupRoomLoot: 'IA_PickupRoomLoot',
+  SelectRoomLoot: 'IA_SelectRoomLoot',
 } as const;
 
 export const INPUT_ACTIONS: Readonly<Record<string, InputActionDef>> = {
@@ -79,4 +87,12 @@ export const INPUT_ACTIONS: Readonly<Record<string, InputActionDef>> = {
   [IA.ConsoleChar]: { id: IA.ConsoleChar, valueKind: 'char', consume: true },
   [IA.ConsoleBackspace]: { id: IA.ConsoleBackspace, valueKind: 'digital', consume: true },
   [IA.ConsoleSubmit]: { id: IA.ConsoleSubmit, valueKind: 'digital', consume: true },
+  [IA.ExploreMoveNorth]: { id: IA.ExploreMoveNorth, valueKind: 'digital', consume: true },
+  [IA.ExploreMoveSouth]: { id: IA.ExploreMoveSouth, valueKind: 'digital', consume: true },
+  [IA.ExploreMoveEast]: { id: IA.ExploreMoveEast, valueKind: 'digital', consume: true },
+  [IA.ExploreMoveWest]: { id: IA.ExploreMoveWest, valueKind: 'digital', consume: true },
+  [IA.ConfirmCombat]: { id: IA.ConfirmCombat, valueKind: 'digital', consume: true },
+  [IA.LeaveLevel]: { id: IA.LeaveLevel, valueKind: 'digital', consume: true },
+  [IA.PickupRoomLoot]: { id: IA.PickupRoomLoot, valueKind: 'digital', consume: true },
+  [IA.SelectRoomLoot]: { id: IA.SelectRoomLoot, valueKind: 'digit', consume: true },
 };

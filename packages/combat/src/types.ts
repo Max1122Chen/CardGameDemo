@@ -131,6 +131,16 @@ export type CombatSessionConfig = CombatSessionTuneables & {
   enemy: EnemyCombatSetup;
 };
 
+export type CombatAttachOptions = {
+  /** Keep existing COMBAT_PLAYER_ID entity and Health; only spawn enemy. */
+  reusePlayer?: boolean;
+};
+
+export type CombatEncounterEnd = {
+  result: CombatResult;
+  playerHealth: number;
+};
+
 export const DEFAULT_COMBAT_CONFIG: CombatSessionTuneables = {
   openingDraw: 5,
   turnDraw: 5,

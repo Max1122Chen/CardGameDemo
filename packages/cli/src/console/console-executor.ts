@@ -38,7 +38,8 @@ export function executeConsoleCommand(controller: SessionController, input: stri
         lines: [
           'Commands:',
           '  help',
-          '  battle [enemyId] restart combat (slime | orc_brute)',
+          '  battle [enemyId] restart BattleOnly virtual room (slime | orc_brute)',
+          '  dungeon [levelId] start dungeon explore (default level.probe)',
           '  state [entityId]',
           '  trace [on|off]',
           '  event <tag> [channel]',
@@ -48,11 +49,20 @@ export function executeConsoleCommand(controller: SessionController, input: stri
       };
     case 'battle': {
       const enemyId = args[0];
+      controller.sessionKind = 'adventure';
       controller.bootstrapBattle(enemyId);
       const label = enemyId ?? controller.enemyCharacterId;
       return {
-        lines: [`Started a new battle vs ${label} with current equipment deck.`],
-        statusMessage: `New battle started vs ${label}.`,
+        lines: [`Started BattleOnly vs ${label}. Confirm combat with Enter/C.`],
+        statusMessage: `BattleOnly ready vs ${label} — confirm to fight.`,
+      };
+    }
+    case 'dungeon': {
+      const levelId = args[0] ?? 'level.probe';
+      controller.startDungeon(levelId);
+      return {
+        lines: [`Started dungeon level ${levelId}.`],
+        statusMessage: `Dungeon ${levelId} — WASD to move.`,
       };
     }
     case 'state': {

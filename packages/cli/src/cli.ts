@@ -5,13 +5,14 @@ import { runAppShell } from './app-shell.js';
 import { createNodeTerminalIO } from './terminal/terminal-io.js';
 
 export type TraceMode = 'off' | 'ndjson';
-export type CliRuntimeMode = 'trace' | 'battle' | 'debug';
+export type CliRuntimeMode = 'trace' | 'battle' | 'debug' | 'dungeon';
 
 export type CliOptions = {
   mode: CliRuntimeMode;
   trace: TraceMode;
   seed?: number;
   scenarioId?: string;
+  enemyId?: string;
 };
 
 export function parseCliArgs(argv: string[]): CliOptions {
@@ -22,16 +23,28 @@ export function parseCliArgs(argv: string[]): CliOptions {
 
     if (arg === '--mode') {
       const value = argv[i + 1];
-      if (value !== 'trace' && value !== 'battle' && value !== 'debug') {
-        throw new Error(`Invalid --mode value: ${value ?? '(missing)'}. Use "trace", "battle", or "debug".`);
+      if (value !== 'trace' && value !== 'battle' && value !== 'debug' && value !== 'dungeon') {
+        throw new Error(
+          `Invalid --mode value: ${value ?? '(missing)'}. Use "trace", "battle", "debug", or "dungeon".`,
+        );
       }
       options.mode = value;
       i += 1;
       continue;
     }
 
-    if (arg === 'battle' || arg === 'debug' || arg === 'trace') {
+    if (arg === 'battle' || arg === 'debug' || arg === 'trace' || arg === 'dungeon') {
       options.mode = arg;
+      // Optional enemy id after battle: `battle orc_brute`
+      if (arg === 'battle' || arg === 'dungeon') {
+        const next = argv[i + 1];
+        if (next && !next.startsWith('-') && next !== 'trace' && next !== 'battle' && next !== 'debug' && next !== 'dungeon') {
+          if (arg === 'battle') {
+            options.enemyId = next;
+          }
+          i += 1;
+        }
+      }
       continue;
     }
 
@@ -109,8 +122,8 @@ export function runCli(options: CliOptions): { exitCode: number; stdout: string 
 }
 
 export async function runTuiCli(options: CliOptions): Promise<number> {
-  if (options.mode !== 'battle' && options.mode !== 'debug') {
-    throw new Error(`runTuiCli requires battle or debug mode, got ${options.mode}`);
+  if (options.mode !== 'battle' && options.mode !== 'debug' && options.mode !== 'dungeon') {
+    throw new Error(`runTuiCli requires battle, debug, or dungeon mode, got ${options.mode}`);
   }
 
   return runAppShell(options, createNodeTerminalIO());

@@ -8,7 +8,7 @@ Last updated: 2026-07-17
 
 ## In focus
 
-**Phase:** DUNGEON-F01 next (COMBAT-F06 Done).
+**Phase:** DUNGEON-F01 Done (S01–S07). Next backlog TBD.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
@@ -16,7 +16,7 @@ Last updated: 2026-07-17
 | — | **CHAR-F01** | `@cardgame/characters` defs + spawn | **Done** ([spec](./Characters/CHAR-F01-character-package.md)) |
 | — | **COMBAT-F05** | Slime/orc data spawn + BT fixed turns + loot from instance | **Done** ([spec](./Combat/COMBAT-F05-enemy-data-driven.md)) |
 | — | **COMBAT-F06** | Context-aware orc BT (blackboard + playBestCard + Intelligence) | **Done** ([spec](./Combat/COMBAT-F06-enemy-bt-ai.md)) |
-| — | **DUNGEON-F01** | Map, encounters, spawn | Planned |
+| — | **DUNGEON-F01** | Level explore↔combat, JSON+generator, virtual BattleOnly room | **Done** ([spec](./Dungeon/DUNGEON-F01-minimal-level-slice.md)) |
 
 ---
 
@@ -26,7 +26,7 @@ Last updated: 2026-07-17
 |-------|--------------|-------|
 | Equipment wear / dual-wield variants / passives | EQUIP-F02 | EQUIP-F01 |
 | Enemy context-aware BT (orc tactical) | COMBAT-F06 | COMBAT-F05 |
-| Dungeon / loot / events | DUNGEON-F01 | COMBAT-F05 |
+| Dungeon / loot / events | DUNGEON-F02 | After F01 |
 
 ---
 

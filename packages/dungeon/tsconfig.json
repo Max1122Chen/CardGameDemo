@@ -7,9 +7,8 @@
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"],
   "references": [
-    { "path": "../core" },
-    { "path": "../items" },
     { "path": "../combat" },
-    { "path": "../dungeon" }
+    { "path": "../core" },
+    { "path": "../items" }
   ]
 }

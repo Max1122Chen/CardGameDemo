@@ -16,6 +16,18 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('parses battle enemy id', () => {
+    expect(parseCliArgs(['battle', 'orc_brute'])).toEqual({
+      mode: 'battle',
+      trace: 'off',
+      enemyId: 'orc_brute',
+    });
+  });
+
+  it('parses dungeon mode', () => {
+    expect(parseCliArgs(['dungeon'])).toEqual({ mode: 'dungeon', trace: 'off' });
+  });
+
   it('parses --mode debug', () => {
     expect(parseCliArgs(['--mode', 'debug'])).toEqual({ mode: 'debug', trace: 'off' });
   });

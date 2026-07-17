@@ -2,6 +2,13 @@ export { CombatSession } from './combat-session.js';
 export { CombatError } from './errors.js';
 export { CombatAttributes } from './combat-attributes.js';
 export { settleTakeDamage, resetCombatMeta, bootstrapCombatAttributes } from './take-damage.js';
+export {
+  clearCombatTransientState,
+  isPlayerCombatReady,
+  refreshPlayerForEncounter,
+  resolveTakeDamageHandle,
+  PERSISTENT_INFINITE_GE_IDS,
+} from './combat-cleanup.js';
 export { settleTakeDamageOnEntity } from './settle-take-damage.js';
 export { dealDamageToEntity } from './deal-damage.js';
 export { dealOutgoingDamage } from './deal-outgoing-damage.js';
@@ -52,6 +59,8 @@ export {
   type CombatResult,
   type DamageBreakdown,
   type ActorSnapshot,
+  type CombatAttachOptions,
+  type CombatEncounterEnd,
   type CombatSessionConfig,
   type CombatSessionTuneables,
   type CombatSnapshot,

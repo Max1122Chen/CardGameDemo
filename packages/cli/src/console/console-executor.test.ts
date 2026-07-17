@@ -8,6 +8,7 @@ describe('executeConsoleCommand', () => {
     const controller = createSessionController({ traceToBuffer: true });
     const result = executeConsoleCommand(controller, 'help');
     expect(result.lines.some((line) => line.includes('state'))).toBe(true);
+    expect(result.lines.some((line) => line.includes('dungeon'))).toBe(true);
     expect(result.statusMessage).toMatch(/help/i);
   });
 
@@ -25,15 +26,21 @@ describe('executeConsoleCommand', () => {
     expect(health).toBe(99);
   });
 
-  it('battle command restarts combat on the same engine', () => {
+  it('battle command starts BattleOnly explore with confirm pending', () => {
     const controller = createSessionController({ traceToBuffer: true });
-    const before = controller.getCombatSnapshot();
-    const result = executeConsoleCommand(controller, 'battle');
-    const after = controller.getCombatSnapshot();
+    const result = executeConsoleCommand(controller, 'battle orc_brute');
+    expect(result.statusMessage).toMatch(/confirm/i);
+    expect(controller.sessionKind).toBe('adventure');
+    expect(controller.adventure).not.toBeNull();
+    expect(controller.adventure?.isPendingCombat()).toBe(true);
+    expect(controller.combatSession).toBeNull();
+    expect(controller.enemyCharacterId).toBe('orc_brute');
+  });
 
-    expect(result.statusMessage).toMatch(/battle/i);
-    expect(after.phase).toBe('PlayerTurn');
-    expect(after.player.health).toBe(before.player.health);
-    expect(after.enemies[0]?.health).toBe(before.enemies[0]?.health);
+  it('dungeon command loads probe level explore', () => {
+    const controller = createSessionController({ traceToBuffer: true });
+    const result = executeConsoleCommand(controller, 'dungeon');
+    expect(result.statusMessage).toMatch(/Dungeon/i);
+    expect(controller.adventure?.getCurrentRoomId()).toBe('start');
   });
 });

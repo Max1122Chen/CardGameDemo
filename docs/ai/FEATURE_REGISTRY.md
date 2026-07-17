@@ -47,6 +47,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F13` | Thin GA runtime (no framework policy) + legacy test/code purge | Done | — | [CORE-F13-thin-ga-runtime.md](./Core/CORE-F13-thin-ga-runtime.md) |
 | `CORE-F14` | Behavior tree runtime: JSON assets, tick, blackboard, task registry | Done | — | [CORE-F14-behavior-tree.md](./Core/CORE-F14-behavior-tree.md) |
 | `CHAR-F01` | `@cardgame/characters` package: defs, spawn, instances | Done | — | [CHAR-F01-character-package.md](./Characters/CHAR-F01-character-package.md) |
+| `DUNGEON-F01` | Minimal level slice: JSON + generator, explore↔combat, virtual BattleOnly room | Done | — | [DUNGEON-F01-minimal-level-slice.md](./Dungeon/DUNGEON-F01-minimal-level-slice.md) |
 
 ---
 
@@ -56,11 +57,11 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 |--------|----------------|-------|
 | `WF` | F02 | Workflow / docs |
 | `CORE` | F15 | F14 Done |
-| `COMBAT` | F07 | F06 Planned |
+| `COMBAT` | F07 | F06 Done |
 | `CHAR` | F02 | F01 Done |
 | `ITEM` | F03 | F02 Done |
 | `EQUIP` | F02 | F01 equipment loadout registered |
-| `DUNGEON` | F01 | Map, encounters, loot |
+| `DUNGEON` | F02 | F01 Done — [spec](./Dungeon/DUNGEON-F01-minimal-level-slice.md) |
 | `DATA` | F02 | F01 card asset pipeline registered |
 | `EFFECT` | F01 | May fold into CORE-F06; register if split |
 | `ED` | F01 | Visual data editor |

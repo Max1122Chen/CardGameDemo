@@ -78,3 +78,23 @@ export const IMC_Settings: InputMappingContext = {
   id: 'IMC_Settings',
   mappings: [{ actionId: IA.Escape, match: { type: 'kind', kind: 'escape' } }],
 };
+
+/** Explore phase: movement, confirm combat, room loot. */
+export const IMC_Explore: InputMappingContext = {
+  id: 'IMC_Explore',
+  mappings: [
+    { actionId: IA.ExploreMoveNorth, match: { type: 'kind', kind: 'up' } },
+    { actionId: IA.ExploreMoveSouth, match: { type: 'kind', kind: 'down' } },
+    { actionId: IA.ExploreMoveEast, match: { type: 'kind', kind: 'right' } },
+    { actionId: IA.ExploreMoveWest, match: { type: 'kind', kind: 'left' } },
+    { actionId: IA.ExploreMoveNorth, match: { type: 'char', char: 'w', ignoreCase: true } },
+    { actionId: IA.ExploreMoveSouth, match: { type: 'char', char: 's', ignoreCase: true } },
+    { actionId: IA.ExploreMoveEast, match: { type: 'char', char: 'd', ignoreCase: true } },
+    { actionId: IA.ExploreMoveWest, match: { type: 'char', char: 'a', ignoreCase: true } },
+    { actionId: IA.ConfirmCombat, match: { type: 'kind', kind: 'enter' } },
+    { actionId: IA.ConfirmCombat, match: { type: 'char', char: 'c', ignoreCase: true } },
+    { actionId: IA.LeaveLevel, match: { type: 'char', char: 'l', ignoreCase: true } },
+    { actionId: IA.PickupRoomLoot, match: { type: 'char', char: 'p', ignoreCase: true } },
+    { actionId: IA.SelectRoomLoot, match: { type: 'digit' } },
+  ],
+};

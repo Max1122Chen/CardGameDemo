@@ -4,7 +4,7 @@ import { createInitialAppState, routeInput } from './input-router.js';
 import { parseKeypress } from './key-events.js';
 
 describe('routeInput', () => {
-  const base = createInitialAppState({ runtimeMode: 'battle' });
+  const base = createInitialAppState({ runtimeMode: 'battle', sessionPhase: 'standalone_combat' });
 
   it('toggles inventory immediately on b without enter', () => {
     const actions = routeInput(base, parseKeypress('b'));
@@ -124,5 +124,17 @@ describe('routeInput', () => {
     expect(routeInput(consoleState, parseKeypress('e'))).toEqual([{ type: 'console_append', char: 'e' }]);
     expect(routeInput(consoleState, parseKeypress('`'))).toEqual([{ type: 'toggle_console' }]);
     expect(routeInput(consoleState, parseKeypress('\u001b'))).toEqual([{ type: 'close_overlay' }]);
+  });
+
+  it('routes explore movement and confirm combat', () => {
+    const explore = createInitialAppState({
+      runtimeMode: 'dungeon',
+      sessionPhase: 'adventure_explore',
+    });
+    expect(routeInput(explore, parseKeypress('d'))).toEqual([
+      { type: 'explore_move', direction: 'east' },
+    ]);
+    expect(routeInput(explore, parseKeypress('\r'))).toEqual([{ type: 'confirm_combat' }]);
+    expect(routeInput(explore, parseKeypress('p'))).toEqual([{ type: 'pickup_room_loot' }]);
   });
 });

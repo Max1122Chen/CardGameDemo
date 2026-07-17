@@ -2,12 +2,14 @@ import type { AppState } from '../../types.js';
 import type { ActiveMappingContext } from '../input-mapping.js';
 import {
   IMC_Console,
+  IMC_Explore,
   IMC_Gameplay,
   IMC_Global,
   IMC_Inventory,
   IMC_Settings,
   IMC_Stats,
 } from './contexts.js';
+import { isExplorePhase } from '../../ui-mode.js';
 
 /**
  * Build the active IMC stack from UI focus.
@@ -32,7 +34,11 @@ export function activeContextsForState(state: AppState): ActiveMappingContext[] 
   }
 
   // Gameplay (+ optional stats modal above it for Esc).
-  active.push({ context: IMC_Gameplay, priority: 20 });
+  if (isExplorePhase(state)) {
+    active.push({ context: IMC_Explore, priority: 25 });
+  } else {
+    active.push({ context: IMC_Gameplay, priority: 20 });
+  }
   if (state.statsOverlay !== 'none') {
     active.push({ context: IMC_Stats, priority: 70 });
   }

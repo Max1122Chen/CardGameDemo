@@ -6,7 +6,7 @@ async function main(argv: string[]): Promise<number> {
   try {
     const options = parseCliArgs(argv);
 
-    if (options.mode === 'battle' || options.mode === 'debug') {
+    if (options.mode === 'battle' || options.mode === 'debug' || options.mode === 'dungeon') {
       return runTuiCli(options);
     }
 

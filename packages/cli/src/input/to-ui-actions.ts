@@ -1,4 +1,4 @@
-import { isLootHandMode } from '../ui-mode.js';
+import { isExplorePhase, isLootHandMode } from '../ui-mode.js';
 import type { AppState, UiAction } from '../types.js';
 import { IA, type TriggeredInputAction } from './input-action.js';
 
@@ -118,6 +118,38 @@ export function mapTriggeredToUiActions(
         break;
       case IA.ConsoleSubmit:
         actions.push({ type: 'console_submit' });
+        break;
+      case IA.ExploreMoveNorth:
+        actions.push({ type: 'explore_move', direction: 'north' });
+        break;
+      case IA.ExploreMoveSouth:
+        actions.push({ type: 'explore_move', direction: 'south' });
+        break;
+      case IA.ExploreMoveEast:
+        actions.push({ type: 'explore_move', direction: 'east' });
+        break;
+      case IA.ExploreMoveWest:
+        actions.push({ type: 'explore_move', direction: 'west' });
+        break;
+      case IA.ConfirmCombat:
+        if (isExplorePhase(state)) {
+          actions.push({ type: 'confirm_combat' });
+        }
+        break;
+      case IA.LeaveLevel:
+        if (isExplorePhase(state)) {
+          actions.push({ type: 'leave_level' });
+        }
+        break;
+      case IA.PickupRoomLoot:
+        if (isExplorePhase(state)) {
+          actions.push({ type: 'pickup_room_loot' });
+        }
+        break;
+      case IA.SelectRoomLoot:
+        if (isExplorePhase(state) && event.digit !== undefined) {
+          actions.push({ type: 'select_room_loot', index: event.digit - 1 });
+        }
         break;
       default:
         break;

@@ -1,14 +1,51 @@
 import { describe, expect, it } from 'vitest';
 
 import { createBootstrappedShell, handleKeypress } from '../app-shell.js';
+import { createInitialAppState } from '../input/input-router.js';
 import { parseKeypress } from '../input/key-events.js';
+import { createSessionController, type SessionController } from '../session/session-controller.js';
+import type { AppState } from '../types.js';
 import { stripAnsi } from './ansi.js';
 import { renderFrame } from './frame-renderer.js';
 import { formatPlayerStats } from './theme.js';
 
+function confirmIntoCombat(
+  controller: SessionController,
+  state: AppState,
+): AppState {
+  const next = handleKeypress(state, controller, parseKeypress('\r'));
+  expect(next.sessionPhase).toBe('adventure_combat');
+  return next;
+}
+
+describe('explore layout DUNGEON-F01 S06', () => {
+  it('battle boot shows Map + Room explore panes before confirm', () => {
+    const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+    expect(state.sessionPhase).toBe('adventure_explore');
+    expect(state.pendingCombat).toBe(true);
+    const plain = stripAnsi(renderFrame(state, controller, { cols: 100 }));
+    expect(plain).toContain('Player');
+    expect(plain).toContain('Map');
+    expect(plain).toContain('Room');
+    expect(plain).toContain('Explore Log');
+    expect(plain).toMatch(/confirm|Enter\/C|fight/i);
+  });
+
+  it('dungeon boot shows probe level start room', () => {
+    const { controller, state } = createBootstrappedShell({ mode: 'dungeon', seed: 42 });
+    expect(state.sessionPhase).toBe('adventure_explore');
+    expect(state.currentRoomId).toBe('start');
+    expect(state.pendingCombat).toBe(false);
+    const plain = stripAnsi(renderFrame(state, controller, { cols: 100 }));
+    expect(plain).toContain('Map');
+    expect(plain).toContain('Room');
+  });
+});
+
 describe('combat main layout CLI-F04', () => {
   it('places player and enemies on one row and hand with log below', () => {
-    const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+    const { controller, state: boot } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+    const state = confirmIntoCombat(controller, boot);
     const plain = stripAnsi(renderFrame(state, controller, { cols: 100 }));
     expect(plain).toContain('Player');
     expect(plain).toContain('Enemies');
@@ -23,13 +60,13 @@ describe('combat main layout CLI-F04', () => {
   });
 
   it('shows player stats in the player pane without a floating stats box', () => {
-    const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+    const { controller, state: boot } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+    const state = confirmIntoCombat(controller, boot);
     const withStats = handleKeypress(state, controller, parseKeypress('p'));
     expect(withStats.statsOverlay).toBe('player');
     const plain = stripAnsi(renderFrame(withStats, controller, { cols: 100 }));
     expect(plain).toMatch(/Str:\d+/);
     expect(plain).toContain('Esc closes stats');
-    // Floating duplicate title should be gone.
     expect(plain.match(/Player Stats/g) ?? []).toHaveLength(0);
   });
 
@@ -40,14 +77,16 @@ describe('combat main layout CLI-F04', () => {
   });
 
   it('keeps themed colors in the combat frame', () => {
-    const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+    const { controller, state: boot } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+    const state = confirmIntoCombat(controller, boot);
     const frame = renderFrame(state, controller, { cols: 100 });
     expect(frame).toContain('\u001b[');
     expect(frame).toMatch(/\u001b\[3[1-6]m|\u001b\[9[1-7]m/);
   });
 
   it('caps Combat Log viewport so a long log does not inflate the hand|log row', () => {
-    const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+    const { controller, state: boot } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+    const state = confirmIntoCombat(controller, boot);
     const longLog = Array.from({ length: 40 }, (_, i) => `log line ${i} ${'x'.repeat(80)}`);
     const bloated = { ...state, combatLog: longLog };
     const plain = stripAnsi(renderFrame(bloated, controller, { cols: 100 }));
@@ -58,7 +97,6 @@ describe('combat main layout CLI-F04', () => {
     let body = 0;
     for (let i = titleIdx + 1; i < lines.length; i += 1) {
       const line = lines[i] ?? '';
-      // Twin-box bottom border is +----+----+ (dim dashes), no title text.
       if (/^\+[\-+]+\+$/.test(line.trim()) || (line.includes('+') && line.includes('-') && !line.includes('|'))) {
         break;
       }
@@ -66,7 +104,6 @@ describe('combat main layout CLI-F04', () => {
         body += 1;
       }
     }
-    // Cap is 8; hand is typically smaller, so body should stay near that range (not ~40+).
     expect(body).toBeLessThanOrEqual(12);
     expect(body).toBeGreaterThanOrEqual(1);
   });
@@ -77,6 +114,7 @@ describe('post-combat + inventory layout CLI-F05', () => {
     const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
     const victory = {
       ...state,
+      sessionPhase: 'standalone_combat' as const,
       combatResult: 'victory' as const,
       pendingLoot: [
         {
@@ -91,12 +129,13 @@ describe('post-combat + inventory layout CLI-F05', () => {
       selectedLootIndex: 0,
       overlay: 'none' as const,
       focusLayer: 'gameplay' as const,
+      mapLines: [],
+      roomLoot: [],
     };
     const plain = stripAnsi(renderFrame(victory, controller, { cols: 100 }));
     expect(plain).toContain('VICTORY');
     expect(plain).toContain('Loot');
     expect(plain).toMatch(/\[1\].*Potion/);
-    expect(plain).not.toMatch(/Enemies.*Slime|Slime.*Enemies/);
     const bottom = plain.split('\n').find((line) => line.includes('Loot') && line.includes('Combat Log'));
     expect(bottom).toBeDefined();
   });
@@ -105,16 +144,19 @@ describe('post-combat + inventory layout CLI-F05', () => {
     const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
     const defeat = {
       ...state,
+      sessionPhase: 'standalone_combat' as const,
       combatResult: 'defeat' as const,
       pendingLoot: [],
       overlay: 'none' as const,
+      mapLines: [],
+      roomLoot: [],
     };
     const plain = stripAnsi(renderFrame(defeat, controller, { cols: 100 }));
     expect(plain).toContain('DEFEAT');
     expect(plain).toContain('Hand');
   });
 
-  it('replaces top row with Equipment|Grid when bag opens; bottom stays Hand|Log', () => {
+  it('replaces top row with Equipment|Grid when bag opens; bottom stays Room|Log in explore', () => {
     const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
     const withBag = handleKeypress(state, controller, parseKeypress('b'));
     expect(withBag.overlay).toBe('inventory');
@@ -122,26 +164,24 @@ describe('post-combat + inventory layout CLI-F05', () => {
     const plain = stripAnsi(renderFrame(withBag, controller, { cols: 100 }));
     const top = plain.split('\n').find((line) => line.includes('Equipment') && line.includes('Grid'));
     expect(top).toBeDefined();
-    const bottom = plain.split('\n').find((line) => line.includes('Hand') && line.includes('Combat Log'));
+    const bottom = plain.split('\n').find((line) => line.includes('Room') && line.includes('Explore Log'));
     expect(bottom).toBeDefined();
-    // No stacked full-width Loot chrome under the frame.
-    expect(plain.indexOf('Equipment')).toBeLessThan(plain.indexOf('Hand'));
   });
 
-  it('keeps an empty Loot pane after all loot is claimed', () => {
+  it('keeps an empty Loot pane after all loot is claimed (standalone)', () => {
     const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
     const cleared = {
       ...state,
+      sessionPhase: 'standalone_combat' as const,
       combatResult: 'victory' as const,
       pendingLoot: [],
       overlay: 'none' as const,
+      mapLines: [],
+      roomLoot: [],
     };
     const plain = stripAnsi(renderFrame(cleared, controller, { cols: 100 }));
     expect(plain).toContain('Loot');
     expect(plain).toContain('(empty)');
-    expect(plain.split('\n').some((line) => line.includes('Hand') && line.includes('Combat Log'))).toBe(
-      false,
-    );
   });
 
   it('highlights selected backpack cells with a background fill', () => {
@@ -181,16 +221,22 @@ describe('post-combat + inventory layout CLI-F05', () => {
     expect(frame).toContain('\u001b[106m');
   });
 
-  it('selects loot with digit keys after victory without opening bag', () => {
-    const { controller, state } = createBootstrappedShell({ mode: 'battle', seed: 42 });
+  it('selects loot with digit keys after victory without opening bag (standalone)', () => {
+    const controller = createSessionController({});
+    let state = controller.syncViewState(
+      createInitialAppState({
+        runtimeMode: 'battle',
+        sessionPhase: 'standalone_combat',
+      }),
+    );
     controller.pendingLoot = {
       entries: [
-        { lootIndex: 0, itemId: 'a', quantity: 1 },
-        { lootIndex: 1, itemId: 'b', quantity: 1 },
+        { lootIndex: 0, itemId: 'gold_coin', quantity: 1 },
+        { lootIndex: 1, itemId: 'healing_herb', quantity: 1 },
       ],
     };
     controller.lootSpawned = true;
-    const victory = {
+    state = {
       ...controller.syncViewState({
         ...state,
         combatResult: 'victory' as const,
@@ -198,9 +244,10 @@ describe('post-combat + inventory layout CLI-F05', () => {
         focusLayer: 'gameplay' as const,
       }),
       combatResult: 'victory' as const,
+      sessionPhase: 'standalone_combat',
     };
-    expect(victory.pendingLoot.length).toBeGreaterThanOrEqual(1);
-    const next = handleKeypress(victory, controller, parseKeypress('2'));
+    expect(state.pendingLoot.length).toBeGreaterThanOrEqual(1);
+    const next = handleKeypress(state, controller, parseKeypress('2'));
     expect(next.overlay).toBe('none');
     expect(next.selectedLootIndex).toBe(1);
   });

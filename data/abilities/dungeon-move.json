@@ -1,0 +1,10 @@
+{
+  "id": "ga.dungeon.move",
+  "kind": "active",
+  "name": "DungeonMove",
+  "tags": {},
+  "handlerId": "dungeon.move",
+  "parameterSchema": {
+    "MovementCost": { "type": "number", "default": 0 }
+  }
+}

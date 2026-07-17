@@ -21,12 +21,19 @@ export function createInitialAppState(options: {
   runtimeMode: AppState['runtimeMode'];
   seed?: number;
   scenarioId?: string;
+  sessionPhase?: AppState['sessionPhase'];
 }): AppState {
   const showTracePane = options.runtimeMode === 'debug';
   const overlay = options.runtimeMode === 'debug' ? 'console' : 'none';
+  const sessionPhase = options.sessionPhase ?? 'standalone_combat';
+  const explore =
+    sessionPhase === 'adventure_explore' ||
+    sessionPhase === 'adventure_victory' ||
+    sessionPhase === 'adventure_defeat';
 
   return {
     runtimeMode: options.runtimeMode,
+    sessionPhase,
     overlay,
     focusLayer: layerForOverlay(overlay),
     showTracePane,
@@ -44,7 +51,9 @@ export function createInitialAppState(options: {
     combatLog: [],
     consoleInput: '',
     consoleScrollback: [],
-    statusMessage: 'Select card/enemy to preview. Space commit | Esc/x cancel | F end turn | P/E stats.',
+    statusMessage: explore
+      ? 'WASD/arrows move | Enter/C confirm fight | P pickup | L leave exit | B bag'
+      : 'Select card/enemy to preview. Space commit | Esc/x cancel | F end turn | P/E stats.',
     shouldQuit: false,
     previewActive: false,
     preview: undefined,
@@ -62,6 +71,10 @@ export function createInitialAppState(options: {
     selectedInventorySlot: 0,
     selectedEquipmentSlot: 0,
     inventoryPlaceInput: '',
+    mapLines: [],
+    roomLoot: [],
+    selectedRoomLootIndex: 0,
+    adventureLog: [],
   };
 }
 

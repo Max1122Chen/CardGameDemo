@@ -4,6 +4,18 @@ import {
   TraceBuffer,
 } from '@cardgame/core';
 import {
+  AdventureSession,
+  activateDungeonMove,
+  beginAdventureCombat,
+  createVirtualBattleLevel,
+  ensureExplorePlayerForMove,
+  finishAdventureCombat,
+  loadLevelFromRepo,
+  registerDungeonAbilityHandlers,
+  type AdventureSnapshot,
+} from '@cardgame/dungeon';
+import {
+  addToInventory,
   buildDeckIdsFromLoadout,
   createEquipmentLoadout,
   createInventory,
@@ -36,16 +48,19 @@ import { loadItemBootstrap, loadItemTagDefinitions } from '../data/load-items-bo
 
 import { executeConsoleCommand } from '../console/console-executor.js';
 import { applyOverlayToggle } from '../input/input-router.js';
+import { renderLevelMapLines } from '../render/explore-map.js';
 import type {
   AppState,
   CombatPreviewView,
   EnemyView,
   EntityStatsView,
+  GameSessionPhase,
   HandCard,
   PrimaryStatsView,
+  RoomLootView,
   UiAction,
 } from '../types.js';
-
+import { isAdventureCombatPhase, isExplorePhase } from '../ui-mode.js';
 function toPrimaryStatsView(
   primaries: NonNullable<CombatSnapshot['player']['primaries']>,
 ): PrimaryStatsView {
@@ -78,7 +93,10 @@ function toEntityStatsView(actor: CombatSnapshot['player']): EntityStatsView | u
 
 export type SessionController = {
   engine: RuleEngine;
-  combatSession: CombatSession;
+  /** Null while adventure is in explore / between fights. */
+  combatSession: CombatSession | null;
+  adventure: AdventureSession | null;
+  sessionKind: 'standalone' | 'adventure';
   itemCatalog: Record<string, ItemDefinition>;
   inventory: InventoryState;
   loadout: EquipmentLoadout;
@@ -87,7 +105,10 @@ export type SessionController = {
   pendingLoot: PendingLootState;
   lootSpawned: boolean;
   traceLines: string[];
+  /** Standalone or battle-only restart. */
   bootstrapBattle: (enemyCharacterId?: string) => void;
+  /** Start / restart a dungeon level adventure. */
+  startDungeon: (levelId?: string) => void;
   syncViewState: (state: AppState) => AppState;
   getCombatSnapshot: () => CombatSnapshot;
 };
@@ -154,11 +175,14 @@ function syncInventoryViews(
 }
 
 function maybeSpawnVictoryLoot(controller: SessionController, snapshot: CombatSnapshot): string | undefined {
+  if (controller.sessionKind === 'adventure') {
+    return undefined;
+  }
   if (snapshot.result !== 'victory' || controller.lootSpawned) {
     return undefined;
   }
 
-  const enemy = controller.combatSession.getEnemyCharacterInstance();
+  const enemy = controller.combatSession!.getEnemyCharacterInstance();
   const characterLoot = createPendingLootFromCharacter(
     {
       loadout: enemy.loadout,
@@ -181,12 +205,113 @@ function maybeSpawnVictoryLoot(controller: SessionController, snapshot: CombatSn
   return 'Victory! Select loot with 1-9. P pickup | A all | B bag. Then console: battle [slime|orc_brute]';
 }
 
+function roomLootViews(
+  adventure: AdventureSession,
+  catalog: Record<string, ItemDefinition>,
+): RoomLootView[] {
+  const loot = adventure.getRoomState(adventure.getCurrentRoomId()).loot;
+  return loot.map((entry, index) => {
+    const def = catalog[entry.itemId];
+    const name = def?.name ?? entry.itemId;
+    return {
+      index,
+      itemId: entry.itemId,
+      name,
+      quantity: entry.quantity,
+      label: `${name} x${entry.quantity}`,
+    };
+  });
+}
+
+function adventurePhaseToSessionPhase(phase: AdventureSnapshot['phase']): GameSessionPhase {
+  switch (phase) {
+    case 'explore':
+      return 'adventure_explore';
+    case 'combat':
+      return 'adventure_combat';
+    case 'victory':
+      return 'adventure_victory';
+    case 'defeat':
+      return 'adventure_defeat';
+  }
+}
+
+function syncAdventureExploreViews(
+  state: AppState,
+  controller: SessionController,
+): AppState {
+  const adventure = controller.adventure!;
+  const snap = adventure.getSnapshot();
+  const roomLoot = roomLootViews(adventure, controller.itemCatalog);
+  const inventoryViews = syncInventoryViews(state, controller);
+  const playerGfc = controller.engine.getGfc('player');
+  const health = playerGfc?.getAttribute('Health')?.currentValue;
+  const maxHealth = playerGfc?.getAttribute('MaxHealth')?.currentValue;
+  const block = playerGfc?.getAttribute('Block')?.currentValue ?? 0;
+  const ap = playerGfc?.getAttribute('ActionPoints')?.currentValue ?? 0;
+
+  let statusMessage = state.statusMessage;
+  if (snap.pendingCombat) {
+    statusMessage = `Enemy in ${snap.currentRoomId} — Enter/C to fight`;
+  } else if (snap.phase === 'victory') {
+    statusMessage = 'Level cleared!';
+  } else if (snap.phase === 'defeat') {
+    statusMessage = 'Defeat — adventure ended.';
+  }
+
+  return {
+    ...state,
+    ...inventoryViews,
+    sessionPhase: adventurePhaseToSessionPhase(snap.phase),
+    levelId: snap.levelId,
+    currentRoomId: snap.currentRoomId,
+    pendingCombat: snap.pendingCombat,
+    mapLines: renderLevelMapLines(adventure.getLevel(), snap),
+    roomLoot,
+    selectedRoomLootIndex: clampIndex(state.selectedRoomLootIndex, roomLoot.length),
+    adventureLog: [...snap.log].slice(-12),
+    combatLog: [...snap.log].slice(-12),
+    hand: [],
+    enemies: [],
+    combatResult: undefined,
+    combatPhase: snap.phase,
+    turnOwner: 'player',
+    previewActive: false,
+    preview: undefined,
+    playerHealth: health ?? state.playerHealth,
+    playerBlock: block,
+    actionPoints: ap,
+    playerStats: playerGfc
+      ? {
+          health: health ?? 0,
+          maxHealth: maxHealth ?? health ?? 0,
+          block,
+          actionPoints: ap,
+          maxActionPoints: playerGfc.getAttribute('MaxActionPoints')?.currentValue,
+          primaries: {
+            strength: playerGfc.getAttribute('Strength')?.currentValue ?? 10,
+            constitution: playerGfc.getAttribute('Constitution')?.currentValue ?? 10,
+            dexterity: playerGfc.getAttribute('Dexterity')?.currentValue ?? 10,
+            intelligence: playerGfc.getAttribute('Intelligence')?.currentValue ?? 10,
+            wisdom: playerGfc.getAttribute('Wisdom')?.currentValue ?? 10,
+            charisma: playerGfc.getAttribute('Charisma')?.currentValue ?? 10,
+          },
+        }
+      : state.playerStats,
+    statusMessage,
+  };
+}
+
 export function createSessionController(options: {
   seed?: number;
   scenarioId?: string;
   traceToBuffer?: boolean;
   enemyCharacterId?: string;
   enemyHealthOverride?: number;
+  /** Default: standalone combat (unit tests). Use adventure for TUI battle/dungeon. */
+  sessionKind?: 'standalone' | 'adventure';
+  adventureKind?: 'battle_only' | 'dungeon';
+  levelId?: string;
 }): SessionController {
   const traceBuffer = options.traceToBuffer ? new TraceBuffer() : undefined;
   const itemTagDefinitions = loadItemTagDefinitions();
@@ -203,8 +328,9 @@ export function createSessionController(options: {
   let lootSpawned = false;
   let enemyCharacterId = options.enemyCharacterId ?? 'slime';
   const enemyHealthOverride = options.enemyHealthOverride;
+  const sessionKind = options.sessionKind ?? 'standalone';
 
-  const startCombat = () => {
+  const startStandaloneCombat = () => {
     const deckIds = buildDeckIdsFromLoadout(baseDeckIds, loadout, itemCatalog);
     return CombatSession.bootstrap(
       engine,
@@ -217,11 +343,29 @@ export function createSessionController(options: {
     );
   };
 
-  let combatSession = startCombat();
+  const startAdventureLevel = (kind: 'battle_only' | 'dungeon', levelId?: string) => {
+    const level =
+      kind === 'battle_only'
+        ? createVirtualBattleLevel(enemyCharacterId)
+        : loadLevelFromRepo(levelId ?? 'level.probe');
+    return AdventureSession.start(level);
+  };
+
+  let adventure: AdventureSession | null =
+    sessionKind === 'adventure'
+      ? startAdventureLevel(options.adventureKind ?? 'battle_only', options.levelId)
+      : null;
+  if (adventure) {
+    registerDungeonAbilityHandlers(engine.activationRegistry);
+  }
+  let combatSession: CombatSession | null =
+    sessionKind === 'standalone' ? startStandaloneCombat() : null;
 
   const controller: SessionController = {
     engine,
     combatSession,
+    adventure,
+    sessionKind,
     itemCatalog,
     inventory,
     loadout,
@@ -239,16 +383,77 @@ export function createSessionController(options: {
       lootSpawned = false;
       controller.pendingLoot = pendingLoot;
       controller.lootSpawned = lootSpawned;
-      combatSession = startCombat();
+
+      if (controller.sessionKind === 'adventure') {
+        adventure = startAdventureLevel('battle_only');
+        controller.adventure = adventure;
+        combatSession = null;
+        controller.combatSession = null;
+        return;
+      }
+
+      combatSession = startStandaloneCombat();
       controller.combatSession = combatSession;
     },
+    startDungeon(levelId?: string) {
+      controller.sessionKind = 'adventure';
+      pendingLoot = { entries: [] };
+      lootSpawned = false;
+      controller.pendingLoot = pendingLoot;
+      controller.lootSpawned = lootSpawned;
+      adventure = startAdventureLevel('dungeon', levelId);
+      controller.adventure = adventure;
+      combatSession = null;
+      controller.combatSession = null;
+    },
     getCombatSnapshot() {
-      return combatSession.getSnapshot();
+      if (!controller.combatSession) {
+        throw new Error('No active combat session');
+      }
+      return controller.combatSession.getSnapshot();
     },
     syncViewState(state) {
-      const snapshot = combatSession.getSnapshot();
+      controller.traceLines = traceBuffer
+        ? traceBuffer.entries.map((entry) => JSON.stringify(entry))
+        : controller.traceLines;
+
+      if (controller.sessionKind === 'adventure' && controller.adventure) {
+        const advPhase = controller.adventure.getPhase();
+        if (advPhase !== 'combat' || !controller.combatSession) {
+          return syncAdventureExploreViews(state, controller);
+        }
+      }
+
+      const activeCombat = controller.combatSession;
+      if (!activeCombat) {
+        return state;
+      }
+
+      const snapshot = activeCombat.getSnapshot();
       const lootHint = maybeSpawnVictoryLoot(controller, snapshot);
 
+      if (
+        controller.sessionKind === 'adventure' &&
+        controller.adventure &&
+        snapshot.result !== undefined
+      ) {
+        finishAdventureCombat(controller.adventure, activeCombat, {
+          itemCatalog: controller.itemCatalog,
+          lootRng: () => 0,
+        });
+        controller.combatSession = null;
+        combatSession = null;
+        return syncAdventureExploreViews(
+          {
+            ...state,
+            statusMessage:
+              snapshot.result === 'victory'
+                ? 'Victory — loot is on the room floor. P pickup | WASD move'
+                : 'Defeat.',
+          },
+          controller,
+        );
+      }
 
       const hand: HandCard[] = snapshot.hand.map((card) => ({
         id: card.actionId,
@@ -267,10 +472,6 @@ export function createSessionController(options: {
           preview && preview.targetEntityId === enemy.entityId ? preview.damageToTake : undefined,
       }));
 
-      controller.traceLines = traceBuffer
-        ? traceBuffer.entries.map((entry) => JSON.stringify(entry))
-        : controller.traceLines;
-
       const combatLog = snapshot.combatLog.length > 0 ? snapshot.combatLog : state.combatLog;
 
       const previewView: CombatPreviewView | undefined = preview
@@ -286,9 +487,12 @@ export function createSessionController(options: {
         : undefined;
 
       const inventoryViews = syncInventoryViews(state, controller);
+      const sessionPhase: GameSessionPhase =
+        controller.sessionKind === 'adventure' ? 'adventure_combat' : 'standalone_combat';
 
       return {
         ...state,
+        sessionPhase,
         hand,
         enemies,
         playerHealth: snapshot.player.health,
@@ -312,6 +516,9 @@ export function createSessionController(options: {
         })(),
         ...inventoryViews,
         statusMessage: lootHint ?? state.statusMessage,
+        mapLines: [],
+        roomLoot: [],
+        pendingCombat: false,
       };
     },
   };
@@ -335,7 +542,20 @@ function pushLog(state: AppState, line: string): AppState {
 }
 
 function isCombatInteractive(state: AppState): boolean {
+  if (isExplorePhase(state) || state.sessionPhase === 'adventure_victory' || state.sessionPhase === 'adventure_defeat') {
+    return false;
+  }
   return state.combatPhase === 'PlayerTurn' && !state.combatResult;
+}
+
+function canModifyLoadout(state: AppState): boolean {
+  if (isAdventureCombatPhase(state)) {
+    return false;
+  }
+  if (state.sessionPhase === 'standalone_combat') {
+    return state.combatResult !== undefined;
+  }
+  return true;
 }
 
 function previewStatusMessage(state: AppState): string {
@@ -360,8 +580,8 @@ function previewStatusMessage(state: AppState): string {
 
 /** Recompute GFC preview from current UI selection. */
 function refreshCardPreview(state: AppState, controller: SessionController): AppState {
-  if (!isCombatInteractive(state) || state.hand.length === 0) {
-    controller.combatSession.cancelCardPreview();
+  if (!controller.combatSession || !isCombatInteractive(state) || state.hand.length === 0) {
+    controller.combatSession?.cancelCardPreview();
     return controller.syncViewState(state);
   }
 
@@ -590,11 +810,11 @@ export function applyUiAction(
       return syncAfterInventoryAction(state, controller, 'Backpack tidied.');
     }
     case 'equip_selected_item': {
-      if (state.combatResult === undefined) {
+      if (!canModifyLoadout(state)) {
         return syncAfterInventoryAction(
           state,
           controller,
-          'Equip only after combat ends. Use console: battle',
+          'Equip only outside active combat. Finish the fight or use explore phase.',
         );
       }
       const slot = state.inventorySlots[state.selectedInventorySlot];
@@ -627,11 +847,11 @@ export function applyUiAction(
       );
     }
     case 'unequip_selected_slot': {
-      if (state.combatResult === undefined) {
+      if (!canModifyLoadout(state)) {
         return syncAfterInventoryAction(
           state,
           controller,
-          'Unequip only after combat ends. Use console: battle',
+          'Unequip only outside active combat.',
         );
       }
       const equipment = state.equipmentSlots[state.selectedEquipmentSlot];
@@ -731,6 +951,15 @@ export function applyUiAction(
       );
     }
     case 'hand_prev': {
+      if (isExplorePhase(state)) {
+        if (state.roomLoot.length === 0) {
+          return state;
+        }
+        return {
+          ...state,
+          selectedRoomLootIndex: clampIndex(state.selectedRoomLootIndex - 1, state.roomLoot.length),
+        };
+      }
       if (state.combatResult === 'victory') {
         if (state.pendingLoot.length === 0) {
           return state;
@@ -748,6 +977,15 @@ export function applyUiAction(
       return refreshCardPreview(next, controller);
     }
     case 'hand_next': {
+      if (isExplorePhase(state)) {
+        if (state.roomLoot.length === 0) {
+          return state;
+        }
+        return {
+          ...state,
+          selectedRoomLootIndex: clampIndex(state.selectedRoomLootIndex + 1, state.roomLoot.length),
+        };
+      }
       if (state.combatResult === 'victory') {
         if (state.pendingLoot.length === 0) {
           return state;
@@ -796,7 +1034,7 @@ export function applyUiAction(
       return refreshCardPreview(next, controller);
     }
     case 'cancel_card_preview': {
-      if (!isCombatInteractive(state)) {
+      if (!controller.combatSession || !isCombatInteractive(state)) {
         return state;
       }
       controller.combatSession.cancelCardPreview();
@@ -804,7 +1042,7 @@ export function applyUiAction(
       return { ...synced, statusMessage: 'Card preview cancelled.' };
     }
     case 'play_selected_card': {
-      if (!isCombatInteractive(state)) {
+      if (!controller.combatSession || !isCombatInteractive(state)) {
         return pushLog(state, state.combatResult ? `Combat ended: ${state.combatResult}.` : 'Not your turn.');
       }
 
@@ -838,7 +1076,7 @@ export function applyUiAction(
       return refreshCardPreview({ ...synced, statusMessage: latestLog }, controller);
     }
     case 'end_turn': {
-      if (!isCombatInteractive(state)) {
+      if (!controller.combatSession || !isCombatInteractive(state)) {
         return pushLog(state, state.combatResult ? `Combat ended: ${state.combatResult}.` : 'Not your turn.');
       }
 
@@ -852,6 +1090,122 @@ export function applyUiAction(
       const synced = controller.syncViewState(state);
       const latestLog = synced.combatLog[synced.combatLog.length - 1] ?? 'Ended turn.';
       return refreshCardPreview({ ...synced, statusMessage: latestLog }, controller);
+    }
+    case 'explore_move': {
+      if (!isExplorePhase(state) || !controller.adventure) {
+        return state;
+      }
+      try {
+        const player = ensureExplorePlayerForMove(controller.engine);
+        activateDungeonMove({
+          engine: controller.engine,
+          player,
+          adventure: controller.adventure,
+          direction: action.direction,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Cannot move.';
+        return { ...controller.syncViewState(state), statusMessage: message };
+      }
+      return controller.syncViewState({
+        ...state,
+        statusMessage: `Moved ${action.direction}.`,
+      });
+    }
+    case 'confirm_combat': {
+      if (!isExplorePhase(state) || !controller.adventure) {
+        return state;
+      }
+      const legal = controller.adventure.legalActions();
+      const canConfirm = legal.some((a) => a.type === 'ConfirmCombat');
+      const canLeave = legal.some((a) => a.type === 'LeaveLevel');
+      try {
+        if (canConfirm) {
+          controller.adventure.applyAction({ type: 'ConfirmCombat' });
+          const deckIds = buildDeckIdsFromLoadout(
+            controller.baseDeckIds,
+            controller.loadout,
+            controller.itemCatalog,
+          );
+          const session = beginAdventureCombat(controller.adventure, controller.engine, {
+            itemCatalog: controller.itemCatalog,
+            deckIds,
+            enemyHealthOverride: undefined,
+          });
+          controller.combatSession = session;
+          return controller.syncViewState({
+            ...state,
+            sessionPhase: 'adventure_combat',
+            statusMessage: 'Combat started!',
+          });
+        }
+        if (canLeave) {
+          controller.adventure.applyAction({ type: 'LeaveLevel' });
+          return controller.syncViewState({
+            ...state,
+            statusMessage: 'Left the level.',
+          });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Cannot confirm.';
+        return { ...controller.syncViewState(state), statusMessage: message };
+      }
+      return { ...controller.syncViewState(state), statusMessage: 'Nothing to confirm.' };
+    }
+    case 'leave_level': {
+      if (!isExplorePhase(state) || !controller.adventure) {
+        return state;
+      }
+      try {
+        controller.adventure.applyAction({ type: 'LeaveLevel' });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Cannot leave.';
+        return { ...controller.syncViewState(state), statusMessage: message };
+      }
+      return controller.syncViewState({ ...state, statusMessage: 'Left the level.' });
+    }
+    case 'select_room_loot': {
+      if (!isExplorePhase(state) || state.roomLoot.length === 0) {
+        return state;
+      }
+      return {
+        ...state,
+        selectedRoomLootIndex: clampIndex(action.index, state.roomLoot.length),
+      };
+    }
+    case 'pickup_room_loot': {
+      if (!isExplorePhase(state) || !controller.adventure) {
+        return state;
+      }
+      if (state.roomLoot.length === 0) {
+        return { ...controller.syncViewState(state), statusMessage: 'No room loot.' };
+      }
+      const index = state.selectedRoomLootIndex;
+      try {
+        const entry = controller.adventure.takeLoot(index);
+        const add = addToInventory(
+          controller.inventory,
+          controller.itemCatalog,
+          entry.itemId,
+          entry.quantity,
+        );
+        if (!add.ok && add.added === 0) {
+          // Put loot back if inventory rejected everything.
+          const room = controller.adventure.getRoomState(controller.adventure.getCurrentRoomId());
+          room.loot.splice(index, 0, entry);
+          return {
+            ...controller.syncViewState(state),
+            statusMessage: 'Inventory full — could not pick up.',
+          };
+        }
+        return controller.syncViewState({
+          ...state,
+          statusMessage: `Picked up ${entry.itemId} x${entry.quantity}.`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Pickup failed.';
+        return { ...controller.syncViewState(state), statusMessage: message };
+      }
     }
     case 'console_append':
       return { ...state, consoleInput: `${state.consoleInput}${action.char}` };
