@@ -1,0 +1,20 @@
+{
+  "id": "slime_body",
+  "name": "Slime Body",
+  "tags": ["Item.Category.Equipment", "Item.Slot.Chest"],
+  "maxStack": 1,
+  "sellValue": 0,
+  "fragments": [
+    {
+      "kind": "equipment",
+      "innate": true,
+      "slots": ["Chest"],
+      "twoHandMode": "forbidden",
+      "cards": [
+        { "cardId": "strike", "count": 2 },
+        { "cardId": "weaken", "count": 1 }
+      ]
+    },
+    { "kind": "inventory_shape", "width": 2, "height": 2 }
+  ]
+}

@@ -8,6 +8,8 @@ export type EquipmentFragment = {
   slots: readonly string[];
   twoHandMode: 'required' | 'optional' | 'forbidden';
   cards: readonly EquipmentCardGrant[];
+  /** Body / innate gear; excluded from loot rolls (COMBAT-F05). */
+  innate?: boolean;
 };
 
 export type DurabilityFragment = {

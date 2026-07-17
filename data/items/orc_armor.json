@@ -1,0 +1,17 @@
+{
+  "id": "orc_armor",
+  "name": "Orc Hide Armor",
+  "tags": ["Item.Category.Equipment", "Item.Slot.Chest", "Item.Rarity.Common"],
+  "maxStack": 1,
+  "sellValue": 12,
+  "fragments": [
+    {
+      "kind": "equipment",
+      "slots": ["Chest"],
+      "twoHandMode": "forbidden",
+      "cards": [{ "cardId": "defend", "count": 2 }]
+    },
+    { "kind": "durability", "max": 10 },
+    { "kind": "inventory_shape", "width": 2, "height": 2 }
+  ]
+}

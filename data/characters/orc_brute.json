@@ -1,0 +1,24 @@
+{
+  "id": "orc_brute",
+  "name": "Orc Brute",
+  "maxHealth": 40,
+  "maxActionPoints": 3,
+  "primaries": {
+    "strength": 14,
+    "constitution": 12,
+    "dexterity": 8,
+    "intelligence": 6,
+    "wisdom": 9,
+    "charisma": 5
+  },
+  "behaviorTreeId": "bt.orc_stub",
+  "equipment": [
+    { "itemId": "orc_axe", "slot": "Hand.Main" },
+    { "itemId": "orc_armor", "slot": "Chest" }
+  ],
+  "inventory": [
+    { "itemId": "healing_herb", "x": 0, "y": 0 },
+    { "itemId": "gold_coin", "quantity": 3, "x": 1, "y": 0 }
+  ],
+  "loot": { "entries": [] }
+}

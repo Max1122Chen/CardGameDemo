@@ -22,6 +22,7 @@ export default tseslint.config(
       'packages/core/src/**/*.ts',
       'packages/combat/src/**/*.ts',
       'packages/items/src/**/*.ts',
+      'packages/characters/src/**/*.ts',
       'packages/cli/src/**/*.ts',
     ],
     languageOptions: {

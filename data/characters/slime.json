@@ -1,0 +1,20 @@
+{
+  "id": "slime",
+  "name": "Slime",
+  "maxHealth": 24,
+  "maxActionPoints": 3,
+  "primaries": {
+    "strength": 8,
+    "constitution": 10,
+    "dexterity": 6,
+    "intelligence": 4,
+    "wisdom": 4,
+    "charisma": 4
+  },
+  "behaviorTreeId": "bt.slime_cycle",
+  "equipment": [{ "itemId": "slime_body", "slot": "Chest" }],
+  "inventory": [],
+  "loot": {
+    "entries": [{ "itemId": "gold_coin", "quantityMin": 2, "quantityMax": 5 }]
+  }
+}

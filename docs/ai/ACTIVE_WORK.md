@@ -8,12 +8,12 @@ Last updated: 2026-07-17
 
 ## In focus
 
-**Phase:** CHAR-F01 **Review** next (CORE-F14 Done).
+**Phase:** COMBAT-F05 next (CHAR-F01 Done).
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
 | — | **CORE-F14** | BT runtime in core | **Done** ([spec](./Core/CORE-F14-behavior-tree.md)) |
-| — | **CHAR-F01** | `@cardgame/characters` defs + spawn | **Review** ([spec](./Characters/CHAR-F01-character-package.md)) |
+| — | **CHAR-F01** | `@cardgame/characters` defs + spawn | **Done** ([spec](./Characters/CHAR-F01-character-package.md)) |
 | 26 | **COMBAT-F05** | Slime/orc data spawn + BT fixed turns + loot from instance | **Review** ([spec](./Combat/COMBAT-F05-enemy-data-driven.md)) |
 | — | **COMBAT-F06** | Context-aware orc BT (blackboard + Wisdom) | Planned ([spec](./Combat/COMBAT-F06-enemy-bt-ai.md)) |
 | — | **DUNGEON-F01** | Map, encounters, spawn | Planned (after COMBAT-F05) |

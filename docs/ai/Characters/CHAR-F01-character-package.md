@@ -2,7 +2,7 @@
 
 ## Meta
 - **ID:** CHAR-F01
-- **Status:** Review
+- **Status:** Done
 - **Owner:** —
 - **Last updated:** 2026-07-17
 - **Related:** [COMBAT-F05](../Combat/COMBAT-F05-enemy-data-driven.md), [EQUIP-F01](../Equipment/EQUIP-F01-equipment-loadout.md), [ITEM-F02](../Items/ITEM-F02-grid-backpack.md)
@@ -53,9 +53,9 @@ Spawn steps:
 
 ## Acceptance
 
-- [ ] Package builds; depends on `items`, not `combat`/`cli`
-- [ ] `spawnCharacterInstance('slime')` returns loadout + grid + deck
-- [ ] Tests with fixture JSON
+- [x] Package builds; depends on `items`, not `combat`/`cli`
+- [x] `spawnCharacterInstance('slime')` returns loadout + grid + deck
+- [x] Tests with fixture JSON
 
 ---
 
@@ -63,4 +63,5 @@ Spawn steps:
 
 | Date | Note |
 |------|------|
+| 2026-07-17 | Implemented: `@cardgame/characters`, slime/orc JSON, innate equipment, 4 tests |
 | 2026-07-17 | Initial spec (Review); user: create characters package now |

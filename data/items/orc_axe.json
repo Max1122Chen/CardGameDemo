@@ -1,0 +1,21 @@
+{
+  "id": "orc_axe",
+  "name": "Orc Axe",
+  "tags": ["Item.Category.Equipment", "Item.Slot.Hand", "Item.Rarity.Common"],
+  "maxStack": 1,
+  "sellValue": 15,
+  "fragments": [
+    {
+      "kind": "equipment",
+      "slots": ["Hand.Main", "Hand.Off"],
+      "twoHandMode": "optional",
+      "cards": [
+        { "cardId": "strike", "count": 2 },
+        { "cardId": "heavy_blow", "count": 1 },
+        { "cardId": "bash", "count": 1 }
+      ]
+    },
+    { "kind": "durability", "max": 12 },
+    { "kind": "inventory_shape", "width": 1, "height": 3 }
+  ]
+}

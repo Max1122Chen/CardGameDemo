@@ -1,0 +1,13 @@
+{
+  "id": "bt.orc_stub",
+  "root": {
+    "type": "Repeat",
+    "child": {
+      "type": "Selector",
+      "children": [
+        { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "strike" } },
+        { "type": "Task", "actionId": "combat.attack", "params": { "panelDamage": 8 } }
+      ]
+    }
+  }
+}

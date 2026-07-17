@@ -46,7 +46,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F12` | Parameterized GA/GE defs, activate hooks, Cost GE, F11 debt polish | Done | — | [CORE-F12-tech-debt-polish.md](./Core/CORE-F12-tech-debt-polish.md) |
 | `CORE-F13` | Thin GA runtime (no framework policy) + legacy test/code purge | Done | — | [CORE-F13-thin-ga-runtime.md](./Core/CORE-F13-thin-ga-runtime.md) |
 | `CORE-F14` | Behavior tree runtime: JSON assets, tick, blackboard, task registry | Done | — | [CORE-F14-behavior-tree.md](./Core/CORE-F14-behavior-tree.md) |
-| `CHAR-F01` | `@cardgame/characters` package: defs, spawn, instances | Review | — | [CHAR-F01-character-package.md](./Characters/CHAR-F01-character-package.md) |
+| `CHAR-F01` | `@cardgame/characters` package: defs, spawn, instances | Done | — | [CHAR-F01-character-package.md](./Characters/CHAR-F01-character-package.md) |
 
 ---
 
@@ -57,7 +57,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `WF` | F02 | Workflow / docs |
 | `CORE` | F15 | F14 Done |
 | `COMBAT` | F07 | F06 Planned |
-| `CHAR` | F02 | F01 Review |
+| `CHAR` | F02 | F01 Done |
 | `ITEM` | F03 | F02 Done |
 | `EQUIP` | F02 | F01 equipment loadout registered |
 | `DUNGEON` | F01 | Map, encounters, loot |

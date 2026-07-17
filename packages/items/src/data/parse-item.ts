@@ -22,6 +22,7 @@ export type WireItemFragment =
       kind: 'equipment';
       slots: readonly string[];
       twoHandMode?: 'required' | 'optional' | 'forbidden';
+      innate?: boolean;
       cards: readonly WireEquipmentCardGrant[];
     }
   | { kind: 'durability'; max: number }
@@ -74,6 +75,7 @@ function parseFragment(itemId: string, wire: WireItemFragment): ItemFragment {
         slots: wire.slots,
         twoHandMode,
         cards: parseEquipmentCards(itemId, wire.cards),
+        ...(wire.innate === true ? { innate: true } : {}),
       } satisfies EquipmentFragment;
     }
     case 'durability': {

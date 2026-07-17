@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/items" },
+    { "path": "./packages/characters" },
     { "path": "./packages/combat" },
     { "path": "./packages/cli" }
   ]

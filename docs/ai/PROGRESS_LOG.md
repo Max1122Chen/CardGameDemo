@@ -10,6 +10,13 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-17 — CHAR-F01 implemented: `@cardgame/characters`
+
+- **`packages/characters/`** — definition loader, `spawnCharacterInstance`, repo catalog bootstrap.
+- Data: `data/characters/slime.json`, `orc_brute.json`; items `slime_body`, `orc_axe`, `orc_armor`; `bt.orc_stub.json`.
+- Items: `innate` flag on equipment fragments (loot filter prep for COMBAT-F05).
+- **Verify:** 213 tests green.
+
 ### 2026-07-17 — CORE-F14 implemented: behavior tree runtime
 
 - **`packages/core/src/bt/`** — loader, Sequence/Selector/Repeat/Inverter, BlackboardCompare, Task registry, `leafBudget` for one-leaf-per-tick enemy turns.
