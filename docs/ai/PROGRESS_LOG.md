@@ -10,6 +10,39 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-17 — CLI-F04: combat log max viewport (D15)
+
+- **D15:** Combat Log visible rows capped at 8 (`COMBAT_LOG_MAX_VIEWPORT`); excess stays in buffer with auto-tail.
+- Hand|Log row no longer grows unbounded with wrapped log length.
+- Spec + render tests updated.
+
+### 2026-07-17 — CLI-F04: combat log wraps to pane width
+
+- **D14:** `wrapVisible` expands log entries to multiple rows inside Combat Log; sticky auto-tail applies after wrap.
+- Hand\|Log row height = max(hand lines, wrapped log lines).
+
+### 2026-07-17 — CLI-F04 polish: ANSI pad, shared divider, equal height
+
+- **D11:** `sliceVisible` / `padVisible` keep SGR colors when clipping.
+- **D12:** `renderTwinBoxes` — single shared vertical border between adjacent panes.
+- **D13:** Twin panes pad content to taller side before borders.
+- **Spec:** CLI-F04 updated.
+
+### 2026-07-17 — CLI-F04 implemented: combat main two-column UI
+
+- **Layout:** Player | Enemies on top; Hand (~65%) | Combat Log on bottom; height = taller pane.
+- **Fields:** `Label:Value` (no space after colon).
+- **Stats:** P/E expand in-pane; floating stats box removed; enemy stats follow selection.
+- **Narrow:** cols &lt; 72 stacks panes.
+- **Spec:** [CLI-F04-combat-ui-layout.md](./CLI/CLI-F04-combat-ui-layout.md) → Done.
+- **Verify:** `npm run verify` green (185 tests).
+
+### 2026-07-17 — CLI-F04 design Review: combat main UI layout
+
+- **Layout:** player left / enemies right (vertical) / hand below; combat main only.
+- **Stats:** P/E expand in-pane (no floating stats box); `Label: Value` fields.
+- **Spec:** [CLI-F04-combat-ui-layout.md](./CLI/CLI-F04-combat-ui-layout.md) — await confirm + 「开始做」.
+
 ### 2026-07-17 — CLI-F03 implemented: host input, paint buffer, ScrollZone
 
 - **Paint:** fixed cols×rows framebuffer; full rewrite each frame (no ghosting via eraseBelow alone).

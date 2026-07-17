@@ -8,12 +8,12 @@ Last updated: 2026-07-16
 
 ## In focus
 
-**Phase:** CLI-F03 Done — next: EQUIP-F02 / COMBAT-F05 when promoted; UI layout polish deferred.
+**Phase:** CLI-F04 Done — next: EQUIP-F02 / COMBAT-F05 when promoted; inventory UI later.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1–22 | … through EQUIP-F01 | Equipment loadout | **Done** |
-| 23 | **CLI-F03** | IMC/IA input, frame buffer, ScrollZone auto-tail | **Done** ([spec](./CLI/CLI-F03-host-foundation.md)) |
+| 1–23 | … through CLI-F03 | Host IMC/paint/ScrollZone | **Done** |
+| 24 | **CLI-F04** | Two-column combat UI, hand\|log row, in-pane P/E stats | **Done** ([spec](./CLI/CLI-F04-combat-ui-layout.md)) |
 | — | **CLI-F01** | ndjson / debug stubs | Planned (parallel) |
 
 ---

@@ -1,23 +1,25 @@
 import type { SessionController } from '../session/session-controller.js';
-import type { AppState, EntityStatsView } from '../types.js';
-import { padVisible, style, ANSI } from './ansi.js';
-import { formatPlayerStats, formatPrimaryStat, primaryColors, theme } from './theme.js';
+import type { AppState, EnemyView, EntityStatsView } from '../types.js';
+import { style, ANSI } from './ansi.js';
+import { resolveTerminalSize } from './frame-buffer.js';
+import {
+  formatPlainField,
+  formatPrimaryStat,
+  formatVitalsLines,
+  primaryColors,
+  theme,
+} from './theme.js';
+import { renderBox, renderTwinBoxes } from './widgets/box.js';
+import { splitSharedPairWidths } from './widgets/columns.js';
 import { renderScrollZone } from './widgets/scroll-zone.js';
+import { wrapAllVisible } from './widgets/text-wrap.js';
 
-const COMBAT_LOG_VIEWPORT = 8;
+const NARROW_COLS = 72;
 const CONSOLE_SCROLLBACK_VIEWPORT = 6;
 const TRACE_VIEWPORT = 6;
-
-function box(title: string, lines: string[], width = 72): string[] {
-  const inner = width - 4;
-  const border = style('+', ANSI.dim);
-  const output = [`${border} ${padVisible(theme.paneTitle(title), width - 3)}+`];
-  for (const line of lines) {
-    output.push(`${border} ${padVisible(line, inner)} ${border}`);
-  }
-  output.push(`${border}${style('-'.repeat(width - 2), ANSI.dim)}+`);
-  return output;
-}
+/** Max visible rows for Combat Log (ScrollZone + row height cap). */
+const COMBAT_LOG_MAX_VIEWPORT = 8;
+const HAND_LOG_RATIO = 0.65;
 
 function formatDamageBreakdown(preview: NonNullable<AppState['preview']>): string | undefined {
   const breakdown = preview.damageBreakdown;
@@ -26,14 +28,20 @@ function formatDamageBreakdown(preview: NonNullable<AppState['preview']>): strin
   }
   const bonusSign = breakdown.bonus >= 0 ? '+' : '';
   return theme.intent(
-    `dmg: ${breakdown.panel}${bonusSign}${breakdown.bonus} ×${breakdown.scaling} ×${breakdown.multiplier} +${breakdown.offset} → ${breakdown.outgoing}`,
+    `dmg:${breakdown.panel}${bonusSign}${breakdown.bonus}×${breakdown.scaling}×${breakdown.multiplier}+${breakdown.offset}→${breakdown.outgoing}`,
   );
 }
 
-function renderStatsOverlay(title: string, stats: EntityStatsView): string[] {
+function renderExpandedStats(stats: EntityStatsView, includeAp: boolean): string[] {
   const p = stats.primaries;
   const lines = [
-    `${formatPlayerStats(stats.health, stats.block, stats.actionPoints ?? 0, stats.maxHealth, stats.maxActionPoints)}`,
+    ...formatVitalsLines(
+      stats.health,
+      stats.block,
+      includeAp ? (stats.actionPoints ?? 0) : undefined,
+      stats.maxHealth,
+      includeAp ? stats.maxActionPoints : undefined,
+    ),
     [
       formatPrimaryStat('Str', p.strength, primaryColors.strength),
       formatPrimaryStat('Con', p.constitution, primaryColors.constitution),
@@ -44,85 +52,180 @@ function renderStatsOverlay(title: string, stats: EntityStatsView): string[] {
       formatPrimaryStat('Wis', p.wisdom, primaryColors.wisdom),
       formatPrimaryStat('Cha', p.charisma, primaryColors.charisma),
     ].join('  '),
-    `${theme.muted('Damage')} scale×${stats.damageScaling ?? 1} mult×${stats.damageMultiplier ?? 1} off+${stats.damageOffset ?? 0}`,
-    theme.muted('Esc closes stats overlay.'),
+    theme.muted(
+      `Dmg:scale×${stats.damageScaling ?? 1} mult×${stats.damageMultiplier ?? 1} off+${stats.damageOffset ?? 0}`,
+    ),
+    theme.muted('Esc closes stats'),
   ];
-  return box(title, lines);
+  return lines;
 }
 
-function renderGameplay(state: AppState): string[] {
+function renderCompactEnemy(enemy: EnemyView, index: number, selected: boolean): string[] {
+  const marker = selected ? theme.selected('>') : ' ';
+  const name = selected ? theme.selected(enemy.name) : theme.enemyName(enemy.name);
+  const lines = [
+    `${marker} [${index}] ${name}`,
+    `  ${theme.healthLabel('HP')}:${theme.healthValue(enemy.health)}${
+      enemy.block !== undefined && enemy.block > 0
+        ? `  ${theme.blockLabel('Block')}:${theme.blockValue(enemy.block)}`
+        : ''
+    }`,
+    `  ${theme.intent(formatPlainField('Intent', enemy.intent))}`,
+  ];
+  if (enemy.previewDamageToTake !== undefined) {
+    lines.push(`  ${theme.intent(formatPlainField('Take', enemy.previewDamageToTake))}`);
+  }
+  return lines;
+}
+
+function playerPaneLines(state: AppState): string[] {
+  if (state.statsOverlay === 'player' && state.playerStats) {
+    return renderExpandedStats(state.playerStats, true);
+  }
+
+  const lines = [
+    ...formatVitalsLines(
+      state.playerHealth,
+      state.playerBlock,
+      state.actionPoints,
+      state.playerStats?.maxHealth,
+      state.playerStats?.maxActionPoints,
+    ),
+  ];
+  if (state.preview?.blockToGain !== undefined && state.preview.blockToGain > 0) {
+    lines.push(theme.intent(formatPlainField('Preview', `blk+${state.preview.blockToGain}`)));
+  } else if (state.preview?.damageBreakdown) {
+    const breakdown = formatDamageBreakdown(state.preview);
+    if (breakdown) {
+      lines.push(breakdown);
+    }
+  }
+  lines.push(theme.status(state.statusMessage));
+  return lines;
+}
+
+function enemyPaneLines(state: AppState): string[] {
+  if (state.enemies.length === 0) {
+    return [theme.muted('(no enemies)')];
+  }
+
+  if (state.statsOverlay === 'enemy' && state.enemyStats) {
+    const lines: string[] = [];
+    for (let index = 0; index < state.enemies.length; index += 1) {
+      const enemy = state.enemies[index]!;
+      const selected = index === state.selectedEnemyIndex;
+      if (selected) {
+        const marker = theme.selected('>');
+        lines.push(`${marker} [${index}] ${theme.selected(enemy.name)}`);
+        lines.push(...renderExpandedStats(state.enemyStats, false).map((line) => `  ${line}`));
+      } else {
+        lines.push(...renderCompactEnemy(enemy, index, false));
+      }
+      if (index < state.enemies.length - 1) {
+        lines.push('');
+      }
+    }
+    return lines;
+  }
+
+  const lines: string[] = [];
+  for (let index = 0; index < state.enemies.length; index += 1) {
+    const enemy = state.enemies[index]!;
+    lines.push(...renderCompactEnemy(enemy, index, index === state.selectedEnemyIndex));
+    if (index < state.enemies.length - 1) {
+      lines.push('');
+    }
+  }
+  return lines;
+}
+
+function renderHandLines(state: AppState): string[] {
+  if (state.hand.length === 0) {
+    return [theme.muted('(empty hand)')];
+  }
+  return state.hand.map((card, index) => {
+    const selected = index === state.selectedHandIndex;
+    const marker = selected ? theme.selected('>') : ' ';
+    let effectHint = '';
+    if (selected && state.preview) {
+      if (state.preview.blockToGain !== undefined && state.preview.blockToGain > 0) {
+        effectHint = ` ${theme.intent(`=>blk+${state.preview.blockToGain}`)}`;
+      } else if (state.preview.damageToTake !== undefined) {
+        effectHint = ` ${theme.intent(`=>${state.preview.damageToTake}dmg`)}`;
+      }
+    }
+    const name = selected ? theme.selected(card.name) : theme.cardName(card.name);
+    return `${marker} [${index + 1}] ${name} (${theme.muted('cost')}:${theme.cardCost(card.cost)})${effectHint}`;
+  });
+}
+
+function renderGameplay(state: AppState, cols: number): string[] {
   const phaseLine =
     state.combatResult !== undefined
       ? theme.header(`${state.combatResult === 'victory' ? 'Victory' : 'Defeat'}!`)
-      : theme.muted(`Phase: ${state.combatPhase} | Turn: ${state.turnOwner}`);
+      : theme.muted(`Phase:${state.combatPhase} | Turn:${state.turnOwner}`);
 
-  const enemyLines =
-    state.enemies.length === 0
-      ? [theme.muted('(no enemies)')]
-      : state.enemies.map((enemy, index) => {
-          const selected = index === state.selectedEnemyIndex;
-          const marker = selected ? theme.selected('>') : ' ';
-          const take =
-            enemy.previewDamageToTake !== undefined
-              ? ` ${theme.intent(`take:${enemy.previewDamageToTake}`)}`
-              : '';
-          const block =
-            enemy.block !== undefined && enemy.block > 0
-              ? ` ${theme.muted(`blk:${enemy.block}`)}`
-              : '';
-          const line = `${marker} [${index}] ${theme.enemyName(enemy.name)} ${theme.healthLabel('HP')}:${theme.healthValue(enemy.health)}${block} ${theme.intent(`intent:${enemy.intent}`)}${take}`;
-          return selected ? theme.selected(line) : line;
-        });
-
-  const handLines =
-    state.hand.length === 0
-      ? [theme.muted('(empty hand)')]
-      : state.hand.map((card, index) => {
-          const selected = index === state.selectedHandIndex;
-          const marker = selected ? theme.selected('>') : ' ';
-          let effectHint = '';
-          if (selected && state.preview) {
-            if (state.preview.blockToGain !== undefined && state.preview.blockToGain > 0) {
-              effectHint = ` ${theme.intent(`=> blk+${state.preview.blockToGain}`)}`;
-            } else if (state.preview.damageToTake !== undefined) {
-              effectHint = ` ${theme.intent(`=> ${state.preview.damageToTake} dmg`)}`;
-            }
-          }
-          const line = `${marker} [${index + 1}] ${theme.cardName(card.name)} (${theme.muted('cost')} ${theme.cardCost(card.cost)})${effectHint}`;
-          return selected ? theme.selected(line) : line;
-        });
-
+  const contentWidth = Math.max(cols - 2, 40);
+  const playerLines = playerPaneLines(state);
+  const enemyLines = enemyPaneLines(state);
+  const handInnerLines = renderHandLines(state);
   const logSource =
-    state.combatLog.length > 0 ? state.combatLog.map((line) => theme.log(line)) : [theme.muted('Battle ready.')];
+    state.combatLog.length > 0
+      ? state.combatLog.map((line) => theme.log(line))
+      : [theme.muted('Battle ready.')];
+
+  if (cols < NARROW_COLS) {
+    const paneWidth = contentWidth;
+    const logInner = Math.max(paneWidth - 4, 8);
+    const wrappedLog = wrapAllVisible(logSource, logInner);
+    const topHeight = Math.max(playerLines.length, enemyLines.length);
+    const paddedPlayer = [...playerLines, ...Array.from({ length: topHeight - playerLines.length }, () => '')];
+    const paddedEnemy = [...enemyLines, ...Array.from({ length: topHeight - enemyLines.length }, () => '')];
+    const logViewport = Math.min(Math.max(wrappedLog.length, 1), COMBAT_LOG_MAX_VIEWPORT);
+    const logLines = renderScrollZone({
+      lines: wrappedLog,
+      viewportHeight: logViewport,
+      autoTail: true,
+    });
+    return [
+      phaseLine,
+      ...renderBox('Player', paddedPlayer, paneWidth),
+      ...renderBox('Enemies', paddedEnemy, paneWidth),
+      ...renderBox('Hand', handInnerLines, paneWidth),
+      ...renderBox('Combat Log', logLines, paneWidth),
+    ];
+  }
+
+  const top = splitSharedPairWidths(contentWidth, 0.5);
+  const bottom = splitSharedPairWidths(contentWidth, HAND_LOG_RATIO);
+  const logInner = Math.max(bottom.right - 4, 8);
+  const wrappedLog = wrapAllVisible(logSource, logInner);
+
+  const topRow = renderTwinBoxes(
+    'Player',
+    playerLines,
+    top.left,
+    'Enemies',
+    enemyLines,
+    top.right,
+  );
+
+  const logViewport = Math.min(Math.max(wrappedLog.length, 1), COMBAT_LOG_MAX_VIEWPORT);
   const logLines = renderScrollZone({
-    lines: logSource,
-    viewportHeight: COMBAT_LOG_VIEWPORT,
+    lines: wrappedLog,
+    viewportHeight: logViewport,
     autoTail: true,
   });
+  const bottomRow = renderTwinBoxes(
+    'Hand',
+    handInnerLines,
+    bottom.left,
+    'Combat Log',
+    logLines,
+    bottom.right,
+  );
 
-  const playerPreview =
-    state.preview?.blockToGain !== undefined && state.preview.blockToGain > 0
-      ? ` ${theme.intent(`preview blk+${state.preview.blockToGain}`)}`
-      : state.preview?.damageBreakdown
-        ? ` ${formatDamageBreakdown(state.preview) ?? ''}`
-        : '';
-
-  return [
-    phaseLine,
-    ...box('Player', [
-      `${formatPlayerStats(
-        state.playerHealth,
-        state.playerBlock,
-        state.actionPoints,
-        state.playerStats?.maxHealth,
-        state.playerStats?.maxActionPoints,
-      )}${playerPreview}`,
-      theme.status(state.statusMessage),
-    ]),
-    ...box('Enemies', enemyLines),
-    ...box('Hand', handLines),
-    ...box('Combat Log', logLines),
-  ];
+  return [phaseLine, ...topRow, ...bottomRow];
 }
 
 function renderInventoryOverlay(state: AppState): string[] {
@@ -175,18 +278,19 @@ function renderInventoryOverlay(state: AppState): string[] {
   const placePrompt = theme.consolePrompt(`place> ${state.inventoryPlaceInput}_`);
   const lootHint =
     state.pendingLoot.length > 0
-      ? theme.status('Loot: P auto | Enter place | A all | Tab panel')
+      ? theme.status('Loot:P auto | Enter place | A all | Tab panel')
       : theme.muted('No pending loot.');
 
+  const width = 72;
   return [
-    ...box('Loot', lootLines),
-    ...box(`Grid ${state.inventoryWidth}x${state.inventoryHeight}`, gridLines),
-    ...box('Backpack', backpackLines),
-    ...box('Equipment', equipmentLines),
+    ...renderBox('Loot', lootLines, width),
+    ...renderBox(`Grid ${state.inventoryWidth}x${state.inventoryHeight}`, gridLines, width),
+    ...renderBox('Backpack', backpackLines, width),
+    ...renderBox('Equipment', equipmentLines, width),
     placePrompt,
     lootHint,
     theme.muted(
-      'Bag: Tab panel | E equip | U unequip | T tidy | D discard | Enter x y [rot] | Esc',
+      'Bag:Tab panel | E equip | U unequip | T tidy | D discard | Enter x y [rot] | Esc',
     ),
   ];
 }
@@ -196,25 +300,33 @@ function renderOverlay(state: AppState): string[] {
     case 'inventory':
       return renderInventoryOverlay(state);
     case 'settings':
-      return box('Settings', [
-        `${theme.muted('Mode:')} ${style(state.runtimeMode, ANSI.fg.brightWhite)}`,
-        `${theme.muted('Seed:')} ${style(String(state.seed ?? '(none)'), ANSI.fg.brightWhite)}`,
-        `${theme.muted('Scenario:')} ${style(String(state.scenarioId ?? '(none)'), ANSI.fg.brightWhite)}`,
-        theme.muted('Trace pane: toggle with T'),
-        theme.muted('Esc closes overlay.'),
-      ]);
+      return renderBox(
+        'Settings',
+        [
+          `${theme.muted('Mode:')} ${style(state.runtimeMode, ANSI.fg.brightWhite)}`,
+          `${theme.muted('Seed:')} ${style(String(state.seed ?? '(none)'), ANSI.fg.brightWhite)}`,
+          `${theme.muted('Scenario:')} ${style(String(state.scenarioId ?? '(none)'), ANSI.fg.brightWhite)}`,
+          theme.muted('Trace pane:toggle with T'),
+          theme.muted('Esc closes overlay.'),
+        ],
+        72,
+      );
     case 'console': {
       const scrollback = renderScrollZone({
         lines: state.consoleScrollback.map((line) => theme.muted(line)),
         viewportHeight: CONSOLE_SCROLLBACK_VIEWPORT,
         autoTail: true,
       });
-      return box('Debug Console', [
-        ...scrollback,
-        ...(scrollback.length > 0 ? [''] : []),
-        theme.consolePrompt(`> ${state.consoleInput}_`),
-        theme.muted('Enter submits. Esc closes.'),
-      ]);
+      return renderBox(
+        'Debug Console',
+        [
+          ...scrollback,
+          ...(scrollback.length > 0 ? [''] : []),
+          theme.consolePrompt(`> ${state.consoleInput}_`),
+          theme.muted('Enter submits. Esc closes.'),
+        ],
+        72,
+      );
     }
     default:
       return [];
@@ -235,14 +347,19 @@ function renderTracePane(controller: SessionController): string[] {
     viewportHeight: TRACE_VIEWPORT,
     autoTail: true,
   });
-  return box('Trace', lines.length > 0 ? lines : [theme.muted('(no trace entries)')]);
+  return renderBox('Trace', lines.length > 0 ? lines : [theme.muted('(no trace entries)')], 72);
 }
 
-export function renderFrame(state: AppState, controller: SessionController): string {
+export function renderFrame(
+  state: AppState,
+  controller: SessionController,
+  options?: { cols?: number },
+): string {
+  const cols = options?.cols ?? resolveTerminalSize().cols;
   const header = theme.header(
     `CardGameDemo [${state.runtimeMode}] seed=${state.seed ?? '-'} scenario=${state.scenarioId ?? '-'}`,
   );
-  const lines = [header, ...renderGameplay(state)];
+  const lines = [header, ...renderGameplay(state, cols)];
 
   if (state.showTracePane) {
     lines.push(...renderTracePane(controller));
@@ -253,19 +370,9 @@ export function renderFrame(state: AppState, controller: SessionController): str
     lines.push(...renderOverlay(state));
   }
 
-  if (state.statsOverlay === 'player' && state.playerStats) {
-    lines.push('');
-    lines.push(...renderStatsOverlay('Player Stats', state.playerStats));
-  } else if (state.statsOverlay === 'enemy' && state.enemyStats) {
-    lines.push('');
-    lines.push(...renderStatsOverlay('Enemy Stats', state.enemyStats));
-  }
-
   lines.push('');
   lines.push(
-    theme.footer(
-      'Space Commit | Esc/x Cancel | F End Turn | P/E Stats | B Backpack/Loot | ~ Console | Q Quit',
-    ),
+    theme.footer('Space Commit | Esc/x Cancel | F End Turn | P/E Stats | B Bag | ~ Console | Q Quit'),
   );
   return `${lines.join('\n')}\n`;
 }

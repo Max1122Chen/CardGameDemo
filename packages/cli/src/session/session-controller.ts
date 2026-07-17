@@ -269,7 +269,13 @@ export function createSessionController(options: {
         previewActive: previewView !== undefined,
         preview: previewView,
         playerStats: toEntityStatsView(snapshot.player),
-        enemyStats: snapshot.enemies[0] ? toEntityStatsView(snapshot.enemies[0]) : undefined,
+        enemyStats: (() => {
+          const selected =
+            snapshot.enemies[
+              Math.min(state.selectedEnemyIndex, Math.max(0, snapshot.enemies.length - 1))
+            ] ?? snapshot.enemies[0];
+          return selected ? toEntityStatsView(selected) : undefined;
+        })(),
         ...inventoryViews,
         statusMessage: lootHint ?? state.statusMessage,
       };

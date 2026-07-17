@@ -38,12 +38,50 @@ export function visibleLength(text: string): number {
   return stripAnsi(text).length;
 }
 
-export function padVisible(text: string, width: number): string {
-  const visible = stripAnsi(text);
-  if (visible.length >= width) {
-    return visible.slice(0, width);
+/**
+ * Take the first `maxVisible` visible characters, preserving ANSI sequences.
+ * Appends reset only if truncation cut through styled text.
+ */
+export function sliceVisible(text: string, maxVisible: number): string {
+  if (maxVisible <= 0) {
+    return '';
   }
-  return `${text}${' '.repeat(width - visible.length)}`;
+  let visible = 0;
+  let i = 0;
+  let result = '';
+  let sawAnsi = false;
+  while (i < text.length && visible < maxVisible) {
+    if (text[i] === '\u001b' && text[i + 1] === '[') {
+      const end = text.indexOf('m', i + 2);
+      if (end < 0) {
+        result += text.slice(i);
+        break;
+      }
+      sawAnsi = true;
+      result += text.slice(i, end + 1);
+      i = end + 1;
+      continue;
+    }
+    result += text[i];
+    visible += 1;
+    i += 1;
+  }
+  if (sawAnsi && i < text.length && !result.endsWith(ANSI.reset)) {
+    result += ANSI.reset;
+  }
+  return result;
+}
+
+/** Pad or truncate to `width` visible columns without stripping color codes. */
+export function padVisible(text: string, width: number): string {
+  const len = visibleLength(text);
+  if (len > width) {
+    return sliceVisible(text, width);
+  }
+  if (len === width) {
+    return text;
+  }
+  return `${text}${' '.repeat(width - len)}`;
 }
 
 export function style(text: string, ...codes: string[]): string {
