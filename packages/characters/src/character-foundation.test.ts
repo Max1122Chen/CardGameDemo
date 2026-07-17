@@ -32,7 +32,7 @@ describe('CHAR-F01 character package', () => {
   it('loads character catalog from repo data', () => {
     const catalog = loadCharacterCatalogFromRepo({ dataRoot });
     expect(catalog.slime?.name).toBe('Slime');
-    expect(catalog.orc_brute?.behaviorTreeId).toBe('bt.orc_stub');
+    expect(catalog.orc_brute?.behaviorTreeId).toBe('bt.orc_tactical');
   });
 
   it('spawns slime with innate equipment deck and empty grid', () => {

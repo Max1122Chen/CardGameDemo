@@ -58,7 +58,9 @@ function tickLeaf(node: BtNode, ctx: BehaviorTreeContext): BtStatus {
   switch (node.type) {
     case 'Task': {
       const status = ctx.tasks.run(node.actionId, ctx, node.params ?? {});
-      consumeLeafBudget(ctx);
+      if (status === 'Success' || status === 'Running') {
+        consumeLeafBudget(ctx);
+      }
       return status;
     }
     case 'Wait':
@@ -67,7 +69,6 @@ function tickLeaf(node: BtNode, ctx: BehaviorTreeContext): BtStatus {
     case 'BlackboardCompare': {
       const actual = ctx.blackboard.get(node.key);
       const ok = compareBlackboard(actual, node.op, node.value);
-      consumeLeafBudget(ctx);
       return ok ? 'Success' : 'Failure';
     }
     default:

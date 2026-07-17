@@ -10,6 +10,19 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-17 — COMBAT-F06 polish: enemy prep at player turn start
+
+- Enemy discard hand + AP refill + draw 5 when **player turn begins** (`prepareEnemyForUpcomingTurn`).
+- Enemy turn executes BT only (no draw/AP); Intent matches execution during player turn.
+- Default `enemyTurnDraw: 5`.
+
+### 2026-07-17 — COMBAT-F06 implemented: tactical orc BT + Intelligence thresholds
+
+- Blackboard each enemy turn (`enemy-blackboard.ts`); thresholds from **Intelligence** (Wisdom = 感知, unused here).
+- Host tasks: `combat.playCardIf`, `combat.playBestCard`; `bt.orc_tactical.json`; intent peek with Selector fallthrough.
+- Core BT: failed Task/Compare no longer consumes leaf budget (Selector can try siblings).
+- **Verify:** 226 tests green.
+
 ### 2026-07-17 — COMBAT-F05 polish: cards-only enemy + preview Intent
 
 - Removed `combat.attack`; enemies only `combat.playCard` from hand.

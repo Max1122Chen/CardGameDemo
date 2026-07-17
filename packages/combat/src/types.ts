@@ -110,11 +110,14 @@ export type CombatSessionTuneables = {
   openingDraw: number;
   turnDraw: number;
   enemyOpeningDraw: number;
+  /** Cards drawn when player turn begins (enemy prep for upcoming action + Intent). */
   enemyTurnDraw: number;
   actionPointsPerTurn: number;
   playerStartHealth: number;
   /** Probe/test hook: override data-driven enemy max HP at spawn. */
   enemyHealthOverride?: number;
+  /** Probe/test hook: set current HP at spawn (max stays data-driven unless enemyHealthOverride). */
+  enemyStartHealth?: number;
   /** Scenario hook: force opening hand (ignores openingDraw count). */
   openingHand?: readonly CardId[];
 };
@@ -132,7 +135,8 @@ export const DEFAULT_COMBAT_CONFIG: CombatSessionTuneables = {
   openingDraw: 5,
   turnDraw: 5,
   enemyOpeningDraw: 5,
-  enemyTurnDraw: 0,
+  /** Drawn when player turn begins (enemy prep for upcoming action; not on enemy turn). */
+  enemyTurnDraw: 5,
   actionPointsPerTurn: 3,
   playerStartHealth: 30,
 };

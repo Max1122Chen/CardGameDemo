@@ -36,7 +36,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `COMBAT-F03` | Combat describability probes (pre?JSON cards) | Done | ? | [COMBAT-F03-combat-describability-probes.md](./Combat/COMBAT-F03-combat-describability-probes.md) |
 | `COMBAT-F04` | Combat numeric depth: caps, six stats, damage pipeline, probes | Done | — | [COMBAT-F04-combat-numeric-depth.md](./Combat/COMBAT-F04-combat-numeric-depth.md) |
 | `COMBAT-F05` | Data-driven enemies: characters pkg, BT-driven turns, slime+orc spawn | Done | — | [COMBAT-F05-enemy-data-driven.md](./Combat/COMBAT-F05-enemy-data-driven.md) |
-| `COMBAT-F06` | Context-aware enemy BT AI (orc tactical, blackboard + Wisdom) | Planned | — | [COMBAT-F06-enemy-bt-ai.md](./Combat/COMBAT-F06-enemy-bt-ai.md) |
+| `COMBAT-F06` | Context-aware enemy BT AI (orc tactical, blackboard + playBestCard + Intelligence) | Done | — | [COMBAT-F06-enemy-bt-ai.md](./Combat/COMBAT-F06-enemy-bt-ai.md) |
 | `ITEM-F01` | Item definitions, fragments, inventory, battle loot pickup/discard | Done | — | [ITEM-F01-item-foundation.md](./Items/ITEM-F01-item-foundation.md) |
 | `ITEM-F02` | Rectangular grid backpack (4×6), place/move/tidy | Done | — | [ITEM-F02-grid-backpack.md](./Items/ITEM-F02-grid-backpack.md) |
 | `EQUIP-F01` | Equipment loadout, equip/unequip, deck injection | Done | — | [EQUIP-F01-equipment-loadout.md](./Equipment/EQUIP-F01-equipment-loadout.md) |

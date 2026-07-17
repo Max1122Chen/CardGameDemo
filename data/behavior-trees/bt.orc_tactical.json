@@ -1,0 +1,36 @@
+{
+  "id": "bt.orc_tactical",
+  "root": {
+    "type": "Repeat",
+    "child": {
+      "type": "Selector",
+      "children": [
+        {
+          "type": "Task",
+          "actionId": "combat.playCardIf",
+          "params": { "when": "selfLowHp", "cardId": "defend" }
+        },
+        {
+          "type": "Task",
+          "actionId": "combat.playBestCard",
+          "params": { "when": "playerLowHp", "goal": "finisher" }
+        },
+        {
+          "type": "Task",
+          "actionId": "combat.playBestCard",
+          "params": { "goal": "damage" }
+        },
+        {
+          "type": "Task",
+          "actionId": "combat.playCard",
+          "params": { "cardId": "strike" }
+        },
+        {
+          "type": "Task",
+          "actionId": "combat.playCard",
+          "params": { "cardId": "defend" }
+        }
+      ]
+    }
+  }
+}

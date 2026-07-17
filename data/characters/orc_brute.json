@@ -11,7 +11,7 @@
     "wisdom": 9,
     "charisma": 5
   },
-  "behaviorTreeId": "bt.orc_stub",
+  "behaviorTreeId": "bt.orc_tactical",
   "equipment": [
     { "itemId": "orc_axe", "slot": "Hand.Main" },
     { "itemId": "orc_armor", "slot": "Chest" }

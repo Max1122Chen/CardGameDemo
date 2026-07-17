@@ -38,6 +38,12 @@ import {
 } from './deck-state.js';
 import { peekNextTaskNode } from './enemy-bt-peek.js';
 import {
+  evaluateEnemyWhenCondition,
+  fillEnemyBlackboard,
+  type EnemyWhenCondition,
+} from './enemy-blackboard.js';
+import { chooseBestEnemyCard, type EnemyCardGoal } from './enemy-card-choice.js';
+import {
   fallbackCardIntentLabel,
   findEnemyHandInstanceId,
   previewEnemyCardIntentLabel,
@@ -377,7 +383,11 @@ export class CombatSession {
       })
       .filter((card): card is NonNullable<typeof card> => card !== undefined);
 
-    const nextTask = peekNextTaskNode(this.enemyBehaviorTree.root, this.enemyBtState);
+    const nextTask = peekNextTaskNode(
+      this.enemyBehaviorTree.root,
+      this.enemyBtState,
+      this.createEnemyPeekContext(enemy, player),
+    );
     const intentLabel = this.buildEnemyIntentLabel(nextTask, enemy, player);
 
     let preview: CombatSnapshot['preview'];
@@ -454,9 +464,92 @@ export class CombatSession {
   private createEnemyTaskRegistry(): BehaviorTreeTaskRegistry {
     const registry = new BehaviorTreeTaskRegistry();
     registry.register('combat.playCard', (_ctx, params) => this.enemyTaskPlayCard(params));
+    registry.register('combat.playCardIf', (_ctx, params) => this.enemyTaskPlayCardIf(params));
+    registry.register('combat.playBestCard', (_ctx, params) => this.enemyTaskPlayBestCard(params));
     registry.register('combat.wait', () => 'Success');
     registry.register('combat.endTurn', () => 'Success');
     return registry;
+  }
+
+  private syncEnemyBlackboard(
+    enemy: GameplayFrameworkComponent,
+    player: GameplayFrameworkComponent,
+  ): void {
+    fillEnemyBlackboard({
+      blackboard: this.enemyBlackboard,
+      primaries: this.enemyCharacter.primaries,
+      enemy,
+      player,
+    });
+  }
+
+  private createEnemyPeekContext(
+    enemy: GameplayFrameworkComponent,
+    player: GameplayFrameworkComponent,
+  ) {
+    this.syncEnemyBlackboard(enemy, player);
+    return {
+      blackboard: this.enemyBlackboard,
+      isCardPlayable: (cardId: CardId) => this.isEnemyCardPlayable(cardId, enemy),
+      resolvePlayBestCard: (goal: EnemyCardGoal) =>
+        this.resolveEnemyPlayBestCard(goal, enemy, player)?.cardId,
+    };
+  }
+
+  private isEnemyCardPlayable(cardId: CardId, enemy: GameplayFrameworkComponent): boolean {
+    if (!this.cardDefinitions[cardId]) {
+      return false;
+    }
+    const instanceId = findEnemyHandInstanceId(
+      cardId,
+      this.enemyDeck.hand,
+      this.enemyInstances,
+    );
+    if (!instanceId) {
+      return false;
+    }
+    return getEntityActionPoints(enemy) >= this.getCardDefinition(cardId).cost;
+  }
+
+  private resolveEnemyPlayBestCard(
+    goal: EnemyCardGoal,
+    enemy: GameplayFrameworkComponent,
+    player: GameplayFrameworkComponent,
+  ) {
+    return chooseBestEnemyCard({
+      goal,
+      enemy,
+      player,
+      hand: this.enemyDeck.hand,
+      instances: this.enemyInstances,
+      cardDefinitions: this.cardDefinitions,
+      abilityHandles: this.enemyCardAbilityHandles,
+      bonusConfig: this.bonusConfig,
+    });
+  }
+
+  private parseEnemyWhenParam(params: Record<string, unknown>): EnemyWhenCondition | undefined {
+    const when = params.when;
+    if (when === 'selfLowHp' || when === 'playerLowHp') {
+      return when;
+    }
+    return undefined;
+  }
+
+  private parseEnemyGoalParam(params: Record<string, unknown>): EnemyCardGoal | undefined {
+    const goal = params.goal;
+    if (goal === 'damage' || goal === 'block' || goal === 'finisher') {
+      return goal;
+    }
+    return undefined;
+  }
+
+  private enemyTaskMatchesWhen(params: Record<string, unknown>): boolean {
+    const when = this.parseEnemyWhenParam(params);
+    if (!when) {
+      return true;
+    }
+    return evaluateEnemyWhenCondition(this.enemyBlackboard, when);
   }
 
   private buildEnemyIntentLabel(
@@ -531,6 +624,38 @@ export class CombatSession {
       return 'Failure';
     }
     return this.enemyPlayCardById(cardId) ? 'Success' : 'Failure';
+  }
+
+  private enemyTaskPlayCardIf(params: Record<string, unknown>): BtStatus {
+    if (!this.enemyTaskMatchesWhen(params)) {
+      return 'Failure';
+    }
+    return this.enemyTaskPlayCard(params);
+  }
+
+  private enemyTaskPlayBestCard(params: Record<string, unknown>): BtStatus {
+    if (!this.enemyTaskMatchesWhen(params)) {
+      return 'Failure';
+    }
+    const goal = this.parseEnemyGoalParam(params);
+    if (!goal) {
+      return 'Failure';
+    }
+    const enemy = this.requireEnemy();
+    const player = this.requirePlayer();
+    const choice = this.resolveEnemyPlayBestCard(goal, enemy, player);
+    if (!choice) {
+      return 'Failure';
+    }
+    return this.enemyPlayCardByInstanceId(choice.instanceId) ? 'Success' : 'Failure';
+  }
+
+  private enemyPlayCardByInstanceId(instanceId: string): boolean {
+    const instance = this.enemyInstances.get(instanceId);
+    if (!instance) {
+      return false;
+    }
+    return this.enemyPlayCardById(instance.actionId);
   }
 
   private enemyPlayCardById(cardId: CardId): boolean {
@@ -667,6 +792,10 @@ export class CombatSession {
       if (instance) {
         this.emitDrawEvent(COMBAT_ENEMY_ID, instance.actionId);
       }
+    }
+
+    if (this.config.enemyStartHealth !== undefined) {
+      enemy.setAttributeBase(CombatAttributes.Health, this.config.enemyStartHealth);
     }
 
     this.setPhase('PlayerTurn', 'player');
@@ -875,21 +1004,10 @@ export class CombatSession {
     this.emitCombatTrace({ kind: 'combat.turn', owner: 'enemy', phase: 'EnemyTurn' });
 
     const enemy = this.requireEnemy();
+    const player = this.requirePlayer();
     enemy.setAttributeBase(CombatAttributes.Block, 0);
-    const maxAp =
-      enemy.getAttribute(CombatAttributes.MaxActionPoints)?.currentValue ??
-      this.enemyCharacter.maxActionPoints;
-    enemy.setAttributeBase(CombatAttributes.ActionPoints, maxAp);
 
-    if (this.config.enemyTurnDraw > 0) {
-      const drawn = drawCards(this.enemyDeck, this.config.enemyTurnDraw);
-      for (const instanceId of drawn) {
-        const instance = this.enemyInstances.get(instanceId);
-        if (instance) {
-          this.emitDrawEvent(COMBAT_ENEMY_ID, instance.actionId);
-        }
-      }
-    }
+    this.syncEnemyBlackboard(enemy, player);
 
     const btCtx = {
       blackboard: this.enemyBlackboard,
@@ -910,6 +1028,29 @@ export class CombatSession {
     this.beginPlayerTurn();
   }
 
+  /** Discard leftover hand, refill AP, draw — runs at player turn start so Intent matches execution. */
+  private prepareEnemyForUpcomingTurn(): void {
+    const enemy = this.requireEnemy();
+    discardHand(this.enemyDeck);
+
+    const maxAp =
+      enemy.getAttribute(CombatAttributes.MaxActionPoints)?.currentValue ??
+      this.enemyCharacter.maxActionPoints;
+    enemy.setAttributeBase(CombatAttributes.ActionPoints, maxAp);
+
+    if (this.config.enemyTurnDraw <= 0) {
+      return;
+    }
+
+    const drawn = drawCards(this.enemyDeck, this.config.enemyTurnDraw);
+    for (const instanceId of drawn) {
+      const instance = this.enemyInstances.get(instanceId);
+      if (instance) {
+        this.emitDrawEvent(COMBAT_ENEMY_ID, instance.actionId);
+      }
+    }
+  }
+
   private beginPlayerTurn(): void {
     const player = this.requirePlayer();
     player.setAttributeBase(CombatAttributes.Block, 0);
@@ -925,6 +1066,8 @@ export class CombatSession {
         this.emitDrawEvent(COMBAT_PLAYER_ID, instance.actionId);
       }
     }
+
+    this.prepareEnemyForUpcomingTurn();
 
     this.setPhase('PlayerTurn', 'player');
     this.emitCombatEvent('GameplayEvent.Combat.player.StartTurn', {
