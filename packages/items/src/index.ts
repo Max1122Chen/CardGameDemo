@@ -92,3 +92,8 @@ export {
   type LootEntryView,
   type PickupLootResult,
 } from './loot.js';
+export {
+  createPendingLootFromCharacter,
+  type CharacterLootRollEntry,
+  type CharacterLootSource,
+} from './character-loot.js';

@@ -32,7 +32,7 @@ Blocks: COMBAT-F05 (enemy turn driver), COMBAT-F06 (smart AI), future dungeon ex
 |-----------|------|
 | Core purity | `packages/core` BT module: no `CombatSession`, no `AppState` |
 | Data-driven | Tree shape + task params in JSON; no per-enemy TypeScript branches |
-| Host tasks | Combat registers `combat.attack`, `combat.playCard`, `combat.endTurn`; dungeon registers `dungeon.wander`, etc. |
+| Host tasks | Combat registers `combat.playCard`, `combat.wait`, `combat.endTurn`; dungeon registers `dungeon.wander`, etc. |
 | Blackboard | Typed-ish bag (`number`, `boolean`, `string`); **host fills** before tick (HP, hand, AP) |
 | Tick contract | One enemy turn = host sets blackboard → `tick(root)` until `Success` \| `Failure` or step budget |
 | Wisdom | **Not** in core — combat adapter may pass `wisdom` into blackboard for condition weights in F06 |
@@ -66,9 +66,9 @@ interface BehaviorTreeInstance {
     "child": {
       "type": "Sequence",
       "children": [
-        { "type": "Task", "actionId": "combat.attack", "params": { "panelDamage": 6 } },
+        { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "defend" } },
         { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "weaken" } },
-        { "type": "Task", "actionId": "combat.attack", "params": { "panelDamage": 6 } }
+        { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "strike" } }
       ]
     }
   }
@@ -107,8 +107,8 @@ function loadBehaviorTree(wire: WireBehaviorTree): BehaviorTreeAsset;
 Combat adapter (in `@cardgame/combat`):
 
 ```typescript
-registry.register('combat.attack', (ctx, params) => { /* deal damage */ return 'Success'; });
-registry.register('combat.playCard', (ctx, params) => { /* check AP, play, target player */ });
+registry.register('combat.playCard', (ctx, params) => { /* check AP, play from hand, target from card */ });
+registry.register('combat.endTurn', () => 'Success');
 ```
 
 ---

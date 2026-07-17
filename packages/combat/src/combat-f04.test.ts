@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { RuleEngine } from '@cardgame/core';
-import { combatBootstrapConfig } from './data/combat-bootstrap.js';
+import { probeCombatBootstrapConfig, createProbeCombatEngine } from './test-bootstrap.js';
 import { CombatSession } from './combat-session.js';
 import { COMBAT_ENEMY_ID, COMBAT_PLAYER_ID, type CardActionId } from './types.js';
 
 function createSession(
   openingHand: readonly CardActionId[],
   tuneables: { playerStartHealth?: number } = {},
-): { engine: RuleEngine; session: CombatSession } {
-  const engine = RuleEngine.create();
-  const base = combatBootstrapConfig(engine, tuneables);
+): { engine: ReturnType<typeof createProbeCombatEngine>; session: CombatSession } {
+  const engine = createProbeCombatEngine();
+  const base = probeCombatBootstrapConfig(engine, tuneables);
   // Ensure opening-hand cards exist in the pile (equipment-only probes may be absent from starter).
   const deckIds = [...(base.deckIds ?? []), ...openingHand];
   const session = CombatSession.bootstrap(engine, { ...base, deckIds, openingHand });

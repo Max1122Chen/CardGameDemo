@@ -5,9 +5,9 @@
     "child": {
       "type": "Sequence",
       "children": [
-        { "type": "Task", "actionId": "combat.attack", "params": { "panelDamage": 6 } },
+        { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "defend" } },
         { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "weaken" } },
-        { "type": "Task", "actionId": "combat.attack", "params": { "panelDamage": 6 } }
+        { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "strike" } }
       ]
     }
   }

@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
+import { RuleEngine } from '@cardgame/core';
 import {
   CombatAttributes,
   CombatSession,
   bootstrapCombatAttributes,
-  combatBootstrapConfig,
   loadCombatBootstrapFromRepo,
   registerCombatAbilityHandlers,
   TAKE_DAMAGE_ABILITY_ID,
   TAKE_DAMAGE_HANDLER_ID,
 } from './index.js';
-import { RuleEngine } from '@cardgame/core';
+import { probeCombatBootstrapConfig, createProbeCombatEngine } from './test-bootstrap.js';
 
 describe('CORE-F12 ActivationRegistry + card archetypes', () => {
   it('TakeDamage handler settles via registered handlerId', () => {
@@ -47,8 +47,8 @@ describe('CORE-F12 ActivationRegistry + card archetypes', () => {
   });
 
   it('strike uses cardPlayDamage archetype and Damage parameter', () => {
-    const engine = RuleEngine.create();
-    const { cardCatalog } = combatBootstrapConfig(engine);
+    const engine = createProbeCombatEngine();
+    const { cardCatalog } = loadCombatBootstrapFromRepo(engine.tagManager);
     expect(cardCatalog.strike!.ability.id).toBe('ga.archetype.cardPlayDamage');
     expect(cardCatalog.strike!.ability.handlerId).toBe('combat.cardPlayDamage');
     expect(cardCatalog.strike!.ability.parameterValues?.Damage).toBe(6);
@@ -57,9 +57,9 @@ describe('CORE-F12 ActivationRegistry + card archetypes', () => {
   });
 
   it('F03 probes still hold with thin card JSON', () => {
-    const engine = RuleEngine.create();
+    const engine = createProbeCombatEngine();
     const session = CombatSession.bootstrap(engine, {
-      ...combatBootstrapConfig(engine),
+      ...probeCombatBootstrapConfig(engine),
       openingHand: ['weaken', 'strike'],
     });
     const weakenIndex = session.getSnapshot().hand.findIndex((c) => c.actionId === 'weaken');

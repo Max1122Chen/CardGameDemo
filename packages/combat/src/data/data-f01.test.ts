@@ -7,13 +7,13 @@ import {
   buildCombatCardBootstrap,
   parseCardDefinition,
 } from './parse-card.js';
+import { probeCombatBootstrapConfig, createProbeCombatEngine } from '../test-bootstrap.js';
 import {
   loadCombatBootstrapFromRepo,
   loadCardWiresFromDir,
   loadDeckIds,
   loadDefinitionAssetCatalog,
   resolveRepoDataRoot,
-  combatBootstrapConfig,
 } from './combat-bootstrap.js';
 
 describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
@@ -58,9 +58,9 @@ describe('DATA-F01 / CORE-F12 card asset pipeline', () => {
   });
 
   it('starter JSON battle matches F03 weaken + strike probe', () => {
-    const engine = RuleEngine.create();
+    const engine = createProbeCombatEngine();
     const session = CombatSession.bootstrap(engine, {
-      ...combatBootstrapConfig(engine),
+      ...probeCombatBootstrapConfig(engine),
       openingHand: ['weaken', 'strike'],
     });
 

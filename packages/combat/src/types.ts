@@ -109,25 +109,30 @@ export type CardActionSpec = {
 export type CombatSessionTuneables = {
   openingDraw: number;
   turnDraw: number;
+  enemyOpeningDraw: number;
+  enemyTurnDraw: number;
   actionPointsPerTurn: number;
   playerStartHealth: number;
-  enemyStartHealth: number;
-  enemyAttackDamage: number;
+  /** Probe/test hook: override data-driven enemy max HP at spawn. */
+  enemyHealthOverride?: number;
   /** Scenario hook: force opening hand (ignores openingDraw count). */
   openingHand?: readonly CardId[];
 };
+
+export type EnemyCombatSetup = import('./enemy-bootstrap.js').EnemyCombatSetup;
 
 export type CombatSessionConfig = CombatSessionTuneables & {
   cardCatalog: Record<CardId, CardDefinition>;
   deckIds: readonly CardId[];
   takeDamageAbility: GameplayAbilityDefinition;
+  enemy: EnemyCombatSetup;
 };
 
 export const DEFAULT_COMBAT_CONFIG: CombatSessionTuneables = {
   openingDraw: 5,
   turnDraw: 5,
+  enemyOpeningDraw: 5,
+  enemyTurnDraw: 0,
   actionPointsPerTurn: 3,
   playerStartHealth: 30,
-  enemyStartHealth: 12,
-  enemyAttackDamage: 6,
 };

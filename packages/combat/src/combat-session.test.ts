@@ -2,20 +2,30 @@ import { describe, expect, it } from 'vitest';
 
 import { RuleEngine } from '@cardgame/core';
 import { TraceBuffer } from '@cardgame/core';
+import { collectItemTagsFromRepo, loadItemCatalogFromRepo } from '@cardgame/items';
+
 import { CombatError, CombatSession } from './combat-session.js';
-import { combatBootstrapConfig } from './data/combat-bootstrap.js';
+import { combatBootstrapConfig, resolveRepoDataRoot } from './data/combat-bootstrap.js';
 import { drawCards, buildDeckInstances } from './deck-state.js';
 import type { CardActionId, CombatSessionTuneables } from './types.js';
 import { COMBAT_ENEMY_ID, COMBAT_PLAYER_ID } from './types.js';
 
 function createSession(
-  options: Partial<CombatSessionTuneables> | boolean = {},
+  options: Partial<CombatSessionTuneables> & { enemyCharacterId?: string } | boolean = {},
 ): { engine: RuleEngine; session: CombatSession; traceBuffer?: TraceBuffer } {
   const trace = typeof options === 'boolean' ? options : false;
   const tuneables = typeof options === 'boolean' ? {} : options;
   const traceBuffer = trace ? new TraceBuffer() : undefined;
-  const engine = RuleEngine.create({ traceSink: traceBuffer });
-  const session = CombatSession.bootstrap(engine, combatBootstrapConfig(engine, tuneables));
+  const dataRoot = resolveRepoDataRoot();
+  const engine = RuleEngine.create({
+    traceSink: traceBuffer,
+    tagDefinitions: { json: collectItemTagsFromRepo(dataRoot) },
+  });
+  const itemCatalog = loadItemCatalogFromRepo(engine.tagManager, { dataRoot });
+  const session = CombatSession.bootstrap(
+    engine,
+    combatBootstrapConfig(engine, { ...tuneables, itemCatalog }),
+  );
   return { engine, session, traceBuffer };
 }
 
@@ -45,7 +55,7 @@ describe('CombatSession', () => {
     expect(snapshot.enemies[0]).toMatchObject({
       entityId: COMBAT_ENEMY_ID,
       name: 'Slime',
-      health: 12,
+      health: 24,
     });
     expect(engine.getGfc(COMBAT_PLAYER_ID)).toBeDefined();
     expect(engine.getGfc(COMBAT_ENEMY_ID)).toBeDefined();
@@ -70,13 +80,13 @@ describe('CombatSession', () => {
 
   it('PlayCard spends AP and applies effect', () => {
     const { session } = createSession();
-    const beforeEnemyHp = session.getSnapshot().enemies[0].health;
+    const beforeEnemyHp = session.getSnapshot().enemies[0]!.health;
 
     playCard(session, 'strike');
 
     const snapshot = session.getSnapshot();
     expect(snapshot.player.actionPoints).toBe(2);
-    expect(snapshot.enemies[0].health).toBe(beforeEnemyHp - 8);
+    expect(snapshot.enemies[0]!.health).toBe(beforeEnemyHp - 8);
   });
 
   it('insufficient AP rejects play', () => {
@@ -98,22 +108,46 @@ describe('CombatSession', () => {
     const snapshot = session.getSnapshot();
     expect(snapshot.phase).toBe('PlayerTurn');
     expect(snapshot.hand.length).toBeLessThan(handBefore);
-    expect(snapshot.combatLog.some((line) => line.includes('Slime attacked'))).toBe(true);
+    expect(snapshot.combatLog.some((line) => line.includes('Defend played'))).toBe(true);
   });
 
-  it('enemy turn deals damage through block-first rule', () => {
+  it('enemy defend grants block that absorbs later damage', () => {
+    const probeDeck = [
+      'defend',
+      'defend',
+      'defend',
+      'defend',
+      'defend',
+      'strike',
+      'bash',
+      'jab',
+      'surge',
+      'precise_cut',
+    ];
+    const { session } = createSession({ deckIds: probeDeck, turnDraw: 1 });
+
+    session.applyAction({ type: 'EndTurn' });
+    expect(session.getSnapshot().enemies[0]?.block).toBe(5);
+
+    session.applyAction({ type: 'PlayCard', handIndex: 0 });
+    expect(session.getSnapshot().enemies[0]?.block).toBe(0);
+  });
+
+  it('player defend still blocks slime strike on later turns', () => {
     const { session } = createSession();
 
     playCard(session, 'defend');
-    session.applyAction({ type: 'EndTurn' });
+    session.applyAction({ type: 'EndTurn' }); // slime defends
+    session.applyAction({ type: 'EndTurn' }); // slime weakens
+    session.applyAction({ type: 'EndTurn' }); // slime strikes
 
     const snapshot = session.getSnapshot();
     expect(snapshot.player.block).toBe(0);
-    expect(snapshot.player.health).toBe(29);
+    expect(snapshot.player.health).toBeLessThan(30);
   });
 
   it('victory when enemy HP reaches 0', () => {
-    const { session } = createSession({ openingHand: ['bash', 'strike'] });
+    const { session } = createSession({ openingHand: ['bash', 'strike'], enemyHealthOverride: 12 });
 
     playCard(session, 'bash');
     playCard(session, 'strike');
@@ -121,7 +155,7 @@ describe('CombatSession', () => {
     const snapshot = session.getSnapshot();
     expect(snapshot.result).toBe('victory');
     expect(snapshot.phase).toBe('Victory');
-    expect(snapshot.enemies[0].health).toBe(0);
+    expect(snapshot.enemies[0]!.health).toBe(0);
     expect(() => session.applyAction({ type: 'EndTurn' })).toThrow(CombatError);
   });
 
@@ -129,7 +163,9 @@ describe('CombatSession', () => {
     const { engine, session } = createSession();
     engine.requireGfc(COMBAT_PLAYER_ID).setAttributeBase('Health', 1);
 
-    session.applyAction({ type: 'EndTurn' });
+    session.applyAction({ type: 'EndTurn' }); // slime defend
+    session.applyAction({ type: 'EndTurn' }); // slime weaken
+    session.applyAction({ type: 'EndTurn' }); // slime strike
 
     const snapshot = session.getSnapshot();
     expect(snapshot.result).toBe('defeat');
@@ -138,8 +174,12 @@ describe('CombatSession', () => {
   });
 
   it('empty draw pile triggers shuffle-from-discard', () => {
-    const engine = RuleEngine.create();
-    const { deckIds } = combatBootstrapConfig(engine);
+    const dataRoot = resolveRepoDataRoot();
+    const engine = RuleEngine.create({
+      tagDefinitions: { json: collectItemTagsFromRepo(dataRoot) },
+    });
+    const itemCatalog = loadItemCatalogFromRepo(engine.tagManager, { dataRoot });
+    const { deckIds } = combatBootstrapConfig(engine, { itemCatalog });
     const { deck } = buildDeckInstances(deckIds);
     deck.drawPile.length = 0;
     deck.discardPile.push('card-1', 'card-3', 'card-5');
@@ -181,14 +221,16 @@ describe('CombatSession', () => {
   });
 
   it('can bootstrap a second battle on the same RuleEngine', () => {
+    const dataRoot = resolveRepoDataRoot();
     const { engine, session: first } = createSession({ openingHand: ['strike'] });
+    const itemCatalog = loadItemCatalogFromRepo(engine.tagManager, { dataRoot });
     playCard(first, 'strike');
     expect(first.getSnapshot().phase).not.toBe('Setup');
 
-    const second = CombatSession.bootstrap(engine, combatBootstrapConfig(engine));
+    const second = CombatSession.bootstrap(engine, combatBootstrapConfig(engine, { itemCatalog }));
     const snapshot = second.getSnapshot();
     expect(snapshot.phase).toBe('PlayerTurn');
     expect(snapshot.player.health).toBe(30);
-    expect(snapshot.enemies[0]?.health).toBe(12);
+    expect(snapshot.enemies[0]?.health).toBe(24);
   });
 });

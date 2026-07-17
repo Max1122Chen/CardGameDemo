@@ -10,12 +10,14 @@ export function createEmptyDeckState(): DeckState {
 
 export function buildDeckInstances(
   actionIds: readonly CardActionId[],
+  options?: { idPrefix?: string },
 ): { deck: DeckState; instances: Map<string, CardInstance> } {
   const deck = createEmptyDeckState();
   const instances = new Map<string, CardInstance>();
+  const prefix = options?.idPrefix ?? '';
 
   actionIds.forEach((actionId, index) => {
-    const instanceId = `card-${index + 1}`;
+    const instanceId = `${prefix}card-${index + 1}`;
     instances.set(instanceId, { instanceId, actionId });
     deck.drawPile.push(instanceId);
   });

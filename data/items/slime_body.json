@@ -11,6 +11,7 @@
       "slots": ["Chest"],
       "twoHandMode": "forbidden",
       "cards": [
+        { "cardId": "defend", "count": 1 },
         { "cardId": "strike", "count": 2 },
         { "cardId": "weaken", "count": 1 }
       ]

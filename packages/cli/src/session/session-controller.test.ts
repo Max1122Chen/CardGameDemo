@@ -23,11 +23,11 @@ describe('session-controller combat integration', () => {
 
     expect(state.combatPhase).toBe('PlayerTurn');
     expect(state.turnOwner).toBe('player');
-    expect(state.combatLog.some((line) => line.includes('Slime attacked'))).toBe(true);
+    expect(state.combatLog.some((line) => line.includes('Defend played'))).toBe(true);
   });
 
   it('displays combat result when battle ends', () => {
-    const controller = createSessionController({});
+    const controller = createSessionController({ enemyHealthOverride: 12 });
     let state = controller.syncViewState(createInitialAppState({ runtimeMode: 'battle' }));
 
     const strikeIndex = controller.getCombatSnapshot().hand.findIndex((card) => card.actionId === 'strike');

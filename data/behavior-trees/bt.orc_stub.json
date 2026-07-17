@@ -6,7 +6,8 @@
       "type": "Selector",
       "children": [
         { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "strike" } },
-        { "type": "Task", "actionId": "combat.attack", "params": { "panelDamage": 8 } }
+        { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "bash" } },
+        { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "defend" } }
       ]
     }
   }

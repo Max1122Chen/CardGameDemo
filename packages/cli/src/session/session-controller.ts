@@ -7,6 +7,7 @@ import {
   buildDeckIdsFromLoadout,
   createEquipmentLoadout,
   createInventory,
+  createPendingLootFromCharacter,
   createPendingLootFromTable,
   DEFAULT_GRID_HEIGHT,
   DEFAULT_GRID_WIDTH,
@@ -82,10 +83,11 @@ export type SessionController = {
   inventory: InventoryState;
   loadout: EquipmentLoadout;
   baseDeckIds: readonly string[];
+  enemyCharacterId: string;
   pendingLoot: PendingLootState;
   lootSpawned: boolean;
   traceLines: string[];
-  bootstrapBattle: () => void;
+  bootstrapBattle: (enemyCharacterId?: string) => void;
   syncViewState: (state: AppState) => AppState;
   getCombatSnapshot: () => CombatSnapshot;
 };
@@ -156,17 +158,35 @@ function maybeSpawnVictoryLoot(controller: SessionController, snapshot: CombatSn
     return undefined;
   }
 
-  const dataRoot = resolveRepoDataRoot();
-  const rewards = loadBattleRewards(dataRoot);
-  controller.pendingLoot = createPendingLootFromTable(rewards);
+  const enemy = controller.combatSession.getEnemyCharacterInstance();
+  const characterLoot = createPendingLootFromCharacter(
+    {
+      loadout: enemy.loadout,
+      inventory: enemy.inventory,
+      lootEntries: enemy.loot.entries,
+    },
+    controller.itemCatalog,
+    () => 0,
+  );
+
+  if (characterLoot.entries.length > 0) {
+    controller.pendingLoot = characterLoot;
+  } else {
+    const dataRoot = resolveRepoDataRoot();
+    const rewards = loadBattleRewards(dataRoot);
+    controller.pendingLoot = createPendingLootFromTable(rewards);
+  }
+
   controller.lootSpawned = true;
-  return 'Victory! Select loot with 1-9. P pickup | A all | B bag. Then console: battle';
+  return 'Victory! Select loot with 1-9. P pickup | A all | B bag. Then console: battle [slime|orc_brute]';
 }
 
 export function createSessionController(options: {
   seed?: number;
   scenarioId?: string;
   traceToBuffer?: boolean;
+  enemyCharacterId?: string;
+  enemyHealthOverride?: number;
 }): SessionController {
   const traceBuffer = options.traceToBuffer ? new TraceBuffer() : undefined;
   const itemTagDefinitions = loadItemTagDefinitions();
@@ -181,10 +201,20 @@ export function createSessionController(options: {
   const loadout = createEquipmentLoadout();
   let pendingLoot: PendingLootState = { entries: [] };
   let lootSpawned = false;
+  let enemyCharacterId = options.enemyCharacterId ?? 'slime';
+  const enemyHealthOverride = options.enemyHealthOverride;
 
   const startCombat = () => {
     const deckIds = buildDeckIdsFromLoadout(baseDeckIds, loadout, itemCatalog);
-    return CombatSession.bootstrap(engine, combatBootstrapConfig(engine, { deckIds }));
+    return CombatSession.bootstrap(
+      engine,
+      combatBootstrapConfig(engine, {
+        deckIds,
+        itemCatalog,
+        enemyCharacterId,
+        enemyHealthOverride,
+      }),
+    );
   };
 
   let combatSession = startCombat();
@@ -196,11 +226,15 @@ export function createSessionController(options: {
     inventory,
     loadout,
     baseDeckIds,
+    enemyCharacterId,
     pendingLoot,
     lootSpawned,
     traceLines: [],
-    bootstrapBattle() {
-      // Persist inventory + loadout across battles; only reset combat + loot spawn flag.
+    bootstrapBattle(nextEnemyId?: string) {
+      if (nextEnemyId) {
+        enemyCharacterId = nextEnemyId;
+        controller.enemyCharacterId = enemyCharacterId;
+      }
       pendingLoot = { entries: [] };
       lootSpawned = false;
       controller.pendingLoot = pendingLoot;

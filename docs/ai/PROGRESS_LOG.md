@@ -10,6 +10,20 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-17 — COMBAT-F05 polish: cards-only enemy + preview Intent
+
+- Removed `combat.attack`; enemies only `combat.playCard` from hand.
+- Intent labels mirror player preview (`Attack N`, `Gain block N`).
+- Slime BT: defend → weaken → strike; `slime_body` grants defend.
+- Enemy block/defend verified on slime.
+
+### 2026-07-17 — COMBAT-F05 implemented: data-driven enemies + BT turns
+
+- **CombatSession** spawns from `CharacterInstance` + `behaviorTreeId`; slime/orc from JSON.
+- Enemy deck/hand/AP; BT tasks `combat.playCard` / `combat.endTurn`; intent from next leaf peek.
+- Victory loot via `createPendingLootFromCharacter` (innate excluded); CLI `battle orc_brute`.
+- Removed `enemy-script.ts`. **Verify:** 217 tests green.
+
 ### 2026-07-17 — CHAR-F01 implemented: `@cardgame/characters`
 
 - **`packages/characters/`** — definition loader, `spawnCharacterInstance`, repo catalog bootstrap.

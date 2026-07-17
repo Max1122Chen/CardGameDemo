@@ -78,3 +78,6 @@ export {
   resolveRepoDataRoot,
   combatBootstrapConfig,
 } from './data/combat-bootstrap.js';
+export { spawnEnemyFromRepo } from './enemy-bootstrap.js';
+export type { EnemyCombatSetup } from './enemy-bootstrap.js';
+export { loadBehaviorTreeById } from './load-behavior-tree.js';

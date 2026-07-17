@@ -2,7 +2,7 @@
 
 ## Meta
 - **ID:** COMBAT-F05
-- **Status:** Review
+- **Status:** Done
 - **Owner:** —
 - **Last updated:** 2026-07-17
 - **Related:** [CORE-F14](../Core/CORE-F14-behavior-tree.md), [CHAR-F01](../Characters/CHAR-F01-character-package.md), [COMBAT-F06](./COMBAT-F06-enemy-bt-ai.md), [COMBAT-F04](./COMBAT-F04-combat-numeric-depth.md), [EQUIP-F01](../Equipment/EQUIP-F01-equipment-loadout.md), [CLI-F05](../CLI/CLI-F05-postcombat-inventory-layout.md)
@@ -18,7 +18,7 @@ Blocks: DUNGEON-F01, COMBAT-F06 (smart orc BT)
 1. **`@cardgame/characters`** — JSON character defs, spawn instance (loadout + **grid inventory** + deck + `behaviorTreeId`).
 2. **Unified AI = behavior trees** ([CORE-F14](../Core/CORE-F14-behavior-tree.md)) — enemy data references `behaviorTreeId`; no parallel script interpreter.
 3. **Probe enemies:** **slime** (fixed loop BT) + **orc** (richer deck; **tactical BT deferred to COMBAT-F06**, data + spawn in F05).
-4. **Combat:** enemy `playCard` **consumes AP**; target **fixed player**; enemy gets hand/deck/AP like player (hidden in CLI).
+4. **Combat:** enemy actions are **only** `combat.playCard` (real hand + AP); Intent mirrors player preview (`Attack N`, `Gain block N`).
 5. **Loot:** droppable equipped + **backpack grid** contents; innate gear never drops; fallback `battle-rewards.json`.
 
 **F05 proves:** data spawn + BT-driven fixed turns. **F06 proves:** blackboard + context-aware orc tree.
@@ -33,7 +33,7 @@ Blocks: DUNGEON-F01, COMBAT-F06 (smart orc BT)
 | D2 | BT runtime in **`packages/core`** (host-agnostic); combat registers task handlers | User + partner |
 | D3 | **`@cardgame/characters`** package for defs + spawn (not combat-owned) | User |
 | D4 | `playCard` tasks **consume enemy AP** (real card costs) | User |
-| D5 | Card targets **fixed to player** in F05/F06 combat tasks | User |
+| D5 | Enemy `playCard` **target from card** (`self` / `single_enemy`); damage/status → player, block/heal → self | User 2026-07-17 (rev) |
 | D6 | **Slime** — low Wis; fixed cycle BT (`Repeat` + `Sequence` of tasks) | User |
 | D7 | **Orc** — richer deck + grid loot; **smart BT in COMBAT-F06**; F05 ships data + placeholder/simple tree or stub | User |
 | D8 | Spawn **grid inventory + items** on enemies | User |
@@ -42,6 +42,9 @@ Blocks: DUNGEON-F01, COMBAT-F06 (smart orc BT)
 | D11 | Single `enemy-1` entity id in F05 | Partner |
 | D12 | CLI: intent from **next BT leaf preview**; no enemy hand pane | Partner |
 | D13 | No BT editor — JSON only | User |
+| D14 | **No off-card actions** — enemies only `combat.playCard` (no `combat.attack` panel damage) | User 2026-07-17 |
+| D15 | Enemy **Intent** = card preview labels (`Attack N`, `Gain block N`, card name for status) | User 2026-07-17 |
+| D16 | Enemy play **targeting from card def** (`self` block → enemy; `single_enemy` → player) | User 2026-07-17 |
 
 ---
 
@@ -63,7 +66,7 @@ data/characters/orc_brute.json ──────────────► dat
   EnemyTurnDriver:
     1. fillBlackboard(instance, session snapshot)
     2. tick BT until turn step completes (AP spent or wait/end)
-  registerTask('combat.attack' | 'combat.playCard' | 'combat.wait' | 'combat.endTurn')
+  registerTask('combat.playCard' | 'combat.wait' | 'combat.endTurn')
 ```
 
 ### Why behavior trees (agreed direction)
@@ -162,9 +165,9 @@ data/items/
     "child": {
       "type": "Sequence",
       "children": [
-        { "type": "Task", "actionId": "combat.attack", "params": { "panelDamage": 6 } },
+        { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "defend" } },
         { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "weaken" } },
-        { "type": "Task", "actionId": "combat.attack", "params": { "panelDamage": 6 } }
+        { "type": "Task", "actionId": "combat.playCard", "params": { "cardId": "strike" } }
       ]
     }
   }
@@ -175,10 +178,13 @@ data/items/
 
 | actionId | Params | Behavior |
 |----------|--------|----------|
-| `combat.attack` | `panelDamage` | Pipeline damage → player; costs 0 AP |
-| `combat.playCard` | `cardId` | Play from enemy hand if legal; **deduct card AP**; target **player** |
+| `combat.playCard` | `cardId` | Play from enemy hand if legal; **deduct card AP**; target from card (`self` / `single_enemy`) |
 | `combat.wait` | — | End step successfully |
 | `combat.endTurn` | — | Force end enemy turn |
+
+**Removed:** `combat.attack` (off-card panel damage). All enemy effects come from deck cards.
+
+**Intent (CLI):** preview next `playCard` like player — `Attack N`, `Gain block N`, or card name for status/heal.
 
 If `playCard` fails (no AP / card not in hand): task returns `Failure` → Selector parent may try sibling (orc F06); Sequence slime assumes valid data.
 
@@ -213,13 +219,14 @@ If `playCard` fails (no AP / card not in hand): task returns `Failure` → Selec
 
 ## Acceptance (COMBAT-F05 Done)
 
-- [ ] CORE-F14 + CHAR-F01 integrated
-- [ ] Slime + orc spawn from JSON with loadout + grid
-- [ ] Slime turn driven by `bt.slime_cycle`
-- [ ] `playCard` spends AP; targets player
-- [ ] `createSlimeScript` / `enemyAttackDamage` removed from production path
-- [ ] Loot: innate excluded; bag + droppable gear included
-- [ ] `npm run verify` green
+- [x] CORE-F14 + CHAR-F01 integrated
+- [x] Slime + orc spawn from JSON with loadout + grid
+- [x] Slime turn driven by `bt.slime_cycle`
+- [x] `playCard` spends AP; targeting from card def
+- [x] No off-card `combat.attack`; Intent uses preview-style labels
+- [x] `createSlimeScript` / `enemyAttackDamage` removed from production path
+- [x] Loot: innate excluded; bag + droppable gear included
+- [x] `npm run verify` green
 
 ---
 
@@ -227,6 +234,8 @@ If `playCard` fails (no AP / card not in hand): task returns `Failure` → Selec
 
 | Date | Note |
 |------|------|
+| 2026-07-17 | User: cards-only enemy actions; preview-style Intent; slime defend cycle |
+| 2026-07-17 | Implemented: BT enemy turns, character spawn, instance loot, CLI `battle orc_brute` |
 | 2026-07-17 | Initial spec (Review) |
 | 2026-07-17 | User: BT unified AI, characters pkg, AP play, orc+grid, F06 for smart AI |
 | 2026-07-17 | User confirm: play costs AP; target player; BT in core; orc + enemy grid |

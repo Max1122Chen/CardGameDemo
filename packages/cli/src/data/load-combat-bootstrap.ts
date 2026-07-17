@@ -7,8 +7,11 @@ import {
   type CombatCardBootstrap,
   type CombatSessionTuneables,
   type DefinitionAssetCatalog,
+  type EnemyCombatSetup,
   type WireCardDefinition,
+  spawnEnemyFromRepo,
 } from '@cardgame/combat';
+import type { ItemDefinition } from '@cardgame/items';
 import type {
   RuleEngine,
   WireGameplayAbilityDefinition,
@@ -82,8 +85,21 @@ export function loadCombatBootstrapFromRepo(
 
 export function combatBootstrapConfig(
   engine: RuleEngine,
-  overrides: Partial<CombatSessionTuneables> & { deckIds?: readonly string[] } = {},
+  overrides: Partial<CombatSessionTuneables> & {
+    deckIds?: readonly string[];
+    enemy?: EnemyCombatSetup;
+    enemyCharacterId?: string;
+    itemCatalog?: Record<string, ItemDefinition>;
+  } = {},
 ): Partial<CombatSessionTuneables> &
-  Pick<import('@cardgame/combat').CombatSessionConfig, 'cardCatalog' | 'deckIds' | 'takeDamageAbility'> {
-  return { ...loadCombatBootstrapFromRepo(engine), ...overrides };
+  Pick<import('@cardgame/combat').CombatSessionConfig, 'cardCatalog' | 'deckIds' | 'takeDamageAbility' | 'enemy'> {
+  const base = loadCombatBootstrapFromRepo(engine);
+  let enemy = overrides.enemy;
+  if (!enemy) {
+    if (!overrides.itemCatalog) {
+      throw new Error('combatBootstrapConfig requires itemCatalog or enemy for data-driven spawn');
+    }
+    enemy = spawnEnemyFromRepo(overrides.enemyCharacterId ?? 'slime', overrides.itemCatalog);
+  }
+  return { ...base, ...overrides, enemy };
 }

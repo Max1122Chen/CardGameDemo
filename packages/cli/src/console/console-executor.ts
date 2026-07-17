@@ -38,7 +38,7 @@ export function executeConsoleCommand(controller: SessionController, input: stri
         lines: [
           'Commands:',
           '  help',
-          '  battle          restart combat (keeps bag/loadout)',
+          '  battle [enemyId] restart combat (slime | orc_brute)',
           '  state [entityId]',
           '  trace [on|off]',
           '  event <tag> [channel]',
@@ -47,10 +47,12 @@ export function executeConsoleCommand(controller: SessionController, input: stri
         statusMessage: 'Console help displayed.',
       };
     case 'battle': {
-      controller.bootstrapBattle();
+      const enemyId = args[0];
+      controller.bootstrapBattle(enemyId);
+      const label = enemyId ?? controller.enemyCharacterId;
       return {
-        lines: ['Started a new battle with current equipment deck.'],
-        statusMessage: 'New battle started.',
+        lines: [`Started a new battle vs ${label} with current equipment deck.`],
+        statusMessage: `New battle started vs ${label}.`,
       };
     }
     case 'state': {
