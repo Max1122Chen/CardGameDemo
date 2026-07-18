@@ -27,6 +27,18 @@ export type AdventureSnapshot = {
   round: number;
   exploreAp: number;
   maxExploreAp: number;
+  /** Rooms permanently known (ever seen via vision) — Civ 开图 layout. */
+  knownRoomIds: string[];
+  /** Rooms the player has physically entered. */
+  visitedRoomIds: string[];
+  /** Current room ∪ door-adjacent — interior known. */
+  visionRoomIds: string[];
+  /** Alias of knownRoomIds (rooms drawn on the map). */
+  mappedRoomIds: string[];
+  /**
+   * @deprecated alias of mappedRoomIds / knownRoomIds.
+   */
+  visibleRoomIds: string[];
   currentRoom: RoomDefinition;
   roomStates: Record<string, RoomRuntimeState>;
   legalActions: AdventureExploreAction[];
@@ -69,6 +81,9 @@ export class AdventureSession {
   private readonly maxExploreAp: number;
   private round = 0;
   private exploreAp = 0;
+  private readonly visitedRoomIds = new Set<string>();
+  /** Layout memory: rooms ever seen in vision (not only entered). */
+  private readonly knownRoomIds = new Set<string>();
 
   private constructor(private readonly level: LevelAsset, options: AdventureSessionOptions = {}) {
     this.lifecycle = options.lifecycle ?? new AdventureLifecycleBus();
@@ -84,6 +99,8 @@ export class AdventureSession {
       position: { ...this.position },
     });
 
+    this.markVisited(level.startRoomId);
+    this.revealKnownFromVision();
     this.beginRound();
     this.refreshPendingCombatFlag();
   }
@@ -128,6 +145,47 @@ export class AdventureSession {
 
   getMaxExploreAp(): number {
     return this.maxExploreAp;
+  }
+
+  getVisitedRoomIds(): string[] {
+    return [...this.visitedRoomIds].sort();
+  }
+
+  /** Permanent layout memory: rooms ever revealed by vision. */
+  getKnownRoomIds(): string[] {
+    return [...this.knownRoomIds].sort();
+  }
+
+  /** Room ids linked to `roomId` by at least one door. */
+  private doorAdjacentRoomIds(roomId: string): string[] {
+    const ids = new Set<string>();
+    for (const door of this.level.doors) {
+      const ra = this.level.occupancy[cellKey(door.a)];
+      const rb = this.level.occupancy[cellKey(door.b)];
+      if (ra === roomId && rb) {
+        ids.add(rb);
+      } else if (rb === roomId && ra) {
+        ids.add(ra);
+      }
+    }
+    return [...ids];
+  }
+
+  /** Current room ∪ door-adjacent rooms (interior vision). */
+  getVisionRoomIds(): string[] {
+    const currentId = this.getCurrentRoomId();
+    const vision = new Set<string>([currentId, ...this.doorAdjacentRoomIds(currentId)]);
+    return [...vision].sort();
+  }
+
+  /** Rooms drawn on the map = known layout (ever seen). */
+  getMappedRoomIds(): string[] {
+    return this.getKnownRoomIds();
+  }
+
+  /** @deprecated use getMappedRoomIds / getKnownRoomIds */
+  getVisibleRoomIds(): string[] {
+    return this.getMappedRoomIds();
   }
 
   getPosition(): CellCoord {
@@ -267,6 +325,11 @@ export class AdventureSession {
       round: this.round,
       exploreAp: this.exploreAp,
       maxExploreAp: this.maxExploreAp,
+      visitedRoomIds: this.getVisitedRoomIds(),
+      knownRoomIds: this.getKnownRoomIds(),
+      visionRoomIds: this.getVisionRoomIds(),
+      mappedRoomIds: this.getMappedRoomIds(),
+      visibleRoomIds: this.getMappedRoomIds(),
       currentRoom: this.getCurrentRoom(),
       roomStates: structuredClone(this.roomStates),
       legalActions: this.legalActions(),
@@ -342,10 +405,24 @@ export class AdventureSession {
       this.exploreAp -= movementCost;
     }
     const toRoom = this.getCurrentRoomId();
+    this.markVisited(toRoom);
+    this.revealKnownFromVision();
     this.log.push(
       `Moved ${direction} to ${cellKey(target)} (${toRoom}, cost ${movementCost}, AP ${this.exploreAp}/${this.maxExploreAp}).`,
     );
     this.refreshPendingCombatFlag();
+  }
+
+  private markVisited(roomId: string): void {
+    this.visitedRoomIds.add(roomId);
+    this.knownRoomIds.add(roomId);
+  }
+
+  /** Once a room enters vision, its layout is permanently known (Civ 开图). */
+  private revealKnownFromVision(): void {
+    for (const id of this.getVisionRoomIds()) {
+      this.knownRoomIds.add(id);
+    }
   }
 
   private beginRound(): void {

@@ -9,6 +9,7 @@ Engineering **how** for adventure / level exploration. Gameplay **what** stays i
 | [DUNGEON-F01-minimal-level-slice.md](./DUNGEON-F01-minimal-level-slice.md) | DUNGEON-F01 | Done |
 | [DUNGEON-F02-spatial-level-gen.md](./DUNGEON-F02-spatial-level-gen.md) | DUNGEON-F02 | Done |
 | [DUNGEON-F03-explore-round-ap.md](./DUNGEON-F03-explore-round-ap.md) | DUNGEON-F03 | Done |
+| [DUNGEON-F04-exploration-fog.md](./DUNGEON-F04-exploration-fog.md) | DUNGEON-F04 | Done |
 
 ## Conventions
 

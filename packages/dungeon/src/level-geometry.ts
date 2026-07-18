@@ -153,6 +153,27 @@ export function roomsShareWall(a: RoomRect, b: RoomRect): boolean {
   return sharedWallPairs(a, b).length > 0;
 }
 
+/** Room ids that share a wall with `roomId` (spatial adjacency, not door graph). */
+export function spatiallyAdjacentRoomIds(
+  level: Pick<LevelAsset, 'rooms'>,
+  roomId: string,
+): string[] {
+  const room = level.rooms[roomId];
+  if (!room) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const other of Object.values(level.rooms)) {
+    if (other.id === roomId) {
+      continue;
+    }
+    if (roomsShareWall(room.rect, other.rect)) {
+      out.push(other.id);
+    }
+  }
+  return out;
+}
+
 /** Build legacy room.exits from doors (first door per direction from any cell in room). */
 export function deriveLegacyExits(
   roomId: string,

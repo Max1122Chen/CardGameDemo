@@ -8,6 +8,8 @@ const DIRS: RoomDirection[] = ['north', 'south', 'east', 'west'];
  * Monospace glyphs share one column width — a "wider wall char" cannot fix aspect ratio.
  * Instead each floor cell spans several columns so rooms look less vertically skinny.
  *
+ * F04 fog (Civ-style): draw `mappedRoomIds`; interior glyphs only for `visionRoomIds`.
+ *
  * Example (inner width 3):
  *   +───+─#─+───+
  *   | @ | ~ | X |
@@ -29,15 +31,26 @@ function floorGlyph(
   y: number,
   roomId: string,
 ): string {
+  const isPlayer = snapshot.position.x === x && snapshot.position.y === y;
+  if (isPlayer) {
+    return '@';
+  }
+
+  const vision = new Set(
+    snapshot.visionRoomIds?.length
+      ? snapshot.visionRoomIds
+      : snapshot.visibleRoomIds,
+  );
+  // Visited / mapped but out of vision: layout only (empty floor).
+  if (!vision.has(roomId)) {
+    return ' ';
+  }
+
   const room = level.rooms[roomId]!;
   const state = snapshot.roomStates[roomId];
   const cleared = state?.cleared ?? false;
   const hostileRoom = Boolean(room.encounter) && !state?.encounterConsumed && !cleared;
-  const isPlayer = snapshot.position.x === x && snapshot.position.y === y;
 
-  if (isPlayer) {
-    return '@';
-  }
   if (room.kind === 'exit') {
     return 'X';
   }
@@ -62,9 +75,17 @@ function padInner(ch: string): string {
 
 /**
  * Render a cell-grid map with wide ASCII/box cells (folder-tree style ─ │ +).
+ * Draw `mappedRoomIds`; interior glyphs only when room is in `visionRoomIds`.
  */
 export function renderLevelMapLines(level: LevelAsset, snapshot: AdventureSnapshot): string[] {
-  const rooms = Object.values(level.rooms);
+  const mappedIds =
+    snapshot.mappedRoomIds?.length > 0
+      ? snapshot.mappedRoomIds
+      : snapshot.visibleRoomIds?.length > 0
+        ? snapshot.visibleRoomIds
+        : [snapshot.currentRoomId];
+  const mapped = new Set(mappedIds);
+  const rooms = Object.values(level.rooms).filter((room) => mapped.has(room.id));
   if (rooms.length === 0) {
     return [`Room: ${snapshot.currentRoomId}`];
   }
@@ -92,10 +113,14 @@ export function renderLevelMapLines(level: LevelAsset, snapshot: AdventureSnapsh
     }
   };
 
-  const hasFloor = (x: number, y: number): string | undefined =>
-    level.occupancy[cellKey({ x, y })];
+  const hasFloor = (x: number, y: number): string | undefined => {
+    const id = level.occupancy[cellKey({ x, y })];
+    if (!id || !mapped.has(id)) {
+      return undefined;
+    }
+    return id;
+  };
 
-  // Draw each occupied cell: borders + floor content.
   for (let y = minY; y <= maxY; y += 1) {
     for (let x = minX; x <= maxX; x += 1) {
       const roomId = hasFloor(x, y);
@@ -107,13 +132,11 @@ export function renderLevelMapLines(level: LevelAsset, snapshot: AdventureSnapsh
       const ox = lx * PITCH_X;
       const oy = ly * PITCH_Y;
 
-      // Corners of this cell
       set(ox, oy, CORNER);
       set(ox + PITCH_X, oy, CORNER);
       set(ox, oy + PITCH_Y, CORNER);
       set(ox + PITCH_X, oy + PITCH_Y, CORNER);
 
-      // Horizontal borders (top / bottom); door = closed wall with # in the middle (─#─)
       for (const edge of ['north', 'south'] as const) {
         const n = stepCell({ x, y }, edge);
         const nRoom = hasFloor(n.x, n.y);
@@ -131,14 +154,13 @@ export function renderLevelMapLines(level: LevelAsset, snapshot: AdventureSnapsh
         }
       }
 
-      // Vertical borders (west / east); door replaces the bar with a single #
       for (const edge of ['west', 'east'] as const) {
         const n = stepCell({ x, y }, edge);
         const nRoom = hasFloor(n.x, n.y);
         const door = findDoorBetween(level.doors, { x, y }, n);
         const sameRoom = nRoom === roomId;
         const gx = edge === 'west' ? ox : ox + PITCH_X;
-        const gy = oy + 1; // content row
+        const gy = oy + 1;
         if (sameRoom) {
           set(gx, gy, ' ');
         } else if (door) {
@@ -148,7 +170,6 @@ export function renderLevelMapLines(level: LevelAsset, snapshot: AdventureSnapsh
         }
       }
 
-      // Floor content (centered)
       const inner = padInner(floorGlyph(level, snapshot, x, y, roomId));
       for (let i = 0; i < INNER_W; i += 1) {
         set(ox + 1 + i, oy + 1, inner[i] ?? ' ');
@@ -156,8 +177,6 @@ export function renderLevelMapLines(level: LevelAsset, snapshot: AdventureSnapsh
     }
   }
 
-  // For multi-cell rooms, clear internal shared walls that were double-drawn as open.
-  // (sameRoom paths already clear; ensure internal verticals between same-room cells stay open.)
   for (let y = minY; y <= maxY; y += 1) {
     for (let x = minX; x <= maxX; x += 1) {
       const roomId = hasFloor(x, y);
@@ -185,12 +204,18 @@ export function renderLevelMapLines(level: LevelAsset, snapshot: AdventureSnapsh
   }
 
   const lines = grid.map((row) => row.join(''));
-  // Drop trailing all-space rows/cols noise — keep as-is for stable layout.
   lines.push('');
   lines.push(
     `You: ${snapshot.currentRoomId} @${snapshot.position.x},${snapshot.position.y}`,
   );
-  lines.push(`@ you  ${DOOR} door (${H}${DOOR}${H} / ${DOOR})  ${H}${V} wall  ~ hostile  S safe  X exit`);
+  lines.push(
+    `@ you  ${DOOR} door (${H}${DOOR}${H} / ${DOOR})  ${H}${V} wall  ~ hostile  S safe  X exit`,
+  );
+  const visionCount = snapshot.visionRoomIds?.length ?? 0;
+  const mappedCount = mapped.size;
+  lines.push(
+    `Map: ${mappedCount} known | Vision: ${visionCount} (door) | ${Object.keys(level.rooms).length} total`,
+  );
   if (snapshot.pendingCombat) {
     const encounter = snapshot.currentRoom.encounter?.characterId ?? 'enemy';
     lines.push(`Encounter: ${encounter} — Enter/C to fight (room-wide)`);

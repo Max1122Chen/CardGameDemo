@@ -10,6 +10,27 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-18 — DUNGEON-F04: known = ever seen (not only visited)
+
+- `knownRoomIds` permanent once room enters vision (door glimpse); visited separate.
+- Unvisited glimpsed rooms stay on map as empty shells out of vision.
+
+### 2026-07-18 — DUNGEON-F04 Done: Civ-style fog (layout + door vision)
+
+- `visited` permanent layout; `vision` = current ∪ door-adjacent; mapped = union.
+- Wall-only neighbors get no vision; out-of-vision visited rooms draw empty shell.
+- Gameplay: [dungeon.md](../design/systems/dungeon.md) vision section updated.
+
+### 2026-07-18 — DUNGEON-F04 Done: exploration fog
+
+- Visited ∪ wall-adjacent rooms visible; CLI map filters to `visibleRoomIds`.
+- Adjacent content shown by default. **Verify:** 264 tests green.
+
+### 2026-07-18 — DUNGEON-F04: exploration fog
+
+- Visited ∪ wall-adjacent rooms visible; CLI map filters to `visibleRoomIds`.
+- Adjacent content shown by default (no content-vision gate).
+
 ### 2026-07-18 — DUNGEON-F03 Done: explore round + AP
 
 - Explore AP (default 3): door spends, intra-room free; EndRound (`f`) refills; RoundStart/End lifecycle.
