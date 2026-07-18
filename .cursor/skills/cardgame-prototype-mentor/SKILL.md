@@ -72,8 +72,19 @@ When `docs-workflow-triggers` applies:
 
 After a finished slice/batch:
 
-1. Slice DoD + Progress
+1. **Implementation DoD** (see below) + Slice Doc DoD + Progress
 2. **Offer 准备 commit** — do not jump to next Feature unless user skips commit
+
+## Implementation DoD (code quality — mandatory)
+
+Before verify / Slice Done / commit offer on non-trivial TS work:
+
+1. **Reuse** — searched for existing helpers; no fresh copy-paste of loaders, host bridges, or damage/inventory utilities.
+2. **Dead code** — superseded files/exports/branches removed in this change (or explicit TECH_DEBT ID if kept).
+3. **Transition** — dual paths / deprecated aliases touched by this slice collapsed or registered as `TD-*`.
+4. **Exports** — no orphaned public exports from this change.
+
+Full policy: `.cursor/rules/implementation-discipline.mdc`.
 
 ## Task workflow
 
@@ -102,6 +113,7 @@ Default: no backward-compat shims during active prototyping unless user requests
 - Implementing before user promotes ACTIVE_WORK (unless explicitly scoped)
 - Editing `docs/design/systems/*.md` without explicit user request
 - Skipping Progress/handoff on multi-session work
+- Duplicating helpers instead of reusing; leaving dead or dual-path code after a slice
 
 ## Trigger examples
 

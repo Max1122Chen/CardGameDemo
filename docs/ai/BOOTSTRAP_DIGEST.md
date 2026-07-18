@@ -1,6 +1,6 @@
 # Bootstrap Digest (read in under 2 min)
 
-Last updated: 2026-07-04
+Last updated: 2026-07-19
 
 **Gameplay:** [Overview.md](../design/Overview.md) + [systems/](../design/systems/) (read-only for agents)
 
@@ -22,3 +22,9 @@ Last updated: 2026-07-04
 |---------|----------------|
 | 帮改设计 | Edit named `systems/*.md` section only, with permission |
 | 准备 commit | Draft only until approved |
+
+---
+
+## Coding discipline (always)
+
+Reuse over duplicate; delete superseded code in the same change; tidy transitional paths you touch. See `.cursor/rules/implementation-discipline.mdc`.

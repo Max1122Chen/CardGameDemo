@@ -12,6 +12,7 @@ For the first assistant response in each new session, complete this bootstrap be
    - `docs/ai/PROGRESS_LOG.md` (if exists; recent entries only)
    - `docs/ai/ACTIVE_WORK.md` (if exists) — current backlog
    - `docs/ai/BOOTSTRAP_DIGEST.md` (if exists) — rules, DoD, commands
+   - Also apply `.cursor/rules/implementation-discipline.mdc` (reuse / no dead code / touch-it-then-tidy)
    - Do **not** infer backlog from old roadmaps; follow `docs-trust-tiers` rule
    - Gameplay truth: `docs/design/Overview.md` + `systems/*.md` (read-only; see `design-doc-governance`)
 

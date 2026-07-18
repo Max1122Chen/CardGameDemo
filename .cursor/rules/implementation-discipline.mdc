@@ -1,0 +1,56 @@
+---
+description: Coding discipline — reuse first, no dead code, repay transitional paths when touching them.
+alwaysApply: true
+---
+
+# Implementation Discipline (always)
+
+These rules govern **how code is written**, not collaboration workflow. They override “make the Feature green ASAP” habits.
+
+## 1) Reuse before duplicate
+
+Before adding a new helper, module, or parallel API:
+
+1. Search the same package (and shared packages like `@cardgame/repo-data`, `core`) for the same responsibility.
+2. Prefer **extend or call** an existing function/module over a second implementation.
+3. If the same pattern already exists in **two** places, extract on the third touch (or in the current change if you are already editing both).
+
+**No-go:** copy-paste “just for this slice; clean up later.”
+
+## 2) Zero dead code in the same change
+
+When a new path supersedes an old one:
+
+- Delete the old file / export / branch **in the same change** (unless the user or `ACTIVE_WORK` / `TECH_DEBT` explicitly keeps compatibility).
+- Do not add `@deprecated` shims “for safety.” If retention is required, file a `TD-*` / TECH_DEBT row with an ID.
+- Package `index.ts` must not export unused symbols introduced or orphaned by this change.
+- Removing an implementation requires removing its public export and updating call sites.
+
+## 3) Transitional debt: touch-it-then-tidy
+
+When advancing a Feature and you encounter related transitional code (dual paths, legacy aliases, unused helpers in files you already edit):
+
+| Situation | Action |
+|-----------|--------|
+| Deprecated / dual path **in scope** of this change | Collapse to one path or delete |
+| Mess **outside** this Feature | File `TECH_DEBT` / `TD-*`; do not drive-by rewrite |
+| Legacy wire still required for assets | May keep; comment + TECH_DEBT; **do not extend** the legacy format |
+
+**Rule:** transitional code you touch is either removed or registered — never silently grown.
+
+## 4) Implementation DoD (before claiming slice done / verify)
+
+After non-trivial TypeScript edits, check:
+
+1. **Reuse** — any new duplicated block that should share one helper?
+2. **Dead** — any parallel API or file left only because the new path exists?
+3. **Exports** — any new or leftover export with zero in-repo references?
+
+Fail any check → fix before `npm run verify` / Slice Done / commit offer.
+
+## 5) Scope boundary
+
+- **In scope:** bold cleanup of duplication and transition **touched by this task**.
+- **Out of scope:** unrelated god-object rewrites; park those as REFAC / TECH_DEBT.
+
+If this file conflicts with “ship a temporary second path,” **this file wins** unless the user explicitly overrides for that change.

@@ -34,10 +34,11 @@ When writing or editing `.ts` / `.tsx`:
 - **Effects:** data-driven (JSON + interpreter/registry); avoid hardcoding per-card logic in core.
 - **RNG:** seeded and serializable for reproducible tests and agent play.
 - **Hosts** (`cli`, `editor`, `ui`): may use Node/DOM; depend on `core`, not the reverse.
+- **Coding habits:** reuse over duplicate; delete superseded code in the same change; touch-it-then-tidy transitional paths — see `.cursor/rules/implementation-discipline.mdc`.
 
 ## 4) Context recovery (re-apply this rule)
 
-**Re-read and silently re-apply sections 1–3** at the start of your reply when any of these is true:
+**Re-read and silently re-apply sections 1–3** (and `implementation-discipline.mdc`) at the start of your reply when any of these is true:
 
 - New Cursor session or thread, or conversation was **summarized / compressed**.
 - User says **re-bootstrap**, **对齐约束**, or asks to realign with project rules.

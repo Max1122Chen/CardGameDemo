@@ -10,6 +10,11 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-19 — Process: implementation-discipline rule
+
+- Added alwaysApply `.cursor/rules/implementation-discipline.mdc` (reuse, zero dead code, touch-it-then-tidy).
+- Mentor skill: Implementation DoD; hard-constraints + bootstrap digest linked.
+
 ### 2026-07-19 — REFAC-F01 Done: CLI session split + foundation cleanup
 
 - Split `session-controller` → `session-types` / `session-view-sync` / `apply-ui-action` / factory.
