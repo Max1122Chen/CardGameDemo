@@ -1,6 +1,6 @@
 # Active work (agent backlog)
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 > **Agent:** Primary backlog. Do not infer implementation from full design docs without promotion here.
 
@@ -8,15 +8,15 @@ Last updated: 2026-07-17
 
 ## In focus
 
-**Phase:** DUNGEON-F01 Done (S01–S07). Next backlog TBD.
+**Phase:** DUNGEON-F02 Done. Next: DUNGEON-F03 (explore round / AP) when promoted.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| — | **CORE-F14** | BT runtime in core | **Done** ([spec](./Core/CORE-F14-behavior-tree.md)) |
-| — | **CHAR-F01** | `@cardgame/characters` defs + spawn | **Done** ([spec](./Characters/CHAR-F01-character-package.md)) |
-| — | **COMBAT-F05** | Slime/orc data spawn + BT fixed turns + loot from instance | **Done** ([spec](./Combat/COMBAT-F05-enemy-data-driven.md)) |
-| — | **COMBAT-F06** | Context-aware orc BT (blackboard + playBestCard + Intelligence) | **Done** ([spec](./Combat/COMBAT-F06-enemy-bt-ai.md)) |
 | — | **DUNGEON-F01** | Level explore↔combat, JSON+generator, virtual BattleOnly room | **Done** ([spec](./Dungeon/DUNGEON-F01-minimal-level-slice.md)) |
+| — | **DUNGEON-F02** | Rect rooms, doors, cell position, CLI map, lifecycle stubs | **Done** ([spec](./Dungeon/DUNGEON-F02-spatial-level-gen.md)) |
+| 1 | **DUNGEON-F03** | Explore round + AP on door moves | **Planned** |
+| 2 | **DUNGEON-F04** | Exploration fog (shapes) | **Planned** |
+| 3 | **DUNGEON-F05** | Multi-level descend / evacuate | **Planned** |
 
 ---
 
@@ -25,8 +25,7 @@ Last updated: 2026-07-17
 | Theme | Suggested ID | After |
 |-------|--------------|-------|
 | Equipment wear / dual-wield variants / passives | EQUIP-F02 | EQUIP-F01 |
-| Enemy context-aware BT (orc tactical) | COMBAT-F06 | COMBAT-F05 |
-| Dungeon / loot / events | DUNGEON-F02 | After F01 |
+| Dungeon narrative room events / shops / pools | DUNGEON-F06+ | After F05 |
 
 ---
 

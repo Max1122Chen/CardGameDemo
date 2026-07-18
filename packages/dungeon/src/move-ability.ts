@@ -124,6 +124,9 @@ export function activateDungeonMove(options: {
 
   const handle = ensureDungeonMoveAbility(player, engine);
   const movementCost = adventure.getMovementCost(direction);
+  if (movementCost === undefined) {
+    throw new AdventureError(`Cannot move ${direction}`);
+  }
   const result = player.tryActivate(handle, {
     instigatorEntityId: player.entityId,
     sourceEntityId: player.entityId,

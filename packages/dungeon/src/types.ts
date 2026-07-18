@@ -6,12 +6,43 @@ export type RoomEncounter = {
   characterId: string;
 };
 
+export type CellCoord = {
+  x: number;
+  y: number;
+};
+
+/** Axis-aligned room footprint in level cell space. */
+export type RoomRect = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+/** Bidirectional door between adjacent cells of different rooms. */
+export type LevelDoor = {
+  a: CellCoord;
+  b: CellCoord;
+  /** Edge cost when crossing (F02 default 1; AP spend in F03). */
+  cost: number;
+};
+
 export type RoomDefinition = {
   id: string;
   kind: RoomKind;
+  /** Occupied rectangle (required after normalize). */
+  rect: RoomRect;
+  /**
+   * Legacy F01 layout hint / derived origin. Prefer `rect`.
+   * @deprecated use rect
+   */
   grid?: { x: number; y: number };
-  /** Adjacent room ids; movement cost is always 0 in F01. */
-  exits: Partial<Record<RoomDirection, string>>;
+  /**
+   * Legacy F01 per-direction room targets. After normalize, derived from doors
+   * for convenience; movement uses cell steps + doors.
+   * @deprecated use level.doors
+   */
+  exits?: Partial<Record<RoomDirection, string>>;
   encounter?: RoomEncounter;
 };
 
@@ -21,7 +52,12 @@ export type LevelAsset = {
   id: string;
   source: LevelSource;
   startRoomId: string;
+  /** Player spawn cell (must belong to startRoomId). */
+  startPosition: CellCoord;
   rooms: Record<string, RoomDefinition>;
+  doors: LevelDoor[];
+  /** cellKey "x,y" → roomId for floor cells. */
+  occupancy: Record<string, string>;
 };
 
 export type RoomGroundLootEntry = {
@@ -46,13 +82,17 @@ export type AdventureExploreAction =
 
 export type LevelGenProfile = {
   seed: number;
+  /** Placement canvas width (cells). */
   width: number;
+  /** Placement canvas height (cells). */
   height: number;
   roomCount: number;
   encounterTable: { characterId: string; weight: number }[];
-  /** Fraction of normal (non-start, non-exit) rooms that get an encounter. */
+  /** Fraction of normal rooms that get an encounter. */
   encounterChance?: number;
   exitRoom?: boolean;
+  /** Extra rooms that may share walls without doors (adjacent ≠ connected). */
+  fillerWallRooms?: number;
 };
 
 export const ROOM_DIRECTIONS: readonly RoomDirection[] = [
@@ -74,3 +114,5 @@ export function oppositeDirection(dir: RoomDirection): RoomDirection {
       return 'east';
   }
 }
+
+export const DEFAULT_DOOR_COST = 1;

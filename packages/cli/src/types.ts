@@ -155,6 +155,7 @@ export type AppState = {
   inventoryPlaceInput: string;
   levelId?: string;
   currentRoomId?: string;
+  position?: { x: number; y: number };
   pendingCombat?: boolean;
   mapLines: string[];
   roomLoot: RoomLootView[];

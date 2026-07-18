@@ -31,14 +31,16 @@ describe('explore layout DUNGEON-F01 S06', () => {
     expect(plain).toMatch(/confirm|Enter\/C|fight/i);
   });
 
-  it('dungeon boot shows probe level start room', () => {
+  it('dungeon boot shows generated level map', () => {
     const { controller, state } = createBootstrappedShell({ mode: 'dungeon', seed: 42 });
     expect(state.sessionPhase).toBe('adventure_explore');
-    expect(state.currentRoomId).toBe('start');
     expect(state.pendingCombat).toBe(false);
+    expect(state.currentRoomId).toBeTruthy();
+    expect(state.position).toBeDefined();
     const plain = stripAnsi(renderFrame(state, controller, { cols: 100 }));
     expect(plain).toContain('Map');
     expect(plain).toContain('Room');
+    expect(plain).toMatch(/@|You:/);
   });
 });
 

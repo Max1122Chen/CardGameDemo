@@ -1,7 +1,9 @@
 export type {
   AdventureExploreAction,
   AdventurePhase,
+  CellCoord,
   LevelAsset,
+  LevelDoor,
   LevelGenProfile,
   LevelSource,
   RoomDefinition,
@@ -9,9 +11,10 @@ export type {
   RoomEncounter,
   RoomGroundLootEntry,
   RoomKind,
+  RoomRect,
   RoomRuntimeState,
 } from './types.js';
-export { ROOM_DIRECTIONS, oppositeDirection } from './types.js';
+export { DEFAULT_DOOR_COST, ROOM_DIRECTIONS, oppositeDirection } from './types.js';
 export { AdventureError, LevelParseError } from './errors.js';
 export {
   parseLevelDefinition,
@@ -22,9 +25,29 @@ export { loadLevelById, loadLevelFromRepo, resolveRepoDataRoot } from './load-le
 export {
   createSeededRng,
   createVirtualBattleLevel,
+  defaultDungeonGenProfile,
+  generateDefaultDungeonLevel,
   generateLevel,
 } from './generate-level.js';
+export {
+  buildOccupancy,
+  cellKey,
+  cellsInRect,
+  directionBetween,
+  findDoorBetween,
+  normalizeLevelAsset,
+  resolveRoomRect,
+  sharedWallPairs,
+  stepCell,
+  stepMovementCost,
+} from './level-geometry.js';
 export { AdventureSession, type AdventureSnapshot } from './adventure-session.js';
+export {
+  AdventureLifecycleBus,
+  type AdventureLifecycleEvent,
+  type AdventureLifecycleEventType,
+  type AdventureLifecycleListener,
+} from './lifecycle.js';
 export {
   beginAdventureCombat,
   finishAdventureCombat,

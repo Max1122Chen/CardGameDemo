@@ -29,12 +29,13 @@ describe('DUNGEON-F01 level parse and load', () => {
 });
 
 describe('DUNGEON-F01 generator', () => {
-  it('produces a connected graph and is seed-stable', () => {
+  it('produces a connected door-graph and is seed-stable', () => {
     const profile = {
       seed: 42,
-      width: 4,
-      height: 3,
+      width: 8,
+      height: 6,
       roomCount: 6,
+      fillerWallRooms: 0,
       encounterTable: [
         { characterId: 'slime', weight: 2 },
         { characterId: 'orc_brute', weight: 1 },
@@ -46,24 +47,33 @@ describe('DUNGEON-F01 generator', () => {
     expect(a).toEqual(b);
     expect(Object.keys(a.rooms).length).toBe(6);
     expect(a.rooms[a.startRoomId]?.kind).toBe('safe');
+    expect(a.startPosition).toBeDefined();
+    expect(a.doors.length).toBeGreaterThan(0);
 
     const exitRooms = Object.values(a.rooms).filter((room) => room.kind === 'exit');
     expect(exitRooms.length).toBe(1);
 
-    // Every room reachable from start via BFS on exits.
+    // Every room reachable from start via BFS on doors.
     const visited = new Set<string>();
     const queue = [a.startRoomId];
+    const adj = new Map<string, Set<string>>();
+    for (const id of Object.keys(a.rooms)) {
+      adj.set(id, new Set());
+    }
+    for (const door of a.doors) {
+      const ra = a.occupancy[`${door.a.x},${door.a.y}`]!;
+      const rb = a.occupancy[`${door.b.x},${door.b.y}`]!;
+      adj.get(ra)!.add(rb);
+      adj.get(rb)!.add(ra);
+    }
     while (queue.length > 0) {
       const id = queue.shift()!;
       if (visited.has(id)) {
         continue;
       }
       visited.add(id);
-      const room = a.rooms[id]!;
-      for (const target of Object.values(room.exits)) {
-        if (target) {
-          queue.push(target);
-        }
+      for (const n of adj.get(id) ?? []) {
+        queue.push(n);
       }
     }
     expect(visited.size).toBe(Object.keys(a.rooms).length);

@@ -36,7 +36,7 @@ describe('DUNGEON-F01 S07 ga.dungeon.move', () => {
 
     expect(adventure.getCurrentRoomId()).toBe('hall_a');
     expect(adventure.isPendingCombat()).toBe(true);
-    expect(adventure.getSnapshot().log.some((line) => line.includes('cost 0'))).toBe(true);
+    expect(adventure.getSnapshot().log.some((line) => line.includes('cost 1'))).toBe(true);
     expect(player.listGrantedAbilities().some((a) => a.abilityDefId === DUNGEON_MOVE_ABILITY_ID)).toBe(
       true,
     );

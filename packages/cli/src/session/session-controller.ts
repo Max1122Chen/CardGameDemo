@@ -10,6 +10,7 @@ import {
   createVirtualBattleLevel,
   ensureExplorePlayerForMove,
   finishAdventureCombat,
+  generateDefaultDungeonLevel,
   loadLevelFromRepo,
   registerDungeonAbilityHandlers,
   type AdventureSnapshot,
@@ -265,6 +266,7 @@ function syncAdventureExploreViews(
     sessionPhase: adventurePhaseToSessionPhase(snap.phase),
     levelId: snap.levelId,
     currentRoomId: snap.currentRoomId,
+    position: snap.position,
     pendingCombat: snap.pendingCombat,
     mapLines: renderLevelMapLines(adventure.getLevel(), snap),
     roomLoot,
@@ -343,11 +345,15 @@ export function createSessionController(options: {
     );
   };
 
+  const adventureSeed = options.seed ?? 42;
+
   const startAdventureLevel = (kind: 'battle_only' | 'dungeon', levelId?: string) => {
     const level =
       kind === 'battle_only'
         ? createVirtualBattleLevel(enemyCharacterId)
-        : loadLevelFromRepo(levelId ?? 'level.probe');
+        : levelId
+          ? loadLevelFromRepo(levelId)
+          : generateDefaultDungeonLevel(adventureSeed);
     return AdventureSession.start(level);
   };
 

@@ -48,6 +48,10 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CORE-F14` | Behavior tree runtime: JSON assets, tick, blackboard, task registry | Done | — | [CORE-F14-behavior-tree.md](./Core/CORE-F14-behavior-tree.md) |
 | `CHAR-F01` | `@cardgame/characters` package: defs, spawn, instances | Done | — | [CHAR-F01-character-package.md](./Characters/CHAR-F01-character-package.md) |
 | `DUNGEON-F01` | Minimal level slice: JSON + generator, explore↔combat, virtual BattleOnly room | Done | — | [DUNGEON-F01-minimal-level-slice.md](./Dungeon/DUNGEON-F01-minimal-level-slice.md) |
+| `DUNGEON-F02` | Spatial rect rooms, doors, cell position, CLI map, lifecycle stubs | Done | — | [DUNGEON-F02-spatial-level-gen.md](./Dungeon/DUNGEON-F02-spatial-level-gen.md) |
+| `DUNGEON-F03` | Explore round timing + door moves spend AP | Planned | — | — |
+| `DUNGEON-F04` | Exploration fog (room shapes); adjacent content visible by default | Planned | — | — |
+| `DUNGEON-F05` | Multi-level dungeon (descend / evacuate) | Planned | — | — |
 
 ---
 
@@ -61,7 +65,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CHAR` | F02 | F01 Done |
 | `ITEM` | F03 | F02 Done |
 | `EQUIP` | F02 | F01 equipment loadout registered |
-| `DUNGEON` | F02 | F01 Done — [spec](./Dungeon/DUNGEON-F01-minimal-level-slice.md) |
+| `DUNGEON` | F06 | F02 Done; F03–F05 Planned |
 | `DATA` | F02 | F01 card asset pipeline registered |
 | `EFFECT` | F01 | May fold into CORE-F06; register if split |
 | `ED` | F01 | Visual data editor |

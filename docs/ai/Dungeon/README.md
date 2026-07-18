@@ -6,10 +6,11 @@ Engineering **how** for adventure / level exploration. Gameplay **what** stays i
 
 | Doc | Feature | Status |
 |-----|---------|--------|
-| [DUNGEON-F01-minimal-level-slice.md](./DUNGEON-F01-minimal-level-slice.md) | DUNGEON-F01 | Planned |
+| [DUNGEON-F01-minimal-level-slice.md](./DUNGEON-F01-minimal-level-slice.md) | DUNGEON-F01 | Done |
+| [DUNGEON-F02-spatial-level-gen.md](./DUNGEON-F02-spatial-level-gen.md) | DUNGEON-F02 | Done |
 
 ## Conventions
 
 - 地牢 **层级** = **`level`** in code and data (`level.probe`, `LevelAsset`).
-- **Room** = node on a level graph; **adventure** = one run (F01: single level).
+- **Room** = axis-aligned rect on a cell grid (F02+); **door** = cell-edge link; **adventure** = one run (single level until F05).
 - Slices use `-Snn` inside the feature doc only.

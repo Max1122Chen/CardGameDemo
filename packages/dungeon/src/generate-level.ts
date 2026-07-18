@@ -1,5 +1,20 @@
-import type { LevelAsset, LevelGenProfile, RoomDefinition, RoomDirection } from './types.js';
-import { oppositeDirection } from './types.js';
+import type {
+  LevelAsset,
+  LevelDoor,
+  LevelGenProfile,
+  RoomDefinition,
+  RoomDirection,
+  RoomRect,
+} from './types.js';
+import { DEFAULT_DOOR_COST, ROOM_DIRECTIONS } from './types.js';
+import {
+  buildOccupancy,
+  cellKey,
+  cellsInRect,
+  normalizeLevelAsset,
+  roomsShareWall,
+  sharedWallPairs,
+} from './level-geometry.js';
 
 /** Mulberry32 — small deterministic PRNG for level generation. */
 export function createSeededRng(seed: number): () => number {
@@ -34,117 +49,198 @@ function pickWeighted(
   return table[table.length - 1]?.characterId;
 }
 
-type Cell = { x: number; y: number };
-
-function cellKey(c: Cell): string {
-  return `${c.x},${c.y}`;
+function pickRoomSize(rng: () => number): { w: number; h: number } {
+  const roll = rng();
+  if (roll < 0.55) {
+    return { w: 1, h: 1 };
+  }
+  if (roll < 0.75) {
+    return rng() < 0.5 ? { w: 2, h: 1 } : { w: 1, h: 2 };
+  }
+  if (roll < 0.9) {
+    return rng() < 0.5 ? { w: 3, h: 1 } : { w: 1, h: 3 };
+  }
+  return { w: 2, h: 2 };
 }
 
-function neighbors4(c: Cell, width: number, height: number): Cell[] {
-  const out: Cell[] = [];
-  if (c.y > 0) {
-    out.push({ x: c.x, y: c.y - 1 });
-  }
-  if (c.y < height - 1) {
-    out.push({ x: c.x, y: c.y + 1 });
-  }
-  if (c.x > 0) {
-    out.push({ x: c.x - 1, y: c.y });
-  }
-  if (c.x < width - 1) {
-    out.push({ x: c.x + 1, y: c.y });
-  }
-  return out;
+function rectInBounds(rect: RoomRect, width: number, height: number): boolean {
+  return rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= width && rect.y + rect.h <= height;
 }
 
-function directionBetween(from: Cell, to: Cell): RoomDirection | undefined {
-  if (to.x === from.x && to.y === from.y - 1) {
-    return 'north';
+function occupancyHasOverlap(
+  occupancy: Map<string, string>,
+  rect: RoomRect,
+): boolean {
+  for (const cell of cellsInRect(rect)) {
+    if (occupancy.has(cellKey(cell))) {
+      return true;
+    }
   }
-  if (to.x === from.x && to.y === from.y + 1) {
-    return 'south';
+  return false;
+}
+
+function stampOccupancy(occupancy: Map<string, string>, rect: RoomRect, roomId: string): void {
+  for (const cell of cellsInRect(rect)) {
+    occupancy.set(cellKey(cell), roomId);
   }
-  if (to.x === from.x + 1 && to.y === from.y) {
-    return 'east';
+}
+
+/** Place `size` so it shares a wall with `anchor` on `dir` side of anchor. */
+function placeAdjacentRect(
+  anchor: RoomRect,
+  dir: RoomDirection,
+  size: { w: number; h: number },
+  rng: () => number,
+): RoomRect {
+  let x = anchor.x;
+  let y = anchor.y;
+  switch (dir) {
+    case 'east':
+      x = anchor.x + anchor.w;
+      y = anchor.y + Math.floor(rng() * Math.max(1, anchor.h - size.h + 1));
+      break;
+    case 'west':
+      x = anchor.x - size.w;
+      y = anchor.y + Math.floor(rng() * Math.max(1, anchor.h - size.h + 1));
+      break;
+    case 'south':
+      y = anchor.y + anchor.h;
+      x = anchor.x + Math.floor(rng() * Math.max(1, anchor.w - size.w + 1));
+      break;
+    case 'north':
+      y = anchor.y - size.h;
+      x = anchor.x + Math.floor(rng() * Math.max(1, anchor.w - size.w + 1));
+      break;
   }
-  if (to.x === from.x - 1 && to.y === from.y) {
-    return 'west';
+  return { x, y, w: size.w, h: size.h };
+}
+
+function doorGraphDistance(
+  startId: string,
+  rooms: Record<string, RoomDefinition>,
+  doors: LevelDoor[],
+  occupancy: Record<string, string>,
+): Map<string, number> {
+  const adj = new Map<string, Set<string>>();
+  for (const id of Object.keys(rooms)) {
+    adj.set(id, new Set());
   }
-  return undefined;
+  for (const door of doors) {
+    const ra = occupancy[cellKey(door.a)];
+    const rb = occupancy[cellKey(door.b)];
+    if (ra && rb) {
+      adj.get(ra)!.add(rb);
+      adj.get(rb)!.add(ra);
+    }
+  }
+  const dist = new Map<string, number>();
+  const queue = [startId];
+  dist.set(startId, 0);
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    const d = dist.get(id)!;
+    for (const n of adj.get(id) ?? []) {
+      if (!dist.has(n)) {
+        dist.set(n, d + 1);
+        queue.push(n);
+      }
+    }
+  }
+  return dist;
 }
 
 /**
- * F01 generator: place rooms via random walk on a grid, link adjacent placed cells,
- * assign start/exit and optional weighted encounters. Same seed → same LevelAsset.
+ * F02 spatial generator: rectangular rooms, selective doors, seed-stable.
+ * Same seed → same LevelAsset.
  */
 export function generateLevel(profile: LevelGenProfile): LevelAsset {
-  const width = Math.max(1, profile.width);
-  const height = Math.max(1, profile.height);
-  const maxCells = width * height;
-  const roomCount = Math.min(Math.max(1, profile.roomCount), maxCells);
+  const width = Math.max(3, profile.width);
+  const height = Math.max(3, profile.height);
+  const roomCount = Math.max(1, profile.roomCount);
   const rng = createSeededRng(profile.seed);
   const wantExit = profile.exitRoom !== false;
-  const encounterChance = profile.encounterChance ?? 0.4;
+  const encounterChance = profile.encounterChance ?? 0.45;
+  const fillerCount = profile.fillerWallRooms ?? 1;
 
-  const start: Cell = {
-    x: Math.floor(rng() * width),
-    y: Math.floor(rng() * height),
-  };
-  const placed = new Map<string, Cell>();
-  placed.set(cellKey(start), start);
+  const occupancy = new Map<string, string>();
+  const placed: { id: string; rect: RoomRect }[] = [];
+  const doors: LevelDoor[] = [];
 
-  let cursor = start;
-  while (placed.size < roomCount) {
-    const options = neighbors4(cursor, width, height);
-    const next = options[Math.floor(rng() * options.length)]!;
-    placed.set(cellKey(next), next);
-    cursor = next;
+  const startRect: RoomRect = { x: Math.floor(width / 2), y: Math.floor(height / 2), w: 1, h: 1 };
+  const startId = 'r0';
+  placed.push({ id: startId, rect: startRect });
+  stampOccupancy(occupancy, startRect, startId);
+
+  let attempts = 0;
+  const maxAttempts = roomCount * 80;
+  while (placed.length < roomCount && attempts < maxAttempts) {
+    attempts += 1;
+    const anchor = placed[Math.floor(rng() * placed.length)]!;
+    const dir = ROOM_DIRECTIONS[Math.floor(rng() * ROOM_DIRECTIONS.length)]!;
+    const size = pickRoomSize(rng);
+    const rect = placeAdjacentRect(anchor.rect, dir, size, rng);
+    if (!rectInBounds(rect, width, height) || occupancyHasOverlap(occupancy, rect)) {
+      continue;
+    }
+    if (!roomsShareWall(anchor.rect, rect)) {
+      continue;
+    }
+    const pairs = sharedWallPairs(anchor.rect, rect);
+    if (pairs.length === 0) {
+      continue;
+    }
+    const id = `r${placed.length}`;
+    placed.push({ id, rect });
+    stampOccupancy(occupancy, rect, id);
+    const [a, b] = pairs[Math.floor(rng() * pairs.length)]!;
+    doors.push({ a: { ...a }, b: { ...b }, cost: DEFAULT_DOOR_COST });
   }
 
-  const cells = [...placed.values()];
-  const idForCell = new Map<string, string>();
-  cells.forEach((cell, index) => {
-    idForCell.set(cellKey(cell), `r${index}`);
-  });
+  // Filler rooms: share a wall but intentionally no door (adjacent ≠ connected).
+  let fillers = 0;
+  attempts = 0;
+  while (fillers < fillerCount && attempts < maxAttempts) {
+    attempts += 1;
+    const anchor = placed[Math.floor(rng() * placed.length)]!;
+    const dir = ROOM_DIRECTIONS[Math.floor(rng() * ROOM_DIRECTIONS.length)]!;
+    const size = pickRoomSize(rng);
+    const rect = placeAdjacentRect(anchor.rect, dir, size, rng);
+    if (!rectInBounds(rect, width, height) || occupancyHasOverlap(occupancy, rect)) {
+      continue;
+    }
+    if (!roomsShareWall(anchor.rect, rect)) {
+      continue;
+    }
+    // Must also touch some other room or the same anchor — wall without door is enough.
+    const id = `r${placed.length}`;
+    placed.push({ id, rect });
+    stampOccupancy(occupancy, rect, id);
+    fillers += 1;
+  }
 
   const rooms: Record<string, RoomDefinition> = {};
-  for (const cell of cells) {
-    const id = idForCell.get(cellKey(cell))!;
-    const exits: RoomDefinition['exits'] = {};
-    for (const n of neighbors4(cell, width, height)) {
-      const neighborId = idForCell.get(cellKey(n));
-      if (!neighborId) {
-        continue;
-      }
-      const dir = directionBetween(cell, n);
-      if (dir) {
-        exits[dir] = neighborId;
-      }
-    }
-    rooms[id] = {
-      id,
+  for (const entry of placed) {
+    rooms[entry.id] = {
+      id: entry.id,
       kind: 'normal',
-      grid: { x: cell.x, y: cell.y },
-      exits,
+      rect: entry.rect,
     };
   }
+  rooms[startId]!.kind = 'safe';
 
-  const startRoomId = idForCell.get(cellKey(start))!;
-  rooms[startRoomId]!.kind = 'safe';
-
-  if (wantExit && cells.length > 1) {
-    let farthest = start;
+  const occRecord = Object.fromEntries(occupancy.entries());
+  if (wantExit && placed.length > 1) {
+    const dist = doorGraphDistance(startId, rooms, doors, occRecord);
+    let bestId = startId;
     let best = -1;
-    for (const cell of cells) {
-      const d = Math.abs(cell.x - start.x) + Math.abs(cell.y - start.y);
+    for (const [id, d] of dist) {
       if (d > best) {
         best = d;
-        farthest = cell;
+        bestId = id;
       }
     }
-    const exitId = idForCell.get(cellKey(farthest))!;
-    if (exitId !== startRoomId) {
-      rooms[exitId]!.kind = 'exit';
+    if (bestId !== startId) {
+      rooms[bestId]!.kind = 'exit';
     }
   }
 
@@ -161,46 +257,55 @@ export function generateLevel(profile: LevelGenProfile): LevelAsset {
     }
   }
 
-  // Ensure exits are reciprocal when both rooms exist (walk already places both sides).
-  for (const room of Object.values(rooms)) {
-    for (const dir of Object.keys(room.exits) as RoomDirection[]) {
-      const targetId = room.exits[dir];
-      if (!targetId) {
-        continue;
-      }
-      const target = rooms[targetId];
-      if (!target) {
-        continue;
-      }
-      const back = oppositeDirection(dir);
-      if (!target.exits[back]) {
-        target.exits[back] = room.id;
-      }
-    }
-  }
-
-  return {
+  return normalizeLevelAsset({
     id: `level.gen.${profile.seed}`,
     source: 'generator',
-    startRoomId,
+    startRoomId: startId,
+    startPosition: { x: startRect.x, y: startRect.y },
     rooms,
-  };
+    doors,
+  });
 }
 
 /** Single-room virtual level for BattleOnly (encounter → confirm → combat). */
 export function createVirtualBattleLevel(characterId: string): LevelAsset {
-  return {
+  return normalizeLevelAsset({
     id: `level.battle_only.${characterId}`,
     source: 'virtual',
     startRoomId: 'arena',
+    startPosition: { x: 0, y: 0 },
     rooms: {
       arena: {
         id: 'arena',
         kind: 'normal',
-        grid: { x: 0, y: 0 },
-        exits: {},
+        rect: { x: 0, y: 0, w: 1, h: 1 },
         encounter: { characterId },
       },
     },
+    doors: [],
+  });
+}
+
+/** Default profile for CLI `dungeon` mode (seeded). */
+export function defaultDungeonGenProfile(seed: number): LevelGenProfile {
+  return {
+    seed,
+    width: 12,
+    height: 10,
+    roomCount: 10,
+    fillerWallRooms: 2,
+    encounterTable: [
+      { characterId: 'slime', weight: 2 },
+      { characterId: 'orc_brute', weight: 1 },
+    ],
+    encounterChance: 0.5,
+    exitRoom: true,
   };
 }
+
+export function generateDefaultDungeonLevel(seed: number): LevelAsset {
+  return generateLevel(defaultDungeonGenProfile(seed));
+}
+
+/** Expose occupancy builder for tests. */
+export { buildOccupancy, cellKey };

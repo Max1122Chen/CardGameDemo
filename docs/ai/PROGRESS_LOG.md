@@ -10,6 +10,17 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-18 — DUNGEON-F02 Done: spatial gen + CLI map
+
+- Rect rooms, doors, cell position; intra-room cost 0 / door cost 1; lifecycle bus stubs.
+- Seeded generator + filler wall rooms; CLI map walls/doors/@; `dungeon` uses generator by default.
+- **Verify:** 256 tests green.
+
+### 2026-07-18 — DUNGEON-F02 started: spatial gen + registry
+
+- Registered DUNGEON-F02 (In Progress) and Planned F03–F05; ACTIVE_WORK updated.
+- Spec: rect rooms, doors, cell position, CLI map, lifecycle stubs.
+
 ### 2026-07-17 — DUNGEON-F01 S07: movement GA
 
 - `data/abilities/dungeon-move.json` → `ga.dungeon.move` handler `dungeon.move`.
