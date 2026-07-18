@@ -97,5 +97,7 @@ export const IMC_Explore: InputMappingContext = {
     { actionId: IA.EndExploreRound, match: { type: 'char', char: 'f', ignoreCase: true } },
     { actionId: IA.PickupRoomLoot, match: { type: 'char', char: 'p', ignoreCase: true } },
     { actionId: IA.SelectRoomLoot, match: { type: 'digit' } },
+    { actionId: IA.BeginInteract, match: { type: 'char', char: 'i', ignoreCase: true } },
+    { actionId: IA.CancelInteract, match: { type: 'char', char: 'x', ignoreCase: true } },
   ],
 };

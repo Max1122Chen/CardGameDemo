@@ -18,8 +18,17 @@ export function handleKeypress(
   key: ParsedKey,
 ): AppState {
   const actions = routeInput(state, key);
+  if (actions.length === 0) {
+    return state;
+  }
   const nextState = applyUiActions(state, controller, actions);
-  return controller.syncViewState(nextState);
+  const synced = controller.syncViewState(nextState);
+  // syncViewState refreshes map/HP; keep reducer status / pick-mode (pendingCombat used to wipe them).
+  return {
+    ...synced,
+    statusMessage: nextState.statusMessage,
+    interactPickMode: nextState.interactPickMode,
+  };
 }
 
 function resolveSessionBoot(options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId' | 'enemyId'>) {
@@ -41,7 +50,7 @@ function resolveSessionBoot(options: Pick<CliOptions, 'mode' | 'seed' | 'scenari
 }
 
 export function createBootstrappedShell(
-  options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId'> & { enemyId?: string },
+  options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId' | 'levelId'> & { enemyId?: string },
 ): {
   state: AppState;
   controller: SessionController;
@@ -54,6 +63,7 @@ export function createBootstrappedShell(
     sessionKind: boot.sessionKind,
     adventureKind: boot.adventureKind,
     enemyCharacterId: options.enemyId,
+    levelId: options.mode === 'dungeon' ? options.levelId : undefined,
   });
   const initial = createInitialAppState({
     runtimeMode: boot.runtimeMode,
@@ -99,7 +109,7 @@ export async function runAppShell(options: CliOptions, io: TerminalIO): Promise<
 }
 
 export function renderBootFrame(
-  options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId'> & { enemyId?: string },
+  options: Pick<CliOptions, 'mode' | 'seed' | 'scenarioId' | 'levelId'> & { enemyId?: string },
 ): string {
   const { controller, state } = createBootstrappedShell(options);
   return paintBufferedFrame(renderFrame(state, controller), resolveTerminalSize());

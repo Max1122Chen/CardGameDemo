@@ -10,6 +10,17 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-18 — INTERACT-F01 Done: Dialogue shell + fountain + beggar
+
+- Interactable protocol + Dialogue/Options; samples on `level.probe` start room.
+- CLI: `i` begin / digits choose / `x` cancel; host bridge for HP + inventory.
+- **Verify:** 273 tests green.
+
+### 2026-07-18 — Design: interaction.md（用户委托）
+
+- 新增玩法文档 `docs/design/systems/interaction.md`：Interactable + Dialogue/Options 接口；不设万能 Interaction 字段袋。
+- Overview 索引未改（待用户决定是否挂入系统表）。
+
 ### 2026-07-18 — DUNGEON-F05 Done: multi-level descend / evacuate
 
 - `LevelSession` (one floor) + outer `AdventureSession` (`startRun` / `startFromLevel`).

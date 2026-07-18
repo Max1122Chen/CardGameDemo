@@ -52,6 +52,8 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `DUNGEON-F03` | Explore round timing + door moves spend AP | Done | — | [DUNGEON-F03-explore-round-ap.md](./Dungeon/DUNGEON-F03-explore-round-ap.md) |
 | `DUNGEON-F04` | Civ-style fog: permanent layout memory + door-linked vision | Done | — | [DUNGEON-F04-exploration-fog.md](./Dungeon/DUNGEON-F04-exploration-fog.md) |
 | `DUNGEON-F05` | Multi-level dungeon (descend / evacuate) | Done | — | [DUNGEON-F05-multi-level.md](./Dungeon/DUNGEON-F05-multi-level.md) |
+| `INTERACT-F01` | Interactable protocol + Dialogue shell; fountain + beggar samples | Done | — | [INTERACT-F01-dialogue-shell.md](./Interact/INTERACT-F01-dialogue-shell.md) |
+| `INTERACT-F02` | d20 + trap + more facilities + room mount (compressed) | Planned | — | [INTERACT-F02-content-expansion.md](./Interact/INTERACT-F02-content-expansion.md) |
 
 ---
 
@@ -65,7 +67,8 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CHAR` | F02 | F01 Done |
 | `ITEM` | F03 | F02 Done |
 | `EQUIP` | F02 | F01 equipment loadout registered |
-| `DUNGEON` | F06 | F02 Done; F03–F05 Planned |
+| `DUNGEON` | F06 | F05 Done |
+| `INTERACT` | F03 | F01 Done; F02 Planned |
 | `DATA` | F02 | F01 card asset pipeline registered |
 | `EFFECT` | F01 | May fold into CORE-F06; register if split |
 | `ED` | F01 | Visual data editor |

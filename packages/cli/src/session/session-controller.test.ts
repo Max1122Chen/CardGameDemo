@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyUiAction, createSessionController } from '../session/session-controller.js';
+import { createBootstrappedShell, handleKeypress } from '../app-shell.js';
 import { createInitialAppState } from '../input/input-router.js';
+import { parseKeypress } from '../input/key-events.js';
+import { applyUiAction, createSessionController } from '../session/session-controller.js';
 
 describe('session-controller combat integration', () => {
   it('plays a card through CombatSession', () => {
@@ -59,5 +61,28 @@ describe('session-controller combat integration', () => {
     expect(state.previewActive).toBe(false);
     expect(state.enemies[0]?.health).toBe(hpBefore);
     expect(state.enemies[0]?.previewDamageToTake).toBeUndefined();
+  });
+});
+
+describe('explore interact keys', () => {
+  it('i enters interact pick mode on level.probe', () => {
+    const { controller, state: boot } = createBootstrappedShell({
+      mode: 'dungeon',
+      levelId: 'level.probe',
+    });
+    const state = handleKeypress(boot, controller, parseKeypress('i'));
+    expect(state.interactPickMode).toBe(true);
+    expect(state.statusMessage).toMatch(/Interact/i);
+  });
+
+  it('keeps end-round error visible while pending combat', () => {
+    const { controller, state: boot } = createBootstrappedShell({
+      mode: 'dungeon',
+      levelId: 'level.probe',
+    });
+    let state = handleKeypress(boot, controller, parseKeypress('d'));
+    expect(state.pendingCombat).toBe(true);
+    state = handleKeypress(state, controller, parseKeypress('f'));
+    expect(state.statusMessage).toMatch(/Confirm combat before ending round/i);
   });
 });

@@ -1,4 +1,10 @@
 import { AdventureError } from './errors.js';
+import type {
+  DialogueFrame,
+  Interactable,
+  InteractionHost,
+  RoomInteractableView,
+} from './interaction/types.js';
 import { cellKey, stepCell, stepMovementCost } from './level-geometry.js';
 import {
   AdventureLifecycleBus,
@@ -41,6 +47,12 @@ export type LevelSnapshot = {
   visibleRoomIds: string[];
   currentRoom: RoomDefinition;
   roomStates: Record<string, RoomRuntimeState>;
+  roomInteractables: RoomInteractableView[];
+  activeInteraction: {
+    interactableId: string;
+    displayName: string;
+    frame: DialogueFrame;
+  } | null;
   legalActions: AdventureExploreAction[];
   log: readonly string[];
 };
@@ -49,6 +61,10 @@ export type LevelSessionOptions = {
   lifecycle?: AdventureLifecycleBus;
   /** Max explore AP refilled each round (default 3). */
   maxExploreAp?: number;
+  /** Interactables keyed by room id (cloned refs owned by session). */
+  interactablesByRoom?: Record<string, Interactable[]>;
+  /** Required for BeginInteract / ChooseInteractOption. */
+  interactionHost?: InteractionHost;
 };
 
 function emptyRoomState(): RoomRuntimeState {
@@ -84,10 +100,16 @@ export class LevelSession {
   private readonly visitedRoomIds = new Set<string>();
   /** Layout memory: rooms ever seen in vision (not only entered). */
   private readonly knownRoomIds = new Set<string>();
+  private readonly interactablesByRoom: Record<string, Interactable[]>;
+  private interactionHost: InteractionHost | null;
+  private activeInteractableId: string | null = null;
+  private activeFrame: DialogueFrame | null = null;
 
   private constructor(private readonly level: LevelAsset, options: LevelSessionOptions = {}) {
     this.lifecycle = options.lifecycle ?? new AdventureLifecycleBus();
     this.maxExploreAp = Math.max(0, options.maxExploreAp ?? DEFAULT_EXPLORE_MAX_AP);
+    this.interactablesByRoom = { ...(options.interactablesByRoom ?? {}) };
+    this.interactionHost = options.interactionHost ?? null;
     this.position = { ...level.startPosition };
     this.roomStates = initRoomStates(level);
     this.log.push(
@@ -220,6 +242,61 @@ export class LevelSession {
     return room;
   }
 
+  setInteractionHost(host: InteractionHost | null): void {
+    this.interactionHost = host;
+  }
+
+  getInteractionHost(): InteractionHost | null {
+    return this.interactionHost;
+  }
+
+  isInteractionActive(): boolean {
+    return this.activeInteractableId !== null;
+  }
+
+  listRoomInteractables(roomId?: string): RoomInteractableView[] {
+    const id = roomId ?? this.getCurrentRoomId();
+    const list = this.interactablesByRoom[id] ?? [];
+    return list.map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      displayName: item.displayName,
+      canInteract: item.canInteract(),
+    }));
+  }
+
+  private requireHost(): InteractionHost {
+    if (!this.interactionHost) {
+      throw new AdventureError('InteractionHost not set');
+    }
+    return this.interactionHost;
+  }
+
+  /** Host that also mirrors Interactable log lines into the level explore log. */
+  private hostForInteract(): InteractionHost {
+    const inner = this.requireHost();
+    return {
+      getHealth: () => inner.getHealth(),
+      getMaxHealth: () => inner.getMaxHealth(),
+      heal: (amount) => inner.heal(amount),
+      hasItem: (itemId, quantity) => inner.hasItem(itemId, quantity),
+      tryTakeItem: (itemId, quantity) => inner.tryTakeItem(itemId, quantity),
+      log: (message) => {
+        inner.log(message);
+        this.log.push(message);
+      },
+    };
+  }
+
+  private findInteractableInCurrentRoom(interactableId: string): Interactable {
+    const list = this.interactablesByRoom[this.getCurrentRoomId()] ?? [];
+    const found = list.find((item) => item.id === interactableId);
+    if (!found) {
+      throw new AdventureError(`No interactable ${interactableId} in current room`);
+    }
+    return found;
+  }
+
   legalActions(): AdventureExploreAction[] {
     if (this.phase !== 'explore') {
       return [];
@@ -237,6 +314,14 @@ export class LevelSession {
       return actions;
     }
 
+    if (this.activeInteractableId && this.activeFrame) {
+      for (const option of this.activeFrame.options) {
+        actions.push({ type: 'ChooseInteractOption', optionId: option.id });
+      }
+      actions.push({ type: 'CancelInteract' });
+      return actions;
+    }
+
     for (const dir of ROOM_DIRECTIONS) {
       if (this.getMovementCost(dir) !== undefined) {
         actions.push({ type: 'Move', direction: dir });
@@ -245,6 +330,12 @@ export class LevelSession {
 
     for (let i = 0; i < state.loot.length; i += 1) {
       actions.push({ type: 'PickupLoot', index: i });
+    }
+
+    for (const view of this.listRoomInteractables()) {
+      if (view.canInteract) {
+        actions.push({ type: 'BeginInteract', interactableId: view.id });
+      }
     }
 
     if (room.kind === 'exit' && this.canLeaveLevel()) {
@@ -275,6 +366,15 @@ export class LevelSession {
         break;
       case 'EndRound':
         this.endRound();
+        break;
+      case 'BeginInteract':
+        this.beginInteract(action.interactableId);
+        break;
+      case 'ChooseInteractOption':
+        this.chooseInteractOption(action.optionId);
+        break;
+      case 'CancelInteract':
+        this.cancelInteract();
         break;
       default:
         throw new AdventureError('Unknown adventure action');
@@ -316,6 +416,14 @@ export class LevelSession {
   }
 
   getSnapshot(): LevelSnapshot {
+    const active =
+      this.activeInteractableId && this.activeFrame
+        ? {
+            interactableId: this.activeInteractableId,
+            displayName: this.findInteractableInCurrentRoom(this.activeInteractableId).displayName,
+            frame: this.activeFrame,
+          }
+        : null;
     return {
       phase: this.phase,
       levelId: this.level.id,
@@ -332,12 +440,17 @@ export class LevelSession {
       visibleRoomIds: this.getMappedRoomIds(),
       currentRoom: this.getCurrentRoom(),
       roomStates: structuredClone(this.roomStates),
+      roomInteractables: this.listRoomInteractables(),
+      activeInteraction: active,
       legalActions: this.legalActions(),
       log: [...this.log],
     };
   }
 
   private move(direction: RoomDirection): void {
+    if (this.activeInteractableId) {
+      throw new AdventureError('Finish or cancel interaction before moving');
+    }
     const cost = this.getMovementCost(direction);
     if (cost === undefined) {
       throw new AdventureError(`Cannot move ${direction} from ${cellKey(this.position)}`);
@@ -440,6 +553,9 @@ export class LevelSession {
     if (this.pendingCombat) {
       throw new AdventureError('Confirm combat before ending round');
     }
+    if (this.activeInteractableId) {
+      throw new AdventureError('Finish or cancel interaction before ending round');
+    }
     this.log.push(`Round ${this.round} ended.`);
     this.lifecycle.emit('RoundEnd', {
       round: this.round,
@@ -480,6 +596,7 @@ export class LevelSession {
     if (!this.canLeaveLevel()) {
       throw new AdventureError('Cannot leave level yet');
     }
+    this.cancelInteract();
     this.phase = 'exited';
     this.log.push('Left level.');
     this.lifecycle.emit('LeaveLevel', {
@@ -490,7 +607,49 @@ export class LevelSession {
 
   canLeaveLevel(): boolean {
     const room = this.getCurrentRoom();
-    return room.kind === 'exit' && !this.pendingCombat;
+    return room.kind === 'exit' && !this.pendingCombat && !this.activeInteractableId;
+  }
+
+  private beginInteract(interactableId: string): void {
+    if (this.pendingCombat) {
+      throw new AdventureError('Confirm combat before interacting');
+    }
+    if (this.activeInteractableId) {
+      throw new AdventureError('Already in an interaction');
+    }
+    const host = this.hostForInteract();
+    const target = this.findInteractableInCurrentRoom(interactableId);
+    if (!target.canInteract()) {
+      throw new AdventureError(`Cannot interact with ${interactableId}`);
+    }
+    this.activeInteractableId = interactableId;
+    this.activeFrame = target.begin(host);
+    this.log.push(`Began interaction: ${target.displayName}.`);
+  }
+
+  private chooseInteractOption(optionId: string): void {
+    if (!this.activeInteractableId || !this.activeFrame) {
+      throw new AdventureError('No active interaction');
+    }
+    const host = this.hostForInteract();
+    const target = this.findInteractableInCurrentRoom(this.activeInteractableId);
+    const next = target.choose(optionId, host);
+    if (next === null) {
+      this.log.push(`Ended interaction: ${target.displayName}.`);
+      this.activeInteractableId = null;
+      this.activeFrame = null;
+      return;
+    }
+    this.activeFrame = next;
+  }
+
+  private cancelInteract(): void {
+    if (!this.activeInteractableId) {
+      return;
+    }
+    this.log.push('Cancelled interaction.');
+    this.activeInteractableId = null;
+    this.activeFrame = null;
   }
 
   private refreshPendingCombatFlag(): void {

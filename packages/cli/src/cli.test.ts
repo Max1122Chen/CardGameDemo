@@ -28,6 +28,14 @@ describe('parseCliArgs', () => {
     expect(parseCliArgs(['dungeon'])).toEqual({ mode: 'dungeon', trace: 'off' });
   });
 
+  it('parses dungeon level id', () => {
+    expect(parseCliArgs(['dungeon', 'level.probe'])).toEqual({
+      mode: 'dungeon',
+      trace: 'off',
+      levelId: 'level.probe',
+    });
+  });
+
   it('parses --mode debug', () => {
     expect(parseCliArgs(['--mode', 'debug'])).toEqual({ mode: 'debug', trace: 'off' });
   });

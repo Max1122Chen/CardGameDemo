@@ -73,6 +73,18 @@ export {
   type FinishAdventureCombatOptions,
 } from './combat-bridge.js';
 export {
+  createBeggar,
+  createLifeFountain,
+  createMemoryInteractionHost,
+  defaultProbeInteractables,
+  type DialogueFrame,
+  type DialogueOption,
+  type Interactable,
+  type InteractableKind,
+  type InteractionHost,
+  type RoomInteractableView,
+} from './interaction/index.js';
+export {
   activateDungeonMove,
   ensureExplorePlayerForMove,
   ensureDungeonMoveAbility,

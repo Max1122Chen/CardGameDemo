@@ -17,6 +17,7 @@ import type {
   RoomRuntimeState,
 } from './types.js';
 import { DEFAULT_DUNGEON_LEVEL_COUNT, DEFAULT_EXPLORE_MAX_AP } from './types.js';
+import type { InteractionHost, RoomInteractableView } from './interaction/types.js';
 
 /** Deterministic per-floor seed from run seed + 0-based level index. */
 export function seedForLevel(runSeed: number, levelIndex: number): number {
@@ -91,6 +92,8 @@ export class AdventureSession {
     this.levelSession = LevelSession.start(level, {
       lifecycle: this.lifecycle,
       maxExploreAp: this.maxExploreAp,
+      interactablesByRoom: options.interactablesByRoom,
+      interactionHost: options.interactionHost,
     });
   }
 
@@ -230,6 +233,18 @@ export class AdventureSession {
     return this.levelSession.getCurrentRoom();
   }
 
+  setInteractionHost(host: InteractionHost | null): void {
+    this.levelSession.setInteractionHost(host);
+  }
+
+  listRoomInteractables(): RoomInteractableView[] {
+    return this.levelSession.listRoomInteractables();
+  }
+
+  isInteractionActive(): boolean {
+    return this.levelSession.isInteractionActive();
+  }
+
   legalActions(): AdventureExploreAction[] {
     if (this.terminalPhase) {
       return [];
@@ -308,6 +323,7 @@ export class AdventureSession {
 
   private descend(): void {
     const fromLevelId = this.levelSession.getLevel().id;
+    const host = this.levelSession.getInteractionHost();
     this.levelIndex += 1;
     const next = this.levelFactory(this.levelIndex, this.runSeed);
     this.runLog.push(
@@ -316,6 +332,7 @@ export class AdventureSession {
     this.levelSession = LevelSession.start(next, {
       lifecycle: this.lifecycle,
       maxExploreAp: this.maxExploreAp,
+      interactionHost: host ?? undefined,
     });
   }
 

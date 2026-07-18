@@ -40,7 +40,7 @@ export function composeFrameBuffer(content: string, cols: number, rows: number):
   return out.join('\n');
 }
 
-/** Home cursor + full fixed buffer (no eraseBelow — every cell is rewritten). */
+/** Home cursor, erase leftover rows (from prior terminal wrap), then paint fixed buffer. */
 export function paintBufferedFrame(content: string, size: TerminalSize): string {
-  return `${ANSI.home}${composeFrameBuffer(content, size.cols, size.rows)}`;
+  return `${ANSI.home}${ANSI.eraseBelow}${composeFrameBuffer(content, size.cols, size.rows)}`;
 }

@@ -8,6 +8,7 @@ import {
   activateDungeonMove,
   beginAdventureCombat,
   createVirtualBattleLevel,
+  defaultProbeInteractables,
   ensureExplorePlayerForMove,
   finishAdventureCombat,
   loadLevelFromRepo,
@@ -61,6 +62,10 @@ import type {
   UiAction,
 } from '../types.js';
 import { isAdventureCombatPhase, isExplorePhase } from '../ui-mode.js';
+import {
+  createSessionInteractionHost,
+  ensureExplorePlayerEntity,
+} from './interaction-host.js';
 function toPrimaryStatsView(
   primaries: NonNullable<CombatSnapshot['player']['primaries']>,
 ): PrimaryStatsView {
@@ -250,15 +255,26 @@ function syncAdventureExploreViews(
   const block = playerGfc?.getAttribute('Block')?.currentValue ?? 0;
 
   let statusMessage = state.statusMessage;
-  if (snap.pendingCombat) {
-    statusMessage = `Enemy in ${snap.currentRoomId} — Enter/C to fight`;
+  if (snap.activeInteraction) {
+    statusMessage = `${snap.activeInteraction.displayName} — 1-${snap.activeInteraction.frame.options.length} choose | X cancel`;
   } else if (snap.phase === 'victory') {
     statusMessage =
       snap.levelCount > 1 ? 'Evacuated — dungeon cleared!' : 'Level cleared!';
   } else if (snap.phase === 'defeat') {
     statusMessage = 'Defeat — adventure ended.';
+  } else if (snap.pendingCombat) {
+    // Do not clobber fresher action feedback (Moved / Cannot… / Nothing to interact…).
+    const stickyDefault =
+      !statusMessage ||
+      statusMessage.startsWith('Enemy in ') ||
+      statusMessage.startsWith('WASD') ||
+      statusMessage.startsWith('Dungeon ');
+    if (stickyDefault) {
+      statusMessage = `Enemy in ${snap.currentRoomId} — Enter/C to fight`;
+    }
   }
 
+  const active = snap.activeInteraction;
   return {
     ...state,
     ...inventoryViews,
@@ -277,6 +293,14 @@ function syncAdventureExploreViews(
     selectedRoomLootIndex: clampIndex(state.selectedRoomLootIndex, roomLoot.length),
     adventureLog: [...snap.log].slice(-12),
     combatLog: [...snap.log].slice(-12),
+    interactPickMode: active ? false : state.interactPickMode,
+    interactionPrompt: active?.frame.prompt,
+    interactionOptions: active?.frame.options,
+    roomInteractables: snap.roomInteractables.map((item) => ({
+      id: item.id,
+      displayName: item.displayName,
+      kind: item.kind,
+    })),
     hand: [],
     enemies: [],
     combatResult: undefined,
@@ -351,14 +375,38 @@ export function createSessionController(options: {
 
   const adventureSeed = options.seed ?? 42;
 
+  const bindInteractionHost = (session: AdventureSession) => {
+    ensureExplorePlayerEntity(engine);
+    session.setInteractionHost(
+      createSessionInteractionHost(engine, inventory, (line) => {
+        // Host log lines are also pushed by Interactables via session apply; keep silent here
+        // unless we need side-channel status (F01: adventure log already captures begin/end).
+        void line;
+      }),
+    );
+  };
+
   const startAdventureLevel = (kind: 'battle_only' | 'dungeon', levelId?: string) => {
     if (kind === 'battle_only') {
-      return AdventureSession.startFromLevel(createVirtualBattleLevel(enemyCharacterId));
+      const session = AdventureSession.startFromLevel(createVirtualBattleLevel(enemyCharacterId));
+      bindInteractionHost(session);
+      return session;
     }
     if (levelId) {
-      return AdventureSession.startFromLevel(loadLevelFromRepo(levelId));
+      const interactables =
+        levelId === 'level.probe' ? defaultProbeInteractables() : undefined;
+      const session = AdventureSession.startFromLevel(loadLevelFromRepo(levelId), {
+        interactablesByRoom: interactables,
+      });
+      bindInteractionHost(session);
+      if (interactables) {
+        addToInventory(inventory, itemCatalog, 'gold_coin', 3);
+      }
+      return session;
     }
-    return AdventureSession.startRun({ runSeed: adventureSeed });
+    const session = AdventureSession.startRun({ runSeed: adventureSeed });
+    bindInteractionHost(session);
+    return session;
   };
 
   let adventure: AdventureSession | null =
@@ -1204,6 +1252,126 @@ export function applyUiAction(
         ...state,
         statusMessage: `Round ${snap.round} — AP ${snap.exploreAp}/${snap.maxExploreAp}.`,
       });
+    }
+    case 'begin_interact_flow': {
+      if (!isExplorePhase(state) || !controller.adventure) {
+        return state;
+      }
+      if (controller.adventure.isInteractionActive()) {
+        try {
+          controller.adventure.applyAction({ type: 'CancelInteract' });
+        } catch {
+          /* ignore */
+        }
+        return controller.syncViewState({
+          ...state,
+          interactPickMode: false,
+          statusMessage: 'Interaction cancelled.',
+        });
+      }
+      const list = controller.adventure
+        .listRoomInteractables()
+        .filter((item) => item.canInteract);
+      if (list.length === 0) {
+        return {
+          ...controller.syncViewState(state),
+          interactPickMode: false,
+          statusMessage: 'Nothing to interact with here.',
+        };
+      }
+      if (list.length === 1) {
+        try {
+          controller.adventure.applyAction({
+            type: 'BeginInteract',
+            interactableId: list[0]!.id,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Cannot interact.';
+          return { ...controller.syncViewState(state), statusMessage: message };
+        }
+        return controller.syncViewState({
+          ...state,
+          interactPickMode: false,
+        });
+      }
+      const names = list.map((item, i) => `${i + 1}:${item.displayName}`).join(' ');
+      return {
+        ...controller.syncViewState(state),
+        interactPickMode: true,
+        statusMessage: `Interact — ${names} (digit) | X cancel`,
+      };
+    }
+    case 'begin_interact_at': {
+      if (!isExplorePhase(state) || !controller.adventure || !state.interactPickMode) {
+        return state;
+      }
+      const list = controller.adventure
+        .listRoomInteractables()
+        .filter((item) => item.canInteract);
+      const target = list[action.index];
+      if (!target) {
+        return { ...state, statusMessage: 'Invalid interactable.' };
+      }
+      try {
+        controller.adventure.applyAction({
+          type: 'BeginInteract',
+          interactableId: target.id,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Cannot interact.';
+        return {
+          ...controller.syncViewState(state),
+          interactPickMode: false,
+          statusMessage: message,
+        };
+      }
+      return controller.syncViewState({ ...state, interactPickMode: false });
+    }
+    case 'choose_interact_option': {
+      if (!isExplorePhase(state) || !controller.adventure) {
+        return state;
+      }
+      const options = state.interactionOptions ?? [];
+      const option = options[action.index];
+      if (!option) {
+        return { ...state, statusMessage: 'Invalid option.' };
+      }
+      try {
+        controller.adventure.applyAction({
+          type: 'ChooseInteractOption',
+          optionId: option.id,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Cannot choose.';
+        return { ...controller.syncViewState(state), statusMessage: message };
+      }
+      return controller.syncViewState(state);
+    }
+    case 'cancel_interact': {
+      if (!isExplorePhase(state) || !controller.adventure) {
+        return state;
+      }
+      if (controller.adventure.isInteractionActive()) {
+        try {
+          controller.adventure.applyAction({ type: 'CancelInteract' });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Cannot cancel.';
+          return { ...controller.syncViewState(state), statusMessage: message };
+        }
+        return controller.syncViewState({
+          ...state,
+          interactPickMode: false,
+          statusMessage: 'Interaction cancelled.',
+        });
+      }
+      if (state.interactPickMode) {
+        return {
+          ...controller.syncViewState(state),
+          interactPickMode: false,
+          statusMessage: 'Interact cancelled.',
+        };
+      }
+      return state;
     }
     case 'select_room_loot': {
       if (!isExplorePhase(state) || state.roomLoot.length === 0) {

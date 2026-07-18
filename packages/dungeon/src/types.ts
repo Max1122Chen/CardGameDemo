@@ -83,7 +83,10 @@ export type AdventureExploreAction =
   | { type: 'ConfirmCombat' }
   | { type: 'PickupLoot'; index: number }
   | { type: 'LeaveLevel' }
-  | { type: 'EndRound' };
+  | { type: 'EndRound' }
+  | { type: 'BeginInteract'; interactableId: string }
+  | { type: 'ChooseInteractOption'; optionId: string }
+  | { type: 'CancelInteract' };
 
 /** Default floors per generated dungeon run (F05). */
 export const DEFAULT_DUNGEON_LEVEL_COUNT = 2;

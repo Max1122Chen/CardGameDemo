@@ -153,7 +153,23 @@ export function mapTriggeredToUiActions(
         break;
       case IA.SelectRoomLoot:
         if (isExplorePhase(state) && event.digit !== undefined) {
-          actions.push({ type: 'select_room_loot', index: event.digit - 1 });
+          if (state.interactionPrompt) {
+            actions.push({ type: 'choose_interact_option', index: event.digit - 1 });
+          } else if (state.interactPickMode) {
+            actions.push({ type: 'begin_interact_at', index: event.digit - 1 });
+          } else {
+            actions.push({ type: 'select_room_loot', index: event.digit - 1 });
+          }
+        }
+        break;
+      case IA.BeginInteract:
+        if (isExplorePhase(state)) {
+          actions.push({ type: 'begin_interact_flow' });
+        }
+        break;
+      case IA.CancelInteract:
+        if (isExplorePhase(state)) {
+          actions.push({ type: 'cancel_interact' });
         }
         break;
       default:

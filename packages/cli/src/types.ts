@@ -167,6 +167,11 @@ export type AppState = {
   roomLoot: RoomLootView[];
   selectedRoomLootIndex: number;
   adventureLog: string[];
+  /** When true, digits pick an Interactable in the current room. */
+  interactPickMode?: boolean;
+  interactionPrompt?: string;
+  interactionOptions?: { id: string; label: string }[];
+  roomInteractables?: { id: string; displayName: string; kind: string }[];
 };
 
 export type UiAction =
@@ -207,4 +212,8 @@ export type UiAction =
   | { type: 'leave_level' }
   | { type: 'end_explore_round' }
   | { type: 'pickup_room_loot' }
-  | { type: 'select_room_loot'; index: number };
+  | { type: 'select_room_loot'; index: number }
+  | { type: 'begin_interact_flow' }
+  | { type: 'cancel_interact' }
+  | { type: 'begin_interact_at'; index: number }
+  | { type: 'choose_interact_option'; index: number };

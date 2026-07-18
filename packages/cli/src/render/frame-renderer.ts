@@ -163,6 +163,30 @@ function enemyPaneLines(state: AppState, innerWidth: number): string[] {
   return lines;
 }
 
+function renderInteractionLines(state: AppState): string[] {
+  if (!state.interactionPrompt) {
+    if (state.interactPickMode && state.roomInteractables && state.roomInteractables.length > 0) {
+      return state.roomInteractables.map(
+        (item, index) => `[${index + 1}] ${item.displayName} (${item.kind})`,
+      );
+    }
+    const list = state.roomInteractables ?? [];
+    if (list.length === 0) {
+      return [theme.muted('(no interactables)')];
+    }
+    return [
+      theme.muted('I interact'),
+      ...list.map((item) => `· ${item.displayName}`),
+    ];
+  }
+  const lines = [state.interactionPrompt, ''];
+  for (const [index, option] of (state.interactionOptions ?? []).entries()) {
+    lines.push(`[${index + 1}] ${option.label}`);
+  }
+  lines.push(theme.muted('X cancel'));
+  return lines;
+}
+
 function renderRoomLootLines(state: AppState): string[] {
   const room = state.currentRoomId ?? '?';
   const header = theme.muted(`Room: ${room}`);
@@ -214,7 +238,15 @@ function renderLootHandLines(state: AppState): string[] {
 
 function bottomLeftPane(state: AppState): { title: string; lines: string[] } {
   if (isExplorePhase(state) || state.sessionPhase === 'adventure_victory') {
-    return { title: 'Room', lines: renderRoomLootLines(state) };
+    if (state.interactionPrompt || state.interactPickMode) {
+      return { title: 'Interact', lines: renderInteractionLines(state) };
+    }
+    const interactLines = renderInteractionLines(state);
+    const lootLines = renderRoomLootLines(state);
+    return {
+      title: 'Room',
+      lines: [...interactLines, '', ...lootLines],
+    };
   }
   if (isLootHandMode(state)) {
     return { title: 'Loot', lines: renderLootHandLines(state) };
@@ -293,7 +325,9 @@ function renderGameplay(state: AppState, cols: number): string[] {
             ? 'Adventure defeat'
             : state.pendingCombat
               ? `Explore${floorLabel} R${state.exploreRound ?? '?'} — confirm fight in ${state.currentRoomId ?? '?'}`
-              : `Explore${floorLabel} R${state.exploreRound ?? '?'} AP ${state.exploreAp ?? '?'}/${state.maxExploreAp ?? '?'} — ${state.currentRoomId ?? '?'} (F end round)`,
+              : state.interactionPrompt
+                ? `Explore${floorLabel} — interaction (digits choose, X cancel)`
+                : `Explore${floorLabel} R${state.exploreRound ?? '?'} AP ${state.exploreAp ?? '?'}/${state.maxExploreAp ?? '?'} — ${state.currentRoomId ?? '?'} (I interact | F end round)`,
       )
     : state.combatResult !== undefined
       ? theme.muted(
@@ -469,7 +503,9 @@ function footerForState(state: AppState): string {
   if (isExplorePhase(state)) {
     return state.pendingCombat
       ? 'Enter/C Fight | P Pickup | WASD Move | B Bag | ~ Console | Q Quit'
-      : 'WASD/Arrows Move | 1-9 Select loot | P Pickup | L Leave | B Bag | Q Quit';
+      : state.interactionPrompt
+        ? '1-9 Choose | X Cancel | B Bag | Q Quit'
+        : 'WASD Move | I Interact | 1-9 Loot | P Pickup | L Leave | F End round | B Bag | Q Quit';
   }
   if (state.sessionPhase === 'adventure_victory' || state.sessionPhase === 'adventure_defeat') {
     return 'console:dungeon | console:battle | B Bag | Q Quit';

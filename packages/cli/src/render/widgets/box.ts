@@ -1,13 +1,15 @@
 import { padVisible, style, ANSI } from '../ansi.js';
 import { theme } from '../theme.js';
+import { wrapAllVisible } from './text-wrap.js';
 
-/** Bordered pane; `width` is total outer width including borders. */
+/** Bordered pane; `width` is total outer width including borders. Lines wrap to inner width. */
 export function renderBox(title: string, lines: string[], width: number): string[] {
   const safeWidth = Math.max(width, 8);
   const inner = safeWidth - 4;
+  const wrapped = wrapAllVisible(lines, inner);
   const border = style('+', ANSI.dim);
   const output = [`${border} ${padVisible(theme.paneTitle(title), safeWidth - 3)}+`];
-  for (const line of lines) {
+  for (const line of wrapped) {
     output.push(`${border} ${padVisible(line, inner)} ${border}`);
   }
   output.push(`${border}${style('-'.repeat(safeWidth - 2), ANSI.dim)}+`);
@@ -17,7 +19,7 @@ export function renderBox(title: string, lines: string[], width: number): string
 /**
  * Two panes sharing one vertical divider (single line between cells).
  * Outer widths are as-if-standalone box widths; joined total = left + right - 1.
- * Content rows are padded to the taller side before drawing borders.
+ * Content is wrapped to each pane's inner width, then padded to equal height.
  */
 export function renderTwinBoxes(
   leftTitle: string,
@@ -32,9 +34,9 @@ export function renderTwinBoxes(
   const leftInner = leftW - 4;
   const rightInner = rightW - 4;
 
-  const height = Math.max(leftLines.length, rightLines.length, 1);
-  const leftPad = [...leftLines];
-  const rightPad = [...rightLines];
+  const leftPad = wrapAllVisible(leftLines, leftInner);
+  const rightPad = wrapAllVisible(rightLines, rightInner);
+  const height = Math.max(leftPad.length, rightPad.length, 1);
   while (leftPad.length < height) {
     leftPad.push('');
   }

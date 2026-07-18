@@ -55,6 +55,8 @@ export const IA = {
   EndExploreRound: 'IA_EndExploreRound',
   PickupRoomLoot: 'IA_PickupRoomLoot',
   SelectRoomLoot: 'IA_SelectRoomLoot',
+  BeginInteract: 'IA_BeginInteract',
+  CancelInteract: 'IA_CancelInteract',
 } as const;
 
 export const INPUT_ACTIONS: Readonly<Record<string, InputActionDef>> = {
@@ -97,4 +99,6 @@ export const INPUT_ACTIONS: Readonly<Record<string, InputActionDef>> = {
   [IA.EndExploreRound]: { id: IA.EndExploreRound, valueKind: 'digital', consume: true },
   [IA.PickupRoomLoot]: { id: IA.PickupRoomLoot, valueKind: 'digital', consume: true },
   [IA.SelectRoomLoot]: { id: IA.SelectRoomLoot, valueKind: 'digit', consume: true },
+  [IA.BeginInteract]: { id: IA.BeginInteract, valueKind: 'digital', consume: true },
+  [IA.CancelInteract]: { id: IA.CancelInteract, valueKind: 'digital', consume: true },
 };

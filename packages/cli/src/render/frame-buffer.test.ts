@@ -27,11 +27,10 @@ describe('frame-buffer', () => {
     expect(stripAnsi(line)).toBe('HP    ');
   });
 
-  it('paintBufferedFrame homes cursor without eraseBelow', () => {
+  it('paintBufferedFrame homes cursor then eraseBelow before buffer', () => {
     const painted = paintBufferedFrame('hi', { cols: 4, rows: 1 });
-    expect(painted.startsWith('\u001b[H')).toBe(true);
-    expect(painted.includes('\u001b[J')).toBe(false);
-    expect(stripAnsi(painted.slice(3))).toBe('hi  ');
+    expect(painted.startsWith('\u001b[H\u001b[J')).toBe(true);
+    expect(stripAnsi(painted.slice('\u001b[H\u001b[J'.length))).toBe('hi  ');
   });
 
   it('splitFrameLines drops trailing newline only', () => {

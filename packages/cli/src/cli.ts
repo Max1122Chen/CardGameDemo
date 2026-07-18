@@ -13,6 +13,8 @@ export type CliOptions = {
   seed?: number;
   scenarioId?: string;
   enemyId?: string;
+  /** Dungeon JSON level id (e.g. level.probe) when booting dungeon mode. */
+  levelId?: string;
 };
 
 export function parseCliArgs(argv: string[]): CliOptions {
@@ -41,6 +43,8 @@ export function parseCliArgs(argv: string[]): CliOptions {
         if (next && !next.startsWith('-') && next !== 'trace' && next !== 'battle' && next !== 'debug' && next !== 'dungeon') {
           if (arg === 'battle') {
             options.enemyId = next;
+          } else {
+            options.levelId = next;
           }
           i += 1;
         }
