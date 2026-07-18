@@ -15,7 +15,7 @@ import type {
   RoomGroundLootEntry,
   RoomRuntimeState,
 } from './types.js';
-import { ROOM_DIRECTIONS } from './types.js';
+import { DEFAULT_EXPLORE_MAX_AP, ROOM_DIRECTIONS } from './types.js';
 
 export type AdventureSnapshot = {
   phase: AdventurePhase;
@@ -23,10 +23,20 @@ export type AdventureSnapshot = {
   currentRoomId: string;
   position: CellCoord;
   pendingCombat: boolean;
+  /** 1-based explore round index. */
+  round: number;
+  exploreAp: number;
+  maxExploreAp: number;
   currentRoom: RoomDefinition;
   roomStates: Record<string, RoomRuntimeState>;
   legalActions: AdventureExploreAction[];
   log: readonly string[];
+};
+
+export type AdventureSessionOptions = {
+  lifecycle?: AdventureLifecycleBus;
+  /** Max explore AP refilled each round (default 3). */
+  maxExploreAp?: number;
 };
 
 function emptyRoomState(): RoomRuntimeState {
@@ -46,7 +56,7 @@ function initRoomStates(level: LevelAsset): Record<string, RoomRuntimeState> {
 }
 
 /**
- * Explore-phase session: cell move, confirm-combat pause, room loot.
+ * Explore-phase session: cell move, confirm-combat pause, room loot, explore rounds/AP.
  * Combat attach/detach is owned by the host; this class tracks phase + pending.
  */
 export class AdventureSession {
@@ -56,12 +66,13 @@ export class AdventureSession {
   private pendingCombat = false;
   private readonly log: string[] = [];
   private readonly lifecycle: AdventureLifecycleBus;
+  private readonly maxExploreAp: number;
+  private round = 0;
+  private exploreAp = 0;
 
-  private constructor(
-    private readonly level: LevelAsset,
-    lifecycle?: AdventureLifecycleBus,
-  ) {
-    this.lifecycle = lifecycle ?? new AdventureLifecycleBus();
+  private constructor(private readonly level: LevelAsset, options: AdventureSessionOptions = {}) {
+    this.lifecycle = options.lifecycle ?? new AdventureLifecycleBus();
+    this.maxExploreAp = Math.max(0, options.maxExploreAp ?? DEFAULT_EXPLORE_MAX_AP);
     this.position = { ...level.startPosition };
     this.roomStates = initRoomStates(level);
     this.log.push(
@@ -73,11 +84,18 @@ export class AdventureSession {
       position: { ...this.position },
     });
 
+    this.beginRound();
     this.refreshPendingCombatFlag();
   }
 
-  static start(level: LevelAsset, lifecycle?: AdventureLifecycleBus): AdventureSession {
-    return new AdventureSession(level, lifecycle);
+  static start(
+    level: LevelAsset,
+    lifecycleOrOptions?: AdventureLifecycleBus | AdventureSessionOptions,
+  ): AdventureSession {
+    if (lifecycleOrOptions instanceof AdventureLifecycleBus) {
+      return new AdventureSession(level, { lifecycle: lifecycleOrOptions });
+    }
+    return new AdventureSession(level, lifecycleOrOptions ?? {});
   }
 
   getLifecycle(): AdventureLifecycleBus {
@@ -98,6 +116,18 @@ export class AdventureSession {
 
   getPhase(): AdventurePhase {
     return this.phase;
+  }
+
+  getRound(): number {
+    return this.round;
+  }
+
+  getExploreAp(): number {
+    return this.exploreAp;
+  }
+
+  getMaxExploreAp(): number {
+    return this.maxExploreAp;
   }
 
   getPosition(): CellCoord {
@@ -163,6 +193,7 @@ export class AdventureSession {
       actions.push({ type: 'LeaveLevel' });
     }
 
+    actions.push({ type: 'EndRound' });
     return actions;
   }
 
@@ -183,6 +214,9 @@ export class AdventureSession {
         break;
       case 'LeaveLevel':
         this.leaveLevel();
+        break;
+      case 'EndRound':
+        this.endRound();
         break;
       default:
         throw new AdventureError('Unknown adventure action');
@@ -230,6 +264,9 @@ export class AdventureSession {
       currentRoomId: this.getCurrentRoomId(),
       position: { ...this.position },
       pendingCombat: this.pendingCombat,
+      round: this.round,
+      exploreAp: this.exploreAp,
+      maxExploreAp: this.maxExploreAp,
       currentRoom: this.getCurrentRoom(),
       roomStates: structuredClone(this.roomStates),
       legalActions: this.legalActions(),
@@ -246,10 +283,9 @@ export class AdventureSession {
   }
 
   /**
-   * Returns movement cost for a step, or undefined if illegal.
-   * Intra-room = 0; door edge = door.cost (typically 1). Throws only for phase/pending.
+   * Geometric step cost (ignores AP). Undefined if wall/void/pending/wrong phase.
    */
-  getMovementCost(direction: RoomDirection): number | undefined {
+  getStepCost(direction: RoomDirection): number | undefined {
     if (this.phase !== 'explore') {
       throw new AdventureError(`Cannot move in phase ${this.phase}`);
     }
@@ -261,12 +297,38 @@ export class AdventureSession {
   }
 
   /**
+   * Cost for a legal affordable step, or undefined if illegal / not enough AP.
+   */
+  getMovementCost(direction: RoomDirection): number | undefined {
+    const cost = this.getStepCost(direction);
+    if (cost === undefined) {
+      return undefined;
+    }
+    if (cost > this.exploreAp) {
+      return undefined;
+    }
+    return cost;
+  }
+
+  /**
    * Commit a validated step. Prefer `activateDungeonMove` (GA) from hosts;
    * `applyAction({ type: 'Move' })` also ends here.
    */
   commitMove(direction: RoomDirection, movementCost: number): void {
     const expected = this.getMovementCost(direction);
     if (expected === undefined) {
+      const geometric = (() => {
+        try {
+          return this.getStepCost(direction);
+        } catch {
+          return undefined;
+        }
+      })();
+      if (geometric !== undefined && geometric > this.exploreAp) {
+        throw new AdventureError(
+          `Not enough explore AP (need ${geometric}, have ${this.exploreAp})`,
+        );
+      }
       throw new AdventureError(`Cannot move ${direction} from ${cellKey(this.position)}`);
     }
     if (movementCost !== expected) {
@@ -276,13 +338,38 @@ export class AdventureSession {
     }
     const target = stepCell(this.position, direction);
     this.position = target;
+    if (movementCost > 0) {
+      this.exploreAp -= movementCost;
+    }
     const toRoom = this.getCurrentRoomId();
     this.log.push(
-      `Moved ${direction} to ${cellKey(target)} (${toRoom}, cost ${movementCost}).`,
+      `Moved ${direction} to ${cellKey(target)} (${toRoom}, cost ${movementCost}, AP ${this.exploreAp}/${this.maxExploreAp}).`,
     );
-    // Encounters are room-scoped: entering any cell of an uncleared encounter room
-    // triggers pending combat (not cell-coincidence with a monster token).
     this.refreshPendingCombatFlag();
+  }
+
+  private beginRound(): void {
+    this.round += 1;
+    this.exploreAp = this.maxExploreAp;
+    this.log.push(`Round ${this.round} — explore AP ${this.exploreAp}/${this.maxExploreAp}.`);
+    this.lifecycle.emit('RoundStart', {
+      round: this.round,
+      exploreAp: this.exploreAp,
+      maxExploreAp: this.maxExploreAp,
+    });
+  }
+
+  private endRound(): void {
+    if (this.pendingCombat) {
+      throw new AdventureError('Confirm combat before ending round');
+    }
+    this.log.push(`Round ${this.round} ended.`);
+    this.lifecycle.emit('RoundEnd', {
+      round: this.round,
+      exploreAp: this.exploreAp,
+    });
+    // Hook for future unit-pool refresh (empty in F03).
+    this.beginRound();
   }
 
   private confirmCombat(): void {

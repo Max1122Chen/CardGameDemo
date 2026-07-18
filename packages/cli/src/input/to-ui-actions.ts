@@ -141,6 +141,11 @@ export function mapTriggeredToUiActions(
           actions.push({ type: 'leave_level' });
         }
         break;
+      case IA.EndExploreRound:
+        if (isExplorePhase(state)) {
+          actions.push({ type: 'end_explore_round' });
+        }
+        break;
       case IA.PickupRoomLoot:
         if (isExplorePhase(state)) {
           actions.push({ type: 'pickup_room_loot' });

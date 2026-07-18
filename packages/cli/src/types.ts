@@ -156,6 +156,9 @@ export type AppState = {
   levelId?: string;
   currentRoomId?: string;
   position?: { x: number; y: number };
+  exploreRound?: number;
+  exploreAp?: number;
+  maxExploreAp?: number;
   pendingCombat?: boolean;
   mapLines: string[];
   roomLoot: RoomLootView[];
@@ -199,5 +202,6 @@ export type UiAction =
   | { type: 'explore_move'; direction: 'north' | 'south' | 'east' | 'west' }
   | { type: 'confirm_combat' }
   | { type: 'leave_level' }
+  | { type: 'end_explore_round' }
   | { type: 'pickup_room_loot' }
   | { type: 'select_room_loot'; index: number };

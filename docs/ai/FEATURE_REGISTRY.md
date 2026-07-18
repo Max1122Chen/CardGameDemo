@@ -49,7 +49,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `CHAR-F01` | `@cardgame/characters` package: defs, spawn, instances | Done | — | [CHAR-F01-character-package.md](./Characters/CHAR-F01-character-package.md) |
 | `DUNGEON-F01` | Minimal level slice: JSON + generator, explore↔combat, virtual BattleOnly room | Done | — | [DUNGEON-F01-minimal-level-slice.md](./Dungeon/DUNGEON-F01-minimal-level-slice.md) |
 | `DUNGEON-F02` | Spatial rect rooms, doors, cell position, CLI map, lifecycle stubs | Done | — | [DUNGEON-F02-spatial-level-gen.md](./Dungeon/DUNGEON-F02-spatial-level-gen.md) |
-| `DUNGEON-F03` | Explore round timing + door moves spend AP | Planned | — | — |
+| `DUNGEON-F03` | Explore round timing + door moves spend AP | Done | — | [DUNGEON-F03-explore-round-ap.md](./Dungeon/DUNGEON-F03-explore-round-ap.md) |
 | `DUNGEON-F04` | Exploration fog (room shapes); adjacent content visible by default | Planned | — | — |
 | `DUNGEON-F05` | Multi-level dungeon (descend / evacuate) | Planned | — | — |
 

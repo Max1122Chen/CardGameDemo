@@ -249,7 +249,6 @@ function syncAdventureExploreViews(
   const health = playerGfc?.getAttribute('Health')?.currentValue;
   const maxHealth = playerGfc?.getAttribute('MaxHealth')?.currentValue;
   const block = playerGfc?.getAttribute('Block')?.currentValue ?? 0;
-  const ap = playerGfc?.getAttribute('ActionPoints')?.currentValue ?? 0;
 
   let statusMessage = state.statusMessage;
   if (snap.pendingCombat) {
@@ -267,6 +266,9 @@ function syncAdventureExploreViews(
     levelId: snap.levelId,
     currentRoomId: snap.currentRoomId,
     position: snap.position,
+    exploreRound: snap.round,
+    exploreAp: snap.exploreAp,
+    maxExploreAp: snap.maxExploreAp,
     pendingCombat: snap.pendingCombat,
     mapLines: renderLevelMapLines(adventure.getLevel(), snap),
     roomLoot,
@@ -282,14 +284,14 @@ function syncAdventureExploreViews(
     preview: undefined,
     playerHealth: health ?? state.playerHealth,
     playerBlock: block,
-    actionPoints: ap,
+    actionPoints: snap.exploreAp,
     playerStats: playerGfc
       ? {
           health: health ?? 0,
           maxHealth: maxHealth ?? health ?? 0,
           block,
-          actionPoints: ap,
-          maxActionPoints: playerGfc.getAttribute('MaxActionPoints')?.currentValue,
+          actionPoints: snap.exploreAp,
+          maxActionPoints: snap.maxExploreAp,
           primaries: {
             strength: playerGfc.getAttribute('Strength')?.currentValue ?? 10,
             constitution: playerGfc.getAttribute('Constitution')?.currentValue ?? 10,
@@ -1169,6 +1171,22 @@ export function applyUiAction(
         return { ...controller.syncViewState(state), statusMessage: message };
       }
       return controller.syncViewState({ ...state, statusMessage: 'Left the level.' });
+    }
+    case 'end_explore_round': {
+      if (!isExplorePhase(state) || !controller.adventure) {
+        return state;
+      }
+      try {
+        controller.adventure.applyAction({ type: 'EndRound' });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Cannot end round.';
+        return { ...controller.syncViewState(state), statusMessage: message };
+      }
+      const snap = controller.adventure.getSnapshot();
+      return controller.syncViewState({
+        ...state,
+        statusMessage: `Round ${snap.round} — AP ${snap.exploreAp}/${snap.maxExploreAp}.`,
+      });
     }
     case 'select_room_loot': {
       if (!isExplorePhase(state) || state.roomLoot.length === 0) {

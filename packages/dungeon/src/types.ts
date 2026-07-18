@@ -78,7 +78,11 @@ export type AdventureExploreAction =
   | { type: 'Move'; direction: RoomDirection }
   | { type: 'ConfirmCombat' }
   | { type: 'PickupLoot'; index: number }
-  | { type: 'LeaveLevel' };
+  | { type: 'LeaveLevel' }
+  | { type: 'EndRound' };
+
+/** Default explore AP per round (design doc example). */
+export const DEFAULT_EXPLORE_MAX_AP = 3;
 
 export type LevelGenProfile = {
   seed: number;

@@ -10,6 +10,15 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-18 — DUNGEON-F03 Done: explore round + AP
+
+- Explore AP (default 3): door spends, intra-room free; EndRound (`f`) refills; RoundStart/End lifecycle.
+- CLI phase line shows R/AP. **Verify:** 261 tests green.
+
+### 2026-07-18 — DUNGEON-F03 started: explore round + AP
+
+- Spec + In Progress; AdventureSession round/AP, EndRound, CLI `f` binding.
+
 ### 2026-07-18 — DUNGEON-F02 Done: spatial gen + CLI map
 
 - Rect rooms, doors, cell position; intra-room cost 0 / door cost 1; lifecycle bus stubs.

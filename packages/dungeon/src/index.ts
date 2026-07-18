@@ -14,7 +14,7 @@ export type {
   RoomRect,
   RoomRuntimeState,
 } from './types.js';
-export { DEFAULT_DOOR_COST, ROOM_DIRECTIONS, oppositeDirection } from './types.js';
+export { DEFAULT_DOOR_COST, DEFAULT_EXPLORE_MAX_AP, ROOM_DIRECTIONS, oppositeDirection } from './types.js';
 export { AdventureError, LevelParseError } from './errors.js';
 export {
   parseLevelDefinition,
@@ -41,7 +41,7 @@ export {
   stepCell,
   stepMovementCost,
 } from './level-geometry.js';
-export { AdventureSession, type AdventureSnapshot } from './adventure-session.js';
+export { AdventureSession, type AdventureSnapshot, type AdventureSessionOptions } from './adventure-session.js';
 export {
   AdventureLifecycleBus,
   type AdventureLifecycleEvent,

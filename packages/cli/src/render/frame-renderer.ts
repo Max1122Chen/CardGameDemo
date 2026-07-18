@@ -286,8 +286,8 @@ function renderGameplay(state: AppState, cols: number): string[] {
           : state.sessionPhase === 'adventure_defeat'
             ? 'Adventure defeat'
             : state.pendingCombat
-              ? `Explore — confirm fight in ${state.currentRoomId ?? '?'}`
-              : `Explore — room ${state.currentRoomId ?? '?'}`,
+              ? `Explore R${state.exploreRound ?? '?'} — confirm fight in ${state.currentRoomId ?? '?'}`
+              : `Explore R${state.exploreRound ?? '?'} AP ${state.exploreAp ?? '?'}/${state.maxExploreAp ?? '?'} — ${state.currentRoomId ?? '?'} (F end round)`,
       )
     : state.combatResult !== undefined
       ? theme.muted(

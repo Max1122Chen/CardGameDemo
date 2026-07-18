@@ -52,6 +52,7 @@ export const IA = {
   ExploreMoveWest: 'IA_ExploreMoveWest',
   ConfirmCombat: 'IA_ConfirmCombat',
   LeaveLevel: 'IA_LeaveLevel',
+  EndExploreRound: 'IA_EndExploreRound',
   PickupRoomLoot: 'IA_PickupRoomLoot',
   SelectRoomLoot: 'IA_SelectRoomLoot',
 } as const;
@@ -93,6 +94,7 @@ export const INPUT_ACTIONS: Readonly<Record<string, InputActionDef>> = {
   [IA.ExploreMoveWest]: { id: IA.ExploreMoveWest, valueKind: 'digital', consume: true },
   [IA.ConfirmCombat]: { id: IA.ConfirmCombat, valueKind: 'digital', consume: true },
   [IA.LeaveLevel]: { id: IA.LeaveLevel, valueKind: 'digital', consume: true },
+  [IA.EndExploreRound]: { id: IA.EndExploreRound, valueKind: 'digital', consume: true },
   [IA.PickupRoomLoot]: { id: IA.PickupRoomLoot, valueKind: 'digital', consume: true },
   [IA.SelectRoomLoot]: { id: IA.SelectRoomLoot, valueKind: 'digit', consume: true },
 };
