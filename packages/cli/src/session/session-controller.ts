@@ -7,6 +7,7 @@ import {
   AdventureSession,
   activateDungeonMove,
   beginAdventureCombat,
+  createSeededRng,
   createVirtualBattleLevel,
   defaultProbeInteractables,
   ensureExplorePlayerForMove,
@@ -374,15 +375,24 @@ export function createSessionController(options: {
   };
 
   const adventureSeed = options.seed ?? 42;
+  const interactRng = createSeededRng(adventureSeed ^ 0x1a2b3c4d);
 
   const bindInteractionHost = (session: AdventureSession) => {
     ensureExplorePlayerEntity(engine);
     session.setInteractionHost(
-      createSessionInteractionHost(engine, inventory, (line) => {
-        // Host log lines are also pushed by Interactables via session apply; keep silent here
-        // unless we need side-channel status (F01: adventure log already captures begin/end).
-        void line;
-      }),
+      createSessionInteractionHost(
+        engine,
+        inventory,
+        (line) => {
+          // Host log lines are also pushed by Interactables via session apply; keep silent here
+          // unless we need side-channel status (F01: adventure log already captures begin/end).
+          void line;
+        },
+        {
+          itemCatalog,
+          nextRandom: interactRng,
+        },
+      ),
     );
   };
 
@@ -401,6 +411,7 @@ export function createSessionController(options: {
       bindInteractionHost(session);
       if (interactables) {
         addToInventory(inventory, itemCatalog, 'gold_coin', 3);
+        addToInventory(inventory, itemCatalog, 'scrap_metal', 2);
       }
       return session;
     }

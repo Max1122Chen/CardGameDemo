@@ -10,6 +10,14 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-18 — INTERACT-F02 Done: d20 + trap + altar/forge + mount
+
+- `rollD20Check` (nat1/20, adv/disadv); host `damage` / `tryGiveItem` / `nextRandom` / `getCheckModifier`.
+- Samples: Spike Trap, Blood Altar, Abandoned Forge; probe room mount; generated start fountain.
+- CLI probe seeds gold + scrap; interact RNG seeded from adventure seed.
+- Also commit user design drafts: `docs/design/systems/random.md`, `game-events.md`.
+- **Verify:** 287 tests green.
+
 ### 2026-07-18 — INTERACT-F01 Done: Dialogue shell + fountain + beggar
 
 - Interactable protocol + Dialogue/Options; samples on `level.probe` start room.

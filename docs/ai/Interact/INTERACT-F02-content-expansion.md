@@ -2,27 +2,42 @@
 
 ## Meta
 - **ID:** INTERACT-F02
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** —
 - **Last updated:** 2026-07-18
 - **Related:** [INTERACT-F01](./INTERACT-F01-dialogue-shell.md), [interaction.md](../../design/systems/interaction.md), [random.md](../../design/systems/random.md)
+- **Depends on:** INTERACT-F01 Done
 
 ---
 
 ## TL;DR
 
-After F01 shell is proven: **d20 tool + script trap**, more facilities (altar/forge), room mount in gen/data, light trigger/lifecycle polish — **one compressed Feat** (not split into many).
+1. **d20 check helper** (normal / advantage / disadvantage; nat 1 fail / nat 20 success; modifier).
+2. **Trap** script Interactable using the check.
+3. **Blood altar** + **abandoned forge** facility samples.
+4. Mount samples on `level.probe` rooms; generated runs get a start-room fountain stub.
+5. Still explicit `i` interact (no enter-room auto popup).
 
 ---
 
-## Scope (planned)
+## Scope
 
-- d20 check helper (advantage / attribute mod)
-- Trap/script Interactable sample
-- Additional facilities; `interactables` on level wire/gen
-- Trigger notes: explicit vs enter-room (minimal)
+**In:**
+- `rollD20Check` pure helper + `InteractionHost.nextRandom` / `damage` / `tryGiveItem` / `getCheckModifier`
+- Trap, blood altar, forge (English copy)
+- Probe: start fountain+beggar; hall_a trap; hall_b altar; exit forge
+- Generated dungeon: fountain on start room when no custom interactables
 
-**Out (later):** full shop UI, NPC AI pool, rest-linked events
+**Out:**
+- Shop UI, NPC AI, rest events, full JSON wire schema for interactables
+
+---
+
+## 验收
+
+- [x] d20 nat1/nat20 + advantage/disadvantage covered by tests
+- [x] Trap uses dex check; altar/forge work via same shell
+- [x] Probe rooms mount samples; `npm run verify` green
 
 ---
 
@@ -30,4 +45,6 @@ After F01 shell is proven: **d20 tool + script trap**, more facilities (altar/fo
 
 | Date | Change |
 |------|--------|
-| 2026-07-18 | Planned (compressed former F02–F04 content) |
+| 2026-07-18 | Planned (compressed) |
+| 2026-07-18 | In Progress |
+| 2026-07-18 | Done |

@@ -8,12 +8,12 @@ Last updated: 2026-07-18
 
 ## In focus
 
-**Phase:** INTERACT-F01 Done. Next: INTERACT-F02 (d20 + trap + more facilities) when promoted.
+**Phase:** INTERACT-F02 Done — next theme TBD (shop / rest / JSON wire → INTERACT-F03+ when promoted).
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| — | **INTERACT-F01** | Interactable + Dialogue/Options; 泉 + 乞丐; CLI `i` | **Done** ([spec](./Interact/INTERACT-F01-dialogue-shell.md)) |
-| 1 | **INTERACT-F02** | d20 + trap + more facilities + mount (compressed) | **Planned** ([spec](./Interact/INTERACT-F02-content-expansion.md)) |
+| — | **INTERACT-F01** | Interactable + Dialogue/Options; fountain + beggar; CLI `i` | **Done** ([spec](./Interact/INTERACT-F01-dialogue-shell.md)) |
+| — | **INTERACT-F02** | d20 + trap + altar/forge + room mount | **Done** ([spec](./Interact/INTERACT-F02-content-expansion.md)) |
 | — | **DUNGEON-F01…F05** | Level explore stack | **Done** |
 
 ---

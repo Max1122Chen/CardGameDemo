@@ -21,10 +21,20 @@ export type InteractionHost = {
   getMaxHealth(): number;
   /** Heal up to max; returns actual amount healed. */
   heal(amount: number): number;
+  /** Deal HP damage; returns actual amount lost. */
+  damage(amount: number): number;
   /** Remove up to `quantity` of itemId from inventory; false if not enough. */
   tryTakeItem(itemId: string, quantity: number): boolean;
+  /** Add items to inventory; false if nothing could be added. */
+  tryGiveItem(itemId: string, quantity: number): boolean;
   /** Whether inventory currently has at least `quantity` of itemId. */
   hasItem(itemId: string, quantity: number): boolean;
+  /** Seeded uniform [0, 1) for dice / interact RNG. */
+  nextRandom(): number;
+  /**
+   * Check modifier for a named axis (e.g. "dexterity"). Default 0 when unknown.
+   */
+  getCheckModifier(key: string): number;
   log(message: string): void;
 };
 

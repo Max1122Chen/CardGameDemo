@@ -1,5 +1,7 @@
 import { AdventureError } from './errors.js';
 import { generateDefaultDungeonLevel } from './generate-level.js';
+import { defaultGeneratedInteractables } from './interaction/probe-setup.js';
+import type { InteractionHost, RoomInteractableView } from './interaction/types.js';
 import {
   AdventureLifecycleBus,
   type AdventureLifecycleEventType,
@@ -17,7 +19,6 @@ import type {
   RoomRuntimeState,
 } from './types.js';
 import { DEFAULT_DUNGEON_LEVEL_COUNT, DEFAULT_EXPLORE_MAX_AP } from './types.js';
-import type { InteractionHost, RoomInteractableView } from './interaction/types.js';
 
 /** Deterministic per-floor seed from run seed + 0-based level index. */
 export function seedForLevel(runSeed: number, levelIndex: number): number {
@@ -134,6 +135,7 @@ export class AdventureSession {
       maxExploreAp: options.maxExploreAp,
       levelFactory: factory,
       levelIndex: 0,
+      interactablesByRoom: defaultGeneratedInteractables(level.startRoomId),
     });
   }
 
@@ -332,6 +334,7 @@ export class AdventureSession {
     this.levelSession = LevelSession.start(next, {
       lifecycle: this.lifecycle,
       maxExploreAp: this.maxExploreAp,
+      interactablesByRoom: defaultGeneratedInteractables(next.startRoomId),
       interactionHost: host ?? undefined,
     });
   }

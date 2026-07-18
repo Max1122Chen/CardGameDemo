@@ -279,8 +279,12 @@ export class LevelSession {
       getHealth: () => inner.getHealth(),
       getMaxHealth: () => inner.getMaxHealth(),
       heal: (amount) => inner.heal(amount),
+      damage: (amount) => inner.damage(amount),
       hasItem: (itemId, quantity) => inner.hasItem(itemId, quantity),
       tryTakeItem: (itemId, quantity) => inner.tryTakeItem(itemId, quantity),
+      tryGiveItem: (itemId, quantity) => inner.tryGiveItem(itemId, quantity),
+      nextRandom: () => inner.nextRandom(),
+      getCheckModifier: (key) => inner.getCheckModifier(key),
       log: (message) => {
         inner.log(message);
         this.log.push(message);

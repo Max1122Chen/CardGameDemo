@@ -1,7 +1,7 @@
 import { COMBAT_PLAYER_ID } from '@cardgame/combat';
 import type { RuleEngine } from '@cardgame/core';
 import { ensureExplorePlayerForMove, type InteractionHost } from '@cardgame/dungeon';
-import type { InventoryState } from '@cardgame/items';
+import { addToInventory, type InventoryState, type ItemDefinition } from '@cardgame/items';
 
 function countItem(inventory: InventoryState, itemId: string): number {
   let total = 0;
@@ -47,11 +47,18 @@ function takeItem(inventory: InventoryState, itemId: string, quantity: number): 
   return remaining <= 0;
 }
 
+export type SessionInteractionHostOptions = {
+  itemCatalog: Record<string, ItemDefinition>;
+  /** Seeded RNG from the adventure/level session. */
+  nextRandom: () => number;
+};
+
 /** Bridge Interactables to explore player GFC + backpack. */
 export function createSessionInteractionHost(
   engine: RuleEngine,
   inventory: InventoryState,
   appendLog: (line: string) => void,
+  options: SessionInteractionHostOptions,
 ): InteractionHost {
   const ensureVitals = () => {
     const player = ensureExplorePlayerForMove(engine);
@@ -83,11 +90,46 @@ export function createSessionInteractionHost(
       player.setAttributeBase('Health', next);
       return next - before;
     },
+    damage(amount: number) {
+      const player = ensureVitals();
+      const before = player.getAttribute('Health')!.currentValue;
+      const next = Math.max(0, before - Math.max(0, amount));
+      player.setAttributeBase('Health', next);
+      return before - next;
+    },
     hasItem(itemId, quantity) {
       return countItem(inventory, itemId) >= quantity;
     },
     tryTakeItem(itemId, quantity) {
       return takeItem(inventory, itemId, quantity);
+    },
+    tryGiveItem(itemId, quantity) {
+      const result = addToInventory(inventory, options.itemCatalog, itemId, quantity);
+      return result.added > 0;
+    },
+    nextRandom() {
+      return options.nextRandom();
+    },
+    getCheckModifier(key: string) {
+      const player = ensureVitals();
+      // Map check keys to primary attributes when present (F02 minimal).
+      const attrName =
+        key === 'dexterity'
+          ? 'Dexterity'
+          : key === 'strength'
+            ? 'Strength'
+            : key === 'intelligence'
+              ? 'Intelligence'
+              : undefined;
+      if (!attrName) {
+        return 0;
+      }
+      const value = player.getAttribute(attrName)?.currentValue;
+      if (value === undefined) {
+        return 0;
+      }
+      // Soft conversion: every 2 points above 10 → +1 (floor).
+      return Math.floor((value - 10) / 2);
     },
     log(message) {
       appendLog(message);
