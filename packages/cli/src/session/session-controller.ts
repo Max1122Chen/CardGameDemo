@@ -1,4 +1,10 @@
-import { CombatSession, resolveRepoDataRoot, type CombatSnapshot } from '@cardgame/combat';
+import {
+  CombatSession,
+  combatBootstrapConfig,
+  loadDeckIds,
+  resolveRepoDataRoot,
+  type CombatSnapshot,
+} from '@cardgame/combat';
 import {
   RuleEngine,
   TraceBuffer,
@@ -45,7 +51,6 @@ import {
   type Rotation,
 } from '@cardgame/items';
 
-import { combatBootstrapConfig, loadDeckIds, resolveRepoDataRoot as resolveCliDataRoot } from '../data/load-combat-bootstrap.js';
 import { loadItemBootstrap, loadItemTagDefinitions } from '../data/load-items-bootstrap.js';
 
 import { executeConsoleCommand } from '../console/console-executor.js';
@@ -352,7 +357,7 @@ export function createSessionController(options: {
   });
 
   const itemCatalog = loadItemBootstrap(engine.tagManager);
-  const baseDeckIds = loadDeckIds(`${resolveCliDataRoot()}/decks`, 'starter');
+  const baseDeckIds = loadDeckIds(`${resolveRepoDataRoot()}/decks`, 'starter');
   const inventory = createInventory(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT);
   const loadout = createEquipmentLoadout();
   let pendingLoot: PendingLootState = { entries: [] };

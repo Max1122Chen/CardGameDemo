@@ -1,14 +1,11 @@
 import type { RuleEngine } from '@cardgame/core';
 import {
-  BehaviorTreeTaskRegistry,
-  Blackboard,
   createBehaviorTreeRunState,
   createGameplayEvent,
   emitTurnEndTimingEvent,
   tickBehaviorTree,
   type BehaviorTreeAsset,
   type BehaviorTreeRunState,
-  type BtStatus,
 } from '@cardgame/core';
 import type { CharacterInstance } from '@cardgame/characters';
 import type { GameplayFrameworkComponent } from '@cardgame/core';
@@ -37,18 +34,7 @@ import {
   drawCards,
 } from './deck-state.js';
 import { peekNextTaskNode } from './enemy-bt-peek.js';
-import {
-  evaluateEnemyWhenCondition,
-  fillEnemyBlackboard,
-  type EnemyWhenCondition,
-} from './enemy-blackboard.js';
-import { chooseBestEnemyCard, type EnemyCardGoal } from './enemy-card-choice.js';
-import {
-  fallbackCardIntentLabel,
-  findEnemyHandInstanceId,
-  previewEnemyCardIntentLabel,
-  resolveEnemyPlayTarget,
-} from './enemy-intent-preview.js';
+import { EnemyCombatAi, type EnemyCardPreview } from './enemy-combat-ai.js';
 import { CombatError } from './errors.js';
 import { characterPrimariesToCombat } from './primary-stats.js';
 import { registerCombatAbilityHandlers } from './register-combat-abilities.js';
@@ -61,7 +47,7 @@ import {
   bootstrapCombatAttributes,
   DEFAULT_PLAYER_PRIMARIES,
   resetCombatMeta,
-} from './take-damage.js';
+} from './combat-entity-bootstrap.js';
 import { SetByCallerKeys } from './set-by-caller-keys.js';
 import {
   COMBAT_ENEMY_ID,
@@ -84,14 +70,7 @@ import {
   type EnemyCombatSetup,
 } from './types.js';
 
-type PreviewState = {
-  handIndex: number;
-  instanceId: string;
-  actionId: CardId;
-  abilityHandle: string;
-  abilityInstanceId: string;
-  targetEntityId: string;
-};
+type PreviewState = EnemyCardPreview;
 
 export class CombatSession {
   private phase: CombatPhase = 'Setup';
@@ -106,8 +85,7 @@ export class CombatSession {
   private readonly enemyCharacter: CharacterInstance;
   private readonly enemyBehaviorTree: BehaviorTreeAsset;
   private readonly enemyBtState: BehaviorTreeRunState;
-  private readonly enemyTaskRegistry: BehaviorTreeTaskRegistry;
-  private readonly enemyBlackboard = new Blackboard();
+  private readonly enemyAi: EnemyCombatAi;
   private readonly cardDefinitions: Record<CardId, CardDefinition>;
   private readonly bonusConfig: AttributeBonusConfig;
   private preview?: PreviewState;
@@ -115,7 +93,6 @@ export class CombatSession {
   private readonly cardAbilityHandles = new Map<CardId, string>();
   private readonly enemyCardAbilityHandles = new Map<CardId, string>();
   private readonly takeDamageHandles = new Map<string, string>();
-  private lastEnemyIntentLabel = 'Unknown';
 
   private constructor(
     private readonly engine: RuleEngine,
@@ -137,7 +114,23 @@ export class CombatSession {
     this.enemyCharacter = enemy.character;
     this.enemyBehaviorTree = enemy.behaviorTree;
     this.enemyBtState = createBehaviorTreeRunState();
-    this.enemyTaskRegistry = this.createEnemyTaskRegistry();
+    this.enemyAi = new EnemyCombatAi({
+      getEnemy: () => this.requireEnemy(),
+      getPlayer: () => this.requirePlayer(),
+      getCardDefinition: (id) => this.getCardDefinition(id),
+      cardDefinitions: this.cardDefinitions,
+      enemyDeck: this.enemyDeck,
+      enemyInstances: this.enemyInstances,
+      enemyCardAbilityHandles: this.enemyCardAbilityHandles,
+      enemyCharacter: this.enemyCharacter,
+      bonusConfig: this.bonusConfig,
+      hasPlayerPreview: () => this.preview !== undefined,
+      getEnemyPreview: () => this.enemyPreview,
+      setEnemyPreview: (preview) => {
+        this.enemyPreview = preview;
+      },
+      emitCombatEvent: (tagName, payload) => this.emitCombatEvent(tagName, payload),
+    });
   }
 
   /** Tear down prior combat entities so the shared RuleEngine can host another battle. */
@@ -461,9 +454,9 @@ export class CombatSession {
     const nextTask = peekNextTaskNode(
       this.enemyBehaviorTree.root,
       this.enemyBtState,
-      this.createEnemyPeekContext(enemy, player),
+      this.enemyAi.createPeekContext(enemy, player),
     );
-    const intentLabel = this.buildEnemyIntentLabel(nextTask, enemy, player);
+    const intentLabel = this.enemyAi.buildIntentLabel(nextTask, enemy, player);
 
     let preview: CombatSnapshot['preview'];
     if (this.preview) {
@@ -534,275 +527,6 @@ export class CombatSession {
 
   hasCardPreview(): boolean {
     return this.preview !== undefined;
-  }
-
-  private createEnemyTaskRegistry(): BehaviorTreeTaskRegistry {
-    const registry = new BehaviorTreeTaskRegistry();
-    registry.register('combat.playCard', (_ctx, params) => this.enemyTaskPlayCard(params));
-    registry.register('combat.playCardIf', (_ctx, params) => this.enemyTaskPlayCardIf(params));
-    registry.register('combat.playBestCard', (_ctx, params) => this.enemyTaskPlayBestCard(params));
-    registry.register('combat.wait', () => 'Success');
-    registry.register('combat.endTurn', () => 'Success');
-    return registry;
-  }
-
-  private syncEnemyBlackboard(
-    enemy: GameplayFrameworkComponent,
-    player: GameplayFrameworkComponent,
-  ): void {
-    fillEnemyBlackboard({
-      blackboard: this.enemyBlackboard,
-      primaries: this.enemyCharacter.primaries,
-      enemy,
-      player,
-    });
-  }
-
-  private createEnemyPeekContext(
-    enemy: GameplayFrameworkComponent,
-    player: GameplayFrameworkComponent,
-  ) {
-    this.syncEnemyBlackboard(enemy, player);
-    return {
-      blackboard: this.enemyBlackboard,
-      isCardPlayable: (cardId: CardId) => this.isEnemyCardPlayable(cardId, enemy),
-      resolvePlayBestCard: (goal: EnemyCardGoal) =>
-        this.resolveEnemyPlayBestCard(goal, enemy, player)?.cardId,
-    };
-  }
-
-  private isEnemyCardPlayable(cardId: CardId, enemy: GameplayFrameworkComponent): boolean {
-    if (!this.cardDefinitions[cardId]) {
-      return false;
-    }
-    const instanceId = findEnemyHandInstanceId(
-      cardId,
-      this.enemyDeck.hand,
-      this.enemyInstances,
-    );
-    if (!instanceId) {
-      return false;
-    }
-    return getEntityActionPoints(enemy) >= this.getCardDefinition(cardId).cost;
-  }
-
-  private resolveEnemyPlayBestCard(
-    goal: EnemyCardGoal,
-    enemy: GameplayFrameworkComponent,
-    player: GameplayFrameworkComponent,
-  ) {
-    return chooseBestEnemyCard({
-      goal,
-      enemy,
-      player,
-      hand: this.enemyDeck.hand,
-      instances: this.enemyInstances,
-      cardDefinitions: this.cardDefinitions,
-      abilityHandles: this.enemyCardAbilityHandles,
-      bonusConfig: this.bonusConfig,
-    });
-  }
-
-  private parseEnemyWhenParam(params: Record<string, unknown>): EnemyWhenCondition | undefined {
-    const when = params.when;
-    if (when === 'selfLowHp' || when === 'playerLowHp') {
-      return when;
-    }
-    return undefined;
-  }
-
-  private parseEnemyGoalParam(params: Record<string, unknown>): EnemyCardGoal | undefined {
-    const goal = params.goal;
-    if (goal === 'damage' || goal === 'block' || goal === 'finisher') {
-      return goal;
-    }
-    return undefined;
-  }
-
-  private enemyTaskMatchesWhen(params: Record<string, unknown>): boolean {
-    const when = this.parseEnemyWhenParam(params);
-    if (!when) {
-      return true;
-    }
-    return evaluateEnemyWhenCondition(this.enemyBlackboard, when);
-  }
-
-  private buildEnemyIntentLabel(
-    nextTask: ReturnType<typeof peekNextTaskNode>,
-    enemy: GameplayFrameworkComponent,
-    player: GameplayFrameworkComponent,
-  ): string {
-    if (this.preview || this.enemyPreview) {
-      return this.lastEnemyIntentLabel;
-    }
-
-    const label = this.computeEnemyIntentLabel(nextTask, enemy, player);
-    this.lastEnemyIntentLabel = label;
-    return label;
-  }
-
-  private computeEnemyIntentLabel(
-    nextTask: ReturnType<typeof peekNextTaskNode>,
-    enemy: GameplayFrameworkComponent,
-    player: GameplayFrameworkComponent,
-  ): string {
-    if (!nextTask) {
-      return 'Unknown';
-    }
-    if (nextTask.actionId === 'combat.wait') {
-      return 'Wait';
-    }
-    if (nextTask.actionId === 'combat.endTurn') {
-      return 'End turn';
-    }
-    if (nextTask.actionId !== 'combat.playCard') {
-      return 'Unknown';
-    }
-
-    const cardId = typeof nextTask.params?.cardId === 'string' ? nextTask.params.cardId : '';
-    if (!cardId || !this.cardDefinitions[cardId]) {
-      return 'Unknown';
-    }
-
-    const def = this.getCardDefinition(cardId);
-    const handle = this.enemyCardAbilityHandles.get(cardId);
-    if (!handle) {
-      return fallbackCardIntentLabel(def);
-    }
-
-    const instanceId = findEnemyHandInstanceId(
-      cardId,
-      this.enemyDeck.hand,
-      this.enemyInstances,
-    );
-    if (!instanceId) {
-      return fallbackCardIntentLabel(def);
-    }
-
-    if (getEntityActionPoints(enemy) < def.cost) {
-      return fallbackCardIntentLabel(def);
-    }
-
-    return previewEnemyCardIntentLabel({
-      enemy,
-      player,
-      def,
-      abilityHandle: handle,
-      cardInstanceId: instanceId,
-      bonusConfig: this.bonusConfig,
-    });
-  }
-
-  private enemyTaskPlayCard(params: Record<string, unknown>): BtStatus {
-    const cardId = typeof params.cardId === 'string' ? params.cardId : '';
-    if (!cardId || !this.cardDefinitions[cardId]) {
-      return 'Failure';
-    }
-    return this.enemyPlayCardById(cardId) ? 'Success' : 'Failure';
-  }
-
-  private enemyTaskPlayCardIf(params: Record<string, unknown>): BtStatus {
-    if (!this.enemyTaskMatchesWhen(params)) {
-      return 'Failure';
-    }
-    return this.enemyTaskPlayCard(params);
-  }
-
-  private enemyTaskPlayBestCard(params: Record<string, unknown>): BtStatus {
-    if (!this.enemyTaskMatchesWhen(params)) {
-      return 'Failure';
-    }
-    const goal = this.parseEnemyGoalParam(params);
-    if (!goal) {
-      return 'Failure';
-    }
-    const enemy = this.requireEnemy();
-    const player = this.requirePlayer();
-    const choice = this.resolveEnemyPlayBestCard(goal, enemy, player);
-    if (!choice) {
-      return 'Failure';
-    }
-    return this.enemyPlayCardByInstanceId(choice.instanceId) ? 'Success' : 'Failure';
-  }
-
-  private enemyPlayCardByInstanceId(instanceId: string): boolean {
-    const instance = this.enemyInstances.get(instanceId);
-    if (!instance) {
-      return false;
-    }
-    return this.enemyPlayCardById(instance.actionId);
-  }
-
-  private enemyPlayCardById(cardId: CardId): boolean {
-    if (this.enemyPreview) {
-      return false;
-    }
-
-    const handIndex = this.enemyDeck.hand.findIndex(
-      (instanceId) => this.enemyInstances.get(instanceId)?.actionId === cardId,
-    );
-    if (handIndex < 0) {
-      return false;
-    }
-
-    const instanceId = this.enemyDeck.hand[handIndex]!;
-    const instance = this.enemyInstances.get(instanceId);
-    if (!instance) {
-      return false;
-    }
-
-    const def = this.getCardDefinition(instance.actionId);
-    const enemy = this.requireEnemy();
-    if (getEntityActionPoints(enemy) < def.cost) {
-      return false;
-    }
-
-    const handle = this.enemyCardAbilityHandles.get(instance.actionId);
-    if (!handle) {
-      return false;
-    }
-
-    const targetId = resolveEnemyPlayTarget(def);
-
-    const setByCaller: Record<string, number> = {};
-    if (def.attributeBonus) {
-      setByCaller[SetByCallerKeys.AttributeBonus] = computeAttributeBonusForEntity(
-        def.attributeBonus,
-        enemy,
-        this.bonusConfig,
-      );
-    }
-
-    const result = enemy.tryActivate(handle, {
-      instigatorEntityId: COMBAT_ENEMY_ID,
-      sourceEntityId: COMBAT_ENEMY_ID,
-      targetEntityId: targetId,
-      parameters: def.ability.parameterValues,
-      payload: { cardInstanceId: instanceId, actionId: instance.actionId, cost: def.cost },
-      setByCaller: Object.keys(setByCaller).length > 0 ? setByCaller : undefined,
-    });
-
-    if (!result.ok) {
-      return false;
-    }
-
-    this.enemyPreview = {
-      handIndex,
-      instanceId,
-      actionId: instance.actionId,
-      abilityHandle: handle,
-      abilityInstanceId: result.instanceId,
-      targetEntityId: targetId,
-    };
-
-    this.emitCombatEvent('GameplayEvent.Combat.TryPlayCard', {
-      cardInstanceId: instanceId,
-      actionId: instance.actionId,
-      sourceId: COMBAT_ENEMY_ID,
-      targetId,
-    });
-
-    return true;
   }
 
   private runSetup(options: { reusePlayer?: boolean } = {}): void {
@@ -1108,11 +832,11 @@ export class CombatSession {
     const player = this.requirePlayer();
     enemy.setAttributeBase(CombatAttributes.Block, 0);
 
-    this.syncEnemyBlackboard(enemy, player);
+    this.enemyAi.syncBlackboard(enemy, player);
 
     const btCtx = {
-      blackboard: this.enemyBlackboard,
-      tasks: this.enemyTaskRegistry,
+      blackboard: this.enemyAi.blackboard,
+      tasks: this.enemyAi.taskRegistry,
     };
     tickBehaviorTree(this.enemyBehaviorTree.root, btCtx, this.enemyBtState, { leafBudget: 1 });
 

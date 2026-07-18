@@ -41,10 +41,6 @@ export type LevelSnapshot = {
   visionRoomIds: string[];
   /** Alias of knownRoomIds (rooms drawn on the map). */
   mappedRoomIds: string[];
-  /**
-   * @deprecated alias of mappedRoomIds / knownRoomIds.
-   */
-  visibleRoomIds: string[];
   currentRoom: RoomDefinition;
   roomStates: Record<string, RoomRuntimeState>;
   roomInteractables: RoomInteractableView[];
@@ -203,11 +199,6 @@ export class LevelSession {
   /** Rooms drawn on the map = known layout (ever seen). */
   getMappedRoomIds(): string[] {
     return this.getKnownRoomIds();
-  }
-
-  /** @deprecated use getMappedRoomIds / getKnownRoomIds */
-  getVisibleRoomIds(): string[] {
-    return this.getMappedRoomIds();
   }
 
   getPosition(): CellCoord {
@@ -441,7 +432,6 @@ export class LevelSession {
       knownRoomIds: this.getKnownRoomIds(),
       visionRoomIds: this.getVisionRoomIds(),
       mappedRoomIds: this.getMappedRoomIds(),
-      visibleRoomIds: this.getMappedRoomIds(),
       currentRoom: this.getCurrentRoom(),
       roomStates: structuredClone(this.roomStates),
       roomInteractables: this.listRoomInteractables(),

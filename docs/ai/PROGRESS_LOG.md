@@ -10,6 +10,13 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-19 — REFAC-F01 (in progress): loaders + combat cleanup + EnemyCombatAi
+
+- New `@cardgame/repo-data`; deleted CLI `load-combat-bootstrap` duplicate.
+- Removed dead combat damage APIs; slimmed card wire; dropped dungeon `visibleRoomIds`.
+- Extracted `EnemyCombatAi` from `CombatSession` (~270 lines).
+- **Verify:** 287 tests green. CLI session-controller split still open (TD-REFAC-02).
+
 ### 2026-07-18 — INTERACT-F02 Done: d20 + trap + altar/forge + mount
 
 - `rollD20Check` (nat1/20, adv/disadv); host `damage` / `tryGiveItem` / `nextRandom` / `getCheckModifier`.

@@ -21,6 +21,7 @@ export default tseslint.config(
   {
     files: [
       'packages/core/src/**/*.ts',
+      'packages/repo-data/src/**/*.ts',
       'packages/combat/src/**/*.ts',
       'packages/items/src/**/*.ts',
       'packages/characters/src/**/*.ts',

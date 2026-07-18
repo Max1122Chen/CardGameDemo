@@ -36,11 +36,7 @@ function floorGlyph(
     return '@';
   }
 
-  const vision = new Set(
-    snapshot.visionRoomIds?.length
-      ? snapshot.visionRoomIds
-      : snapshot.visibleRoomIds,
-  );
+  const vision = new Set(snapshot.visionRoomIds ?? []);
   // Visited / mapped but out of vision: layout only (empty floor).
   if (!vision.has(roomId)) {
     return ' ';
@@ -81,9 +77,7 @@ export function renderLevelMapLines(level: LevelAsset, snapshot: AdventureSnapsh
   const mappedIds =
     snapshot.mappedRoomIds?.length > 0
       ? snapshot.mappedRoomIds
-      : snapshot.visibleRoomIds?.length > 0
-        ? snapshot.visibleRoomIds
-        : [snapshot.currentRoomId];
+      : [snapshot.currentRoomId];
   const mapped = new Set(mappedIds);
   const rooms = Object.values(level.rooms).filter((room) => mapped.has(room.id));
   if (rooms.length === 0) {

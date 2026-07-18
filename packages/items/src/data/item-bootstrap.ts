@@ -1,8 +1,7 @@
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 import type { GameplayTagManager } from '@cardgame/core';
+import { loadJsonFiles, readJsonFile, resolveRepoDataRoot } from '@cardgame/repo-data';
 
 import type { ItemDefinition, ItemId } from '../item-definition.js';
 import {
@@ -11,37 +10,10 @@ import {
   type WireItemDefinition,
 } from './parse-item.js';
 
-function findRepoRoot(startDir: string): string {
-  let dir = startDir;
-  while (true) {
-    if (existsSync(join(dir, 'data', 'items'))) {
-      return dir;
-    }
-    const parent = dirname(dir);
-    if (parent === dir) {
-      break;
-    }
-    dir = parent;
-  }
-  throw new Error('Could not locate repo root (missing data/items)');
-}
-
-export function resolveRepoDataRoot(startDir = dirname(fileURLToPath(import.meta.url))): string {
-  return join(findRepoRoot(startDir), 'data');
-}
-
-function readJsonFile<T>(path: string): T {
-  return JSON.parse(readFileSync(path, 'utf8')) as T;
-}
+export { resolveRepoDataRoot };
 
 export function loadItemWiresFromDir(itemsDir: string): WireItemDefinition[] {
-  if (!existsSync(itemsDir)) {
-    return [];
-  }
-  const files = readdirSync(itemsDir)
-    .filter((name) => name.endsWith('.json'))
-    .sort();
-  return files.map((name) => readJsonFile<WireItemDefinition>(join(itemsDir, name)));
+  return loadJsonFiles<WireItemDefinition>(itemsDir);
 }
 
 export type BattleRewardEntry = {

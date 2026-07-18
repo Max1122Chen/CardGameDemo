@@ -12,7 +12,8 @@
   "dependencies": {
     "@cardgame/combat": "*",
     "@cardgame/core": "*",
-    "@cardgame/items": "*"
+    "@cardgame/items": "*",
+    "@cardgame/repo-data": "*"
   },
   "scripts": {
     "build": "tsc -b"

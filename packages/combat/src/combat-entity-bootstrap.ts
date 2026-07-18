@@ -159,4 +159,48 @@ export function bootstrapCombatEntity(
   return gfc.grantAbility(options.takeDamageAbility);
 }
 
+/** Reset transient combat pipeline attributes between plays / turns. */
+export function resetCombatMeta(entity: GameplayFrameworkComponent): void {
+  entity.applyGameplayEffect({
+    id: 'ge.combat.meta.reset',
+    duration: { kind: 'Instant' },
+    modifiers: [
+      { attribute: CombatAttributes.Damage, op: 'Override', magnitude: 0 },
+      { attribute: CombatAttributes.DamageToTake, op: 'Override', magnitude: 0 },
+      { attribute: CombatAttributes.BlockToGain, op: 'Override', magnitude: 0 },
+      { attribute: CombatAttributes.DamageScaling, op: 'Override', magnitude: 1 },
+      { attribute: CombatAttributes.DamageMultiplier, op: 'Override', magnitude: 1 },
+      { attribute: CombatAttributes.DamageOffset, op: 'Override', magnitude: 0 },
+    ],
+  });
+}
+
+/** Convenience wrapper: health arg maps to maxHealth for bootstrapCombatEntity. */
+export function bootstrapCombatAttributes(
+  gfc: GameplayFrameworkComponent,
+  options: {
+    health: number;
+    block?: number;
+    actionPoints?: number;
+    maxActionPoints?: number;
+    primaries?: CombatEntityBootstrapOptions['primaries'];
+    takeDamageAbility: GameplayAbilityDefinition;
+  },
+  tagManager: GameplayTagManager,
+): string {
+  const maxAp = options.maxActionPoints ?? options.actionPoints;
+  return bootstrapCombatEntity(
+    gfc,
+    {
+      maxHealth: options.health,
+      block: options.block,
+      maxActionPoints: maxAp,
+      actionPoints: options.actionPoints ?? maxAp,
+      primaries: options.primaries,
+      takeDamageAbility: options.takeDamageAbility,
+    },
+    tagManager,
+  );
+}
+
 export { DEFAULT_PLAYER_PRIMARIES, DEFAULT_ENEMY_PRIMARIES };

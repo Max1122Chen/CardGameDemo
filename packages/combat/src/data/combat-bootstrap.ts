@@ -1,12 +1,15 @@
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-import type { RuleEngine } from '@cardgame/core';
-import type { GameplayTagManager } from '@cardgame/core';
+import type { RuleEngine, GameplayTagManager } from '@cardgame/core';
 import type { ItemDefinition } from '@cardgame/items';
-import type { CombatSessionTuneables } from '../types.js';
+import {
+  loadJsonDirById,
+  loadJsonFiles,
+  readJsonFile,
+  resolveRepoDataRoot,
+} from '@cardgame/repo-data';
 import type { WireGameplayAbilityDefinition, WireGameplayEffectDefinition } from '@cardgame/core';
+import type { CombatSessionTuneables } from '../types.js';
 import {
   buildCombatCardBootstrap,
   type CombatCardBootstrap,
@@ -15,58 +18,21 @@ import {
 } from './parse-card.js';
 import { spawnEnemyFromRepo, type EnemyCombatSetup } from '../enemy-bootstrap.js';
 
-function findRepoRoot(startDir: string): string {
-  let dir = startDir;
-  while (true) {
-    if (existsSync(join(dir, 'data', 'cards'))) {
-      return dir;
-    }
-    const parent = dirname(dir);
-    if (parent === dir) {
-      break;
-    }
-    dir = parent;
-  }
-  throw new Error('Could not locate repo root (missing data/cards)');
-}
-
-export function resolveRepoDataRoot(startDir = dirname(fileURLToPath(import.meta.url))): string {
-  return join(findRepoRoot(startDir), 'data');
-}
-
-function readJsonFile<T>(path: string): T {
-  return JSON.parse(readFileSync(path, 'utf8')) as T;
-}
-
-function loadJsonDir<T extends { id: string }>(dir: string): Record<string, T> {
-  if (!existsSync(dir)) {
-    return {};
-  }
-  const out: Record<string, T> = {};
-  for (const name of readdirSync(dir).filter((n) => n.endsWith('.json')).sort()) {
-    const wire = readJsonFile<T>(join(dir, name));
-    out[wire.id] = wire;
-  }
-  return out;
-}
+export { resolveRepoDataRoot };
 
 export function loadDefinitionAssetCatalog(dataRoot: string): DefinitionAssetCatalog {
   return {
-    effects: loadJsonDir<WireGameplayEffectDefinition>(join(dataRoot, 'effects')),
-    abilities: loadJsonDir<WireGameplayAbilityDefinition>(join(dataRoot, 'abilities')),
+    effects: loadJsonDirById<WireGameplayEffectDefinition>(join(dataRoot, 'effects')),
+    abilities: loadJsonDirById<WireGameplayAbilityDefinition>(join(dataRoot, 'abilities')),
   };
 }
 
 export function loadCardWiresFromDir(cardsDir: string): WireCardDefinition[] {
-  const files = readdirSync(cardsDir)
-    .filter((name) => name.endsWith('.json'))
-    .sort();
-  return files.map((name) => readJsonFile<WireCardDefinition>(join(cardsDir, name)));
+  return loadJsonFiles<WireCardDefinition>(cardsDir);
 }
 
 export function loadDeckIds(decksDir: string, deckName = 'starter'): readonly string[] {
-  const path = join(decksDir, `${deckName}.json`);
-  return readJsonFile<readonly string[]>(path);
+  return readJsonFile<readonly string[]>(join(decksDir, `${deckName}.json`));
 }
 
 export function loadCombatBootstrapFromRepo(

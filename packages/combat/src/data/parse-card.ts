@@ -12,7 +12,7 @@ import type {
   AttributeBonusSpec,
 } from '../attribute-bonus.js';
 import type { PrimaryAttributeName } from '../combat-attributes.js';
-import type { CardCommitEffectTarget, CardDefinition, CardTargeting } from '../card-definition.js';
+import type { CardDefinition, CardTargeting } from '../card-definition.js';
 import type { CardId } from '../types.js';
 import { TAKE_DAMAGE_ABILITY_ID } from '../set-by-caller-keys.js';
 
@@ -24,33 +24,18 @@ const VALID_BONUS_GRADES: readonly AttributeBonusGrade[] = [
   'D',
 ];
 
-export type WireCardCommitEffect = {
-  target: CardCommitEffectTarget;
-  effect: WireGameplayEffectDefinition;
-};
-
-export type WireCardCommitEffectRef = {
-  target: CardCommitEffectTarget;
-  effectRef: string;
-};
-
 export type WireCardDefinition = {
   id: string;
   name: string;
   cost: number;
   targeting: CardTargeting;
-  /** Inline ability (legacy) or omit when abilityRef is set. */
+  /** Inline ability for tests; prefer abilityRef against the catalog. */
   ability?: WireGameplayAbilityDefinition;
   abilityRef?: string;
   /** GA parameter overrides (CDO). `cost` also merges into ApCost. */
   parameters?: Readonly<Record<string, number | boolean>>;
   /** Optional card-level effectBindings merged onto archetype. */
   effectBindings?: readonly WireGameplayAbilityEffectBindingSpec[];
-  /** @deprecated F11 �?prefer parameters + effectBindings */
-  setByCaller?: Readonly<Record<string, number>>;
-  /** @deprecated F11 �?prefer effectBindings when=commit */
-  commitEffects?: readonly WireCardCommitEffect[];
-  commitEffectRefs?: readonly WireCardCommitEffectRef[];
   attributeBonus?: {
     grade: AttributeBonusGrade;
     stats: readonly PrimaryAttributeName[];
@@ -121,19 +106,6 @@ function isPrimaryAttributeName(value: string): value is PrimaryAttributeName {
   );
 }
 
-function commitRefsToBindings(
-  refs: readonly WireCardCommitEffectRef[] | undefined,
-): WireGameplayAbilityEffectBindingSpec[] {
-  if (!refs) {
-    return [];
-  }
-  return refs.map((ref) => ({
-    when: 'commit',
-    target: ref.target,
-    effectRef: ref.effectRef,
-  }));
-}
-
 export function parseCardDefinition(
   wire: WireCardDefinition,
   manager: GameplayTagManager,
@@ -149,18 +121,7 @@ export function parseCardDefinition(
   const mergedBindings: WireGameplayAbilityEffectBindingSpec[] = [
     ...(wire.effectBindings ?? []),
     ...(abilityWire.effectBindings ?? []),
-    ...commitRefsToBindings(wire.commitEffectRefs),
   ];
-
-  if (wire.commitEffects) {
-    for (const binding of wire.commitEffects) {
-      mergedBindings.push({
-        when: 'commit',
-        target: binding.target,
-        effect: binding.effect,
-      });
-    }
-  }
 
   const abilityWithBindings: WireGameplayAbilityDefinition = {
     ...abilityWire,

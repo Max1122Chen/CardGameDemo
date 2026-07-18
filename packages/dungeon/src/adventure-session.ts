@@ -211,10 +211,6 @@ export class AdventureSession {
     return this.levelSession.getMappedRoomIds();
   }
 
-  getVisibleRoomIds(): string[] {
-    return this.levelSession.getVisibleRoomIds();
-  }
-
   getPosition(): CellCoord {
     return this.levelSession.getPosition();
   }

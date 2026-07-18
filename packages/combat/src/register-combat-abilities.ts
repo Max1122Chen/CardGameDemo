@@ -8,9 +8,9 @@ import {
   CARD_PLAY_DAMAGE_HANDLER_ID,
   CARD_PLAY_HEAL_HANDLER_ID,
   CARD_PLAY_STATUS_HANDLER_ID,
-  TAKE_DAMAGE_HANDLER_ID,
   type CardPlayCommitBridge,
 } from './card-play-handlers.js';
+import { TAKE_DAMAGE_HANDLER_ID } from './set-by-caller-keys.js';
 import { createTakeDamageHandler } from './take-damage-handler.js';
 
 export type CombatAbilityRegistration = {

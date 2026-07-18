@@ -2,7 +2,7 @@ import type { GameplayAbilityDefinition } from '@cardgame/core';
 import type { GameplayFrameworkComponent } from '@cardgame/core';
 
 import { CombatAttributes } from './combat-attributes.js';
-import { resetCombatMeta } from './take-damage.js';
+import { resetCombatMeta } from './combat-entity-bootstrap.js';
 
 /** Infinite GEs that survive between encounters on the adventure player. */
 export const PERSISTENT_INFINITE_GE_IDS = new Set([

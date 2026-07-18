@@ -1,6 +1,7 @@
 import type {
   GameplayEffectApplicationContext,
   GameplayEffectDefinition,
+  GameplayFrameworkComponent,
 } from '@cardgame/core';
 
 export type TakeDamageEntity = {
@@ -47,4 +48,12 @@ export function settleTakeDamageOnEntity(target: TakeDamageEntity): {
     ],
   });
   return { blocked: block, healthLost };
+}
+
+/** Alias for GFC-typed call sites. */
+export function settleTakeDamage(target: GameplayFrameworkComponent): {
+  blocked: number;
+  healthLost: number;
+} {
+  return settleTakeDamageOnEntity(target);
 }

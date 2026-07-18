@@ -11,15 +11,3 @@ export function splitSharedPairWidths(
   const right = Math.max(8, sum - left);
   return { left, right };
 }
-
-/** @deprecated Prefer splitSharedPairWidths for adjacent panes. */
-export function splitColumnWidths(
-  totalWidth: number,
-  leftRatio: number,
-  gap = 1,
-): { left: number; right: number } {
-  const usable = Math.max(totalWidth - gap, 2);
-  const left = Math.max(8, Math.floor(usable * leftRatio));
-  const right = Math.max(8, usable - left);
-  return { left, right };
-}

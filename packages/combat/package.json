@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@cardgame/characters": "*",
-    "@cardgame/core": "*"
+    "@cardgame/core": "*",
+    "@cardgame/items": "*",
+    "@cardgame/repo-data": "*"
   },
   "scripts": {
     "build": "tsc -b"

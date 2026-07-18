@@ -7,7 +7,6 @@ export const CARD_PLAY_DAMAGE_HANDLER_ID = 'combat.cardPlayDamage';
 export const CARD_PLAY_BLOCK_HANDLER_ID = 'combat.cardPlayBlock';
 export const CARD_PLAY_STATUS_HANDLER_ID = 'combat.cardPlayStatus';
 export const CARD_PLAY_HEAL_HANDLER_ID = 'combat.cardPlayHeal';
-export const TAKE_DAMAGE_HANDLER_ID = 'combat.takeDamage';
 
 export const CARD_PLAY_LISTEN = {
   channelTag: 'Combat',

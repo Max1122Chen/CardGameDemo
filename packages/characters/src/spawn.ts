@@ -1,6 +1,4 @@
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 import {
   EQUIPMENT_SLOT_IDS,
@@ -19,6 +17,7 @@ import {
   type ItemId,
   type Rotation,
 } from '@cardgame/items';
+import { loadJsonFiles, resolveRepoDataRoot } from '@cardgame/repo-data';
 
 import { CharacterSpawnError } from './errors.js';
 import type {
@@ -30,47 +29,15 @@ import type {
 
 import type { WireCharacterDefinition } from './parse-character.js';
 
-function findRepoRoot(startDir: string): string {
-  let dir = startDir;
-  while (true) {
-    if (existsSync(join(dir, 'data', 'characters'))) {
-      return dir;
-    }
-    const parent = dirname(dir);
-    if (parent === dir) {
-      break;
-    }
-    dir = parent;
-  }
-  throw new Error('Could not locate repo root (missing data/characters)');
-}
-
-export function resolveRepoDataRoot(startDir = dirname(fileURLToPath(import.meta.url))): string {
-  return join(findRepoRoot(startDir), 'data');
-}
-
-function readJsonFile<T>(path: string): T {
-  return JSON.parse(readFileSync(path, 'utf8')) as T;
-}
+export { resolveRepoDataRoot };
 
 export function loadCharacterWiresFromDir(charactersDir: string): WireCharacterDefinition[] {
-  if (!existsSync(charactersDir)) {
-    return [];
-  }
-  return readdirSync(charactersDir)
-    .filter((name) => name.endsWith('.json'))
-    .sort()
-    .map((name) => readJsonFile(join(charactersDir, name)));
+  return loadJsonFiles<WireCharacterDefinition>(charactersDir);
 }
 
 export function loadBehaviorTreeIds(dataRoot: string): Set<string> {
-  const dir = join(dataRoot, 'behavior-trees');
-  if (!existsSync(dir)) {
-    return new Set();
-  }
   const ids = new Set<string>();
-  for (const name of readdirSync(dir).filter((n) => n.endsWith('.json'))) {
-    const wire = readJsonFile<{ id?: string }>(join(dir, name));
+  for (const wire of loadJsonFiles<{ id?: string }>(join(dataRoot, 'behavior-trees'))) {
     if (wire.id) {
       ids.add(wire.id);
     }

@@ -10,7 +10,7 @@ import {
 import { CombatAttributes } from './combat-attributes.js';
 import { getEntityActionPoints } from './combat-damage.js';
 import { resolveEnemyPlayTarget } from './enemy-intent-preview.js';
-import { resetCombatMeta } from './take-damage.js';
+import { resetCombatMeta } from './combat-entity-bootstrap.js';
 import { SetByCallerKeys } from './set-by-caller-keys.js';
 import type { CardId } from './types.js';
 import { COMBAT_ENEMY_ID } from './types.js';

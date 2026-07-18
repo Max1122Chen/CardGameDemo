@@ -2,12 +2,11 @@ import {
   collectItemTagsFromRepo,
   loadBattleRewards,
   loadItemCatalogFromRepo,
+  resolveRepoDataRoot,
   validateBattleRewards,
   type ItemDefinition,
 } from '@cardgame/items';
 import type { GameplayTagManager } from '@cardgame/core';
-
-import { resolveRepoDataRoot } from '@cardgame/combat';
 
 export function loadItemBootstrap(manager: GameplayTagManager): Record<string, ItemDefinition> {
   const dataRoot = resolveRepoDataRoot();

@@ -12,6 +12,3 @@ export type CardDefinition = {
   ability: GameplayAbilityDefinition;
   attributeBonus?: AttributeBonusSpec;
 };
-
-/** @deprecated Prefer effectBindings when=commit */
-export type CardCommitEffectTarget = 'self' | 'target';

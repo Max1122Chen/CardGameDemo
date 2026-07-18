@@ -10,8 +10,6 @@ import {
 /** Default backpack: width 4 × height 6. */
 export const DEFAULT_GRID_WIDTH = 4;
 export const DEFAULT_GRID_HEIGHT = 6;
-/** @deprecated Prefer width*height grid; kept for CLI cell count display. */
-export const DEFAULT_INVENTORY_CAPACITY = DEFAULT_GRID_WIDTH * DEFAULT_GRID_HEIGHT;
 
 export type Rotation = 0 | 90;
 
@@ -459,15 +457,6 @@ export function placePayloadInInventory(
     rotation: fit.rotation,
   });
   return { ok: true };
-}
-
-/** @deprecated Prefer discardInventoryEntry by entryId. */
-export function discardInventorySlot(inventory: InventoryState, slotIndex: number): boolean {
-  const entry = inventory.entries[slotIndex];
-  if (!entry) {
-    return false;
-  }
-  return discardInventoryEntry(inventory, entry.entryId);
 }
 
 export function tidyInventory(

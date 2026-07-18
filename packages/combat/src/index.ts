@@ -1,7 +1,11 @@
 export { CombatSession } from './combat-session.js';
 export { CombatError } from './errors.js';
 export { CombatAttributes } from './combat-attributes.js';
-export { settleTakeDamage, resetCombatMeta, bootstrapCombatAttributes } from './take-damage.js';
+export {
+  bootstrapCombatAttributes,
+  resetCombatMeta,
+  registerCombatAttributeClamps,
+} from './combat-entity-bootstrap.js';
 export {
   clearCombatTransientState,
   isPlayerCombatReady,
@@ -9,9 +13,7 @@ export {
   resolveTakeDamageHandle,
   PERSISTENT_INFINITE_GE_IDS,
 } from './combat-cleanup.js';
-export { settleTakeDamageOnEntity } from './settle-take-damage.js';
-export { dealDamageToEntity } from './deal-damage.js';
-export { dealOutgoingDamage } from './deal-outgoing-damage.js';
+export { settleTakeDamage, settleTakeDamageOnEntity } from './settle-take-damage.js';
 export { registerCombatAbilityHandlers } from './register-combat-abilities.js';
 export {
   computeAttributeBonus,
@@ -42,7 +44,7 @@ export {
   CARD_PLAY_HEAL_HANDLER_ID,
   type CardPlayCommitBridge,
 } from './card-play-handlers.js';
-export type { CardDefinition, CardTargeting, CardCommitEffectTarget } from './card-definition.js';
+export type { CardDefinition, CardTargeting } from './card-definition.js';
 export {
   COMBAT_ENEMY_ID,
   COMBAT_PLAYER_ID,
@@ -74,8 +76,6 @@ export {
   buildCombatCardBootstrap,
   catalogToDisplaySpecs,
   type WireCardDefinition,
-  type WireCardCommitEffect,
-  type WireCardCommitEffectRef,
   type CombatCardBootstrap,
   type DefinitionAssetCatalog,
 } from './data/parse-card.js';

@@ -9,6 +9,7 @@
   "references": [
     { "path": "../combat" },
     { "path": "../core" },
-    { "path": "../items" }
+    { "path": "../items" },
+    { "path": "../repo-data" }
   ]
 }

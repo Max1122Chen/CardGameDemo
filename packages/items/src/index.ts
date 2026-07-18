@@ -35,7 +35,6 @@ export {
 export {
   DEFAULT_GRID_WIDTH,
   DEFAULT_GRID_HEIGHT,
-  DEFAULT_INVENTORY_CAPACITY,
   createInventory,
   canAddToInventory,
   computeAddableQuantity,
@@ -47,7 +46,6 @@ export {
   discardInventoryEntry,
   takeInventoryEntry,
   placePayloadInInventory,
-  discardInventorySlot,
   tidyInventory,
   listInventorySlots,
   renderInventoryGrid,

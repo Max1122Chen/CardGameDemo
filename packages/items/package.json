@@ -10,7 +10,8 @@
     }
   },
   "dependencies": {
-    "@cardgame/core": "*"
+    "@cardgame/core": "*",
+    "@cardgame/repo-data": "*"
   },
   "scripts": {
     "build": "tsc -b"

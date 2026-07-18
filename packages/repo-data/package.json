@@ -1,5 +1,5 @@
 {
-  "name": "@cardgame/characters",
+  "name": "@cardgame/repo-data",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -8,11 +8,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
-  },
-  "dependencies": {
-    "@cardgame/core": "*",
-    "@cardgame/items": "*",
-    "@cardgame/repo-data": "*"
   },
   "scripts": {
     "build": "tsc -b"
