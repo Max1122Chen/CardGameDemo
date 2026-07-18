@@ -5,6 +5,7 @@ export type {
   LevelAsset,
   LevelDoor,
   LevelGenProfile,
+  LevelPhase,
   LevelSource,
   RoomDefinition,
   RoomDirection,
@@ -14,7 +15,13 @@ export type {
   RoomRect,
   RoomRuntimeState,
 } from './types.js';
-export { DEFAULT_DOOR_COST, DEFAULT_EXPLORE_MAX_AP, ROOM_DIRECTIONS, oppositeDirection } from './types.js';
+export {
+  DEFAULT_DOOR_COST,
+  DEFAULT_DUNGEON_LEVEL_COUNT,
+  DEFAULT_EXPLORE_MAX_AP,
+  ROOM_DIRECTIONS,
+  oppositeDirection,
+} from './types.js';
 export { AdventureError, LevelParseError } from './errors.js';
 export {
   parseLevelDefinition,
@@ -41,7 +48,18 @@ export {
   stepCell,
   stepMovementCost,
 } from './level-geometry.js';
-export { AdventureSession, type AdventureSnapshot, type AdventureSessionOptions } from './adventure-session.js';
+export {
+  AdventureSession,
+  seedForLevel,
+  type AdventureSnapshot,
+  type AdventureSessionOptions,
+  type AdventureRunOptions,
+} from './adventure-session.js';
+export {
+  LevelSession,
+  type LevelSnapshot,
+  type LevelSessionOptions,
+} from './level-session.js';
 export {
   AdventureLifecycleBus,
   type AdventureLifecycleEvent,

@@ -37,10 +37,19 @@ describe('executeConsoleCommand', () => {
     expect(controller.enemyCharacterId).toBe('orc_brute');
   });
 
-  it('dungeon command loads probe level explore', () => {
+  it('dungeon command starts seeded multi-level run', () => {
     const controller = createSessionController({ traceToBuffer: true });
     const result = executeConsoleCommand(controller, 'dungeon');
     expect(result.statusMessage).toMatch(/Dungeon/i);
+    expect(controller.adventure?.getLevelCount()).toBeGreaterThanOrEqual(2);
+    expect(controller.adventure?.getPhase()).toBe('explore');
+  });
+
+  it('dungeon level.probe loads single JSON floor', () => {
+    const controller = createSessionController({ traceToBuffer: true });
+    const result = executeConsoleCommand(controller, 'dungeon level.probe');
+    expect(result.statusMessage).toMatch(/level\.probe/i);
     expect(controller.adventure?.getCurrentRoomId()).toBe('start');
+    expect(controller.adventure?.getLevelCount()).toBe(1);
   });
 });

@@ -279,15 +279,21 @@ function renderLogPane(logSource: string[], logInner: number): string[] {
 function renderGameplay(state: AppState, cols: number): string[] {
   const bagOpen = state.overlay === 'inventory';
   const explore = isExplorePhase(state) || state.sessionPhase === 'adventure_victory' || state.sessionPhase === 'adventure_defeat';
+  const floorLabel =
+    state.levelCount !== undefined && state.levelCount > 1
+      ? ` L${(state.levelIndex ?? 0) + 1}/${state.levelCount}`
+      : '';
   const phaseLine = explore
     ? theme.muted(
         state.sessionPhase === 'adventure_victory'
-          ? 'Adventure victory — level cleared'
+          ? state.levelCount && state.levelCount > 1
+            ? 'Adventure victory — evacuated'
+            : 'Adventure victory — level cleared'
           : state.sessionPhase === 'adventure_defeat'
             ? 'Adventure defeat'
             : state.pendingCombat
-              ? `Explore R${state.exploreRound ?? '?'} — confirm fight in ${state.currentRoomId ?? '?'}`
-              : `Explore R${state.exploreRound ?? '?'} AP ${state.exploreAp ?? '?'}/${state.maxExploreAp ?? '?'} — ${state.currentRoomId ?? '?'} (F end round)`,
+              ? `Explore${floorLabel} R${state.exploreRound ?? '?'} — confirm fight in ${state.currentRoomId ?? '?'}`
+              : `Explore${floorLabel} R${state.exploreRound ?? '?'} AP ${state.exploreAp ?? '?'}/${state.maxExploreAp ?? '?'} — ${state.currentRoomId ?? '?'} (F end round)`,
       )
     : state.combatResult !== undefined
       ? theme.muted(

@@ -154,6 +154,9 @@ export type AppState = {
   selectedEquipmentSlot: number;
   inventoryPlaceInput: string;
   levelId?: string;
+  /** 0-based floor index (multi-level runs). */
+  levelIndex?: number;
+  levelCount?: number;
   currentRoomId?: string;
   position?: { x: number; y: number };
   exploreRound?: number;

@@ -10,7 +10,6 @@ import {
   createVirtualBattleLevel,
   ensureExplorePlayerForMove,
   finishAdventureCombat,
-  generateDefaultDungeonLevel,
   loadLevelFromRepo,
   registerDungeonAbilityHandlers,
   type AdventureSnapshot,
@@ -254,7 +253,8 @@ function syncAdventureExploreViews(
   if (snap.pendingCombat) {
     statusMessage = `Enemy in ${snap.currentRoomId} — Enter/C to fight`;
   } else if (snap.phase === 'victory') {
-    statusMessage = 'Level cleared!';
+    statusMessage =
+      snap.levelCount > 1 ? 'Evacuated — dungeon cleared!' : 'Level cleared!';
   } else if (snap.phase === 'defeat') {
     statusMessage = 'Defeat — adventure ended.';
   }
@@ -264,6 +264,8 @@ function syncAdventureExploreViews(
     ...inventoryViews,
     sessionPhase: adventurePhaseToSessionPhase(snap.phase),
     levelId: snap.levelId,
+    levelIndex: snap.levelIndex,
+    levelCount: snap.levelCount,
     currentRoomId: snap.currentRoomId,
     position: snap.position,
     exploreRound: snap.round,
@@ -350,13 +352,13 @@ export function createSessionController(options: {
   const adventureSeed = options.seed ?? 42;
 
   const startAdventureLevel = (kind: 'battle_only' | 'dungeon', levelId?: string) => {
-    const level =
-      kind === 'battle_only'
-        ? createVirtualBattleLevel(enemyCharacterId)
-        : levelId
-          ? loadLevelFromRepo(levelId)
-          : generateDefaultDungeonLevel(adventureSeed);
-    return AdventureSession.start(level);
+    if (kind === 'battle_only') {
+      return AdventureSession.startFromLevel(createVirtualBattleLevel(enemyCharacterId));
+    }
+    if (levelId) {
+      return AdventureSession.startFromLevel(loadLevelFromRepo(levelId));
+    }
+    return AdventureSession.startRun({ runSeed: adventureSeed });
   };
 
   let adventure: AdventureSession | null =
@@ -1148,10 +1150,16 @@ export function applyUiAction(
           });
         }
         if (canLeave) {
+          const levelCount = controller.adventure.getLevelCount();
           controller.adventure.applyAction({ type: 'LeaveLevel' });
+          const descended = controller.adventure.getPhase() === 'explore';
           return controller.syncViewState({
             ...state,
-            statusMessage: 'Left the level.',
+            statusMessage: descended
+              ? `Descended to floor ${controller.adventure.getLevelIndex() + 1}/${levelCount}.`
+              : levelCount > 1
+                ? 'Evacuated — dungeon cleared!'
+                : 'Left the level.',
           });
         }
       } catch (error) {
@@ -1165,12 +1173,21 @@ export function applyUiAction(
         return state;
       }
       try {
+        const levelCount = controller.adventure.getLevelCount();
         controller.adventure.applyAction({ type: 'LeaveLevel' });
+        const descended = controller.adventure.getPhase() === 'explore';
+        return controller.syncViewState({
+          ...state,
+          statusMessage: descended
+            ? `Descended to floor ${controller.adventure.getLevelIndex() + 1}/${levelCount}.`
+            : levelCount > 1
+              ? 'Evacuated — dungeon cleared!'
+              : 'Left the level.',
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Cannot leave.';
         return { ...controller.syncViewState(state), statusMessage: message };
       }
-      return controller.syncViewState({ ...state, statusMessage: 'Left the level.' });
     }
     case 'end_explore_round': {
       if (!isExplorePhase(state) || !controller.adventure) {

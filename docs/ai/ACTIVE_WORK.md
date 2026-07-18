@@ -8,7 +8,7 @@ Last updated: 2026-07-18
 
 ## In focus
 
-**Phase:** DUNGEON-F04 Done. Next: DUNGEON-F05 (multi-level) when promoted.
+**Phase:** DUNGEON-F05 Done. Next: promote DUNGEON-F06+ (events/shops) or other backlog when ready.
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
@@ -16,7 +16,7 @@ Last updated: 2026-07-18
 | — | **DUNGEON-F02** | Rect rooms, doors, cell position, CLI map, lifecycle stubs | **Done** ([spec](./Dungeon/DUNGEON-F02-spatial-level-gen.md)) |
 | — | **DUNGEON-F03** | Explore round + AP on door moves | **Done** ([spec](./Dungeon/DUNGEON-F03-explore-round-ap.md)) |
 | — | **DUNGEON-F04** | Exploration fog (shapes) | **Done** ([spec](./Dungeon/DUNGEON-F04-exploration-fog.md)) |
-| 1 | **DUNGEON-F05** | Multi-level descend / evacuate | **Planned** |
+| — | **DUNGEON-F05** | Multi-level descend / evacuate | **Done** ([spec](./Dungeon/DUNGEON-F05-multi-level.md)) |
 
 ---
 

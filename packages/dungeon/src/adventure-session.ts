@@ -1,10 +1,11 @@
 import { AdventureError } from './errors.js';
-import { cellKey, stepCell, stepMovementCost } from './level-geometry.js';
+import { generateDefaultDungeonLevel } from './generate-level.js';
 import {
   AdventureLifecycleBus,
   type AdventureLifecycleEventType,
   type AdventureLifecycleListener,
 } from './lifecycle.js';
+import { LevelSession, type LevelSessionOptions, type LevelSnapshot } from './level-session.js';
 import type {
   AdventureExploreAction,
   AdventurePhase,
@@ -15,104 +16,138 @@ import type {
   RoomGroundLootEntry,
   RoomRuntimeState,
 } from './types.js';
-import { DEFAULT_EXPLORE_MAX_AP, ROOM_DIRECTIONS } from './types.js';
+import { DEFAULT_DUNGEON_LEVEL_COUNT, DEFAULT_EXPLORE_MAX_AP } from './types.js';
 
-export type AdventureSnapshot = {
+/** Deterministic per-floor seed from run seed + 0-based level index. */
+export function seedForLevel(runSeed: number, levelIndex: number): number {
+  return (runSeed + levelIndex * 0x9e3779b9) >>> 0;
+}
+
+export type AdventureSnapshot = Omit<LevelSnapshot, 'phase'> & {
   phase: AdventurePhase;
-  levelId: string;
-  currentRoomId: string;
-  position: CellCoord;
-  pendingCombat: boolean;
-  /** 1-based explore round index. */
-  round: number;
-  exploreAp: number;
-  maxExploreAp: number;
-  /** Rooms permanently known (ever seen via vision) — Civ 开图 layout. */
-  knownRoomIds: string[];
-  /** Rooms the player has physically entered. */
-  visitedRoomIds: string[];
-  /** Current room ∪ door-adjacent — interior known. */
-  visionRoomIds: string[];
-  /** Alias of knownRoomIds (rooms drawn on the map). */
-  mappedRoomIds: string[];
-  /**
-   * @deprecated alias of mappedRoomIds / knownRoomIds.
-   */
-  visibleRoomIds: string[];
-  currentRoom: RoomDefinition;
-  roomStates: Record<string, RoomRuntimeState>;
-  legalActions: AdventureExploreAction[];
-  log: readonly string[];
+  /** 0-based floor index. */
+  levelIndex: number;
+  /** Total floors in this run. */
+  levelCount: number;
+  runSeed: number;
 };
 
-export type AdventureSessionOptions = {
+export type AdventureSessionOptions = LevelSessionOptions & {
+  /** Whole-run seed (generated multi-level). Single-level runs use 0 when omitted. */
+  runSeed?: number;
+  /** Floors in the run (default 1 for startFromLevel / start). */
+  levelCount?: number;
+  /** Override level factory (tests). */
+  levelFactory?: (levelIndex: number, runSeed: number) => LevelAsset;
+};
+
+export type AdventureRunOptions = {
+  runSeed: number;
+  levelCount?: number;
   lifecycle?: AdventureLifecycleBus;
-  /** Max explore AP refilled each round (default 3). */
   maxExploreAp?: number;
+  levelFactory?: (levelIndex: number, runSeed: number) => LevelAsset;
 };
-
-function emptyRoomState(): RoomRuntimeState {
-  return {
-    cleared: false,
-    encounterConsumed: false,
-    loot: [],
-  };
-}
-
-function initRoomStates(level: LevelAsset): Record<string, RoomRuntimeState> {
-  const states: Record<string, RoomRuntimeState> = {};
-  for (const id of Object.keys(level.rooms)) {
-    states[id] = emptyRoomState();
-  }
-  return states;
-}
 
 /**
- * Explore-phase session: cell move, confirm-combat pause, room loot, explore rounds/AP.
- * Combat attach/detach is owned by the host; this class tracks phase + pending.
+ * Whole dungeon run: owns LevelSession(s), descend vs evacuate on LeaveLevel.
+ * Player GFC / inventory / loadout stay on the host across floors.
  */
 export class AdventureSession {
-  private phase: AdventurePhase = 'explore';
-  private position: CellCoord;
-  private readonly roomStates: Record<string, RoomRuntimeState>;
-  private pendingCombat = false;
-  private readonly log: string[] = [];
+  private levelSession: LevelSession;
+  private levelIndex: number;
+  private readonly levelCount: number;
+  private readonly runSeed: number;
   private readonly lifecycle: AdventureLifecycleBus;
   private readonly maxExploreAp: number;
-  private round = 0;
-  private exploreAp = 0;
-  private readonly visitedRoomIds = new Set<string>();
-  /** Layout memory: rooms ever seen in vision (not only entered). */
-  private readonly knownRoomIds = new Set<string>();
+  private readonly levelFactory: (levelIndex: number, runSeed: number) => LevelAsset;
+  private readonly runLog: string[] = [];
+  /** Set when the run ends (evacuate victory or defeat). */
+  private terminalPhase: 'victory' | 'defeat' | null = null;
 
-  private constructor(private readonly level: LevelAsset, options: AdventureSessionOptions = {}) {
+  private constructor(
+    level: LevelAsset,
+    options: AdventureSessionOptions & { levelIndex?: number; emitEnterDungeon?: boolean },
+  ) {
     this.lifecycle = options.lifecycle ?? new AdventureLifecycleBus();
     this.maxExploreAp = Math.max(0, options.maxExploreAp ?? DEFAULT_EXPLORE_MAX_AP);
-    this.position = { ...level.startPosition };
-    this.roomStates = initRoomStates(level);
-    this.log.push(
-      `Entered level ${level.id} at ${level.startRoomId} (${cellKey(this.position)}).`,
-    );
-    this.lifecycle.emit('EnterLevel', {
-      levelId: level.id,
-      roomId: level.startRoomId,
-      position: { ...this.position },
-    });
+    this.runSeed = options.runSeed ?? 0;
+    this.levelCount = Math.max(1, options.levelCount ?? 1);
+    this.levelIndex = options.levelIndex ?? 0;
+    this.levelFactory =
+      options.levelFactory ??
+      ((index, seed) => generateDefaultDungeonLevel(seedForLevel(seed, index)));
 
-    this.markVisited(level.startRoomId);
-    this.revealKnownFromVision();
-    this.beginRound();
-    this.refreshPendingCombatFlag();
+    if (options.emitEnterDungeon !== false) {
+      this.lifecycle.emit('EnterDungeon', {
+        runSeed: this.runSeed,
+        levelCount: this.levelCount,
+      });
+      this.runLog.push(
+        `Entered dungeon (seed ${this.runSeed}, ${this.levelCount} level(s)).`,
+      );
+    }
+
+    this.levelSession = LevelSession.start(level, {
+      lifecycle: this.lifecycle,
+      maxExploreAp: this.maxExploreAp,
+    });
   }
 
+  /** Backward-compatible: single-floor run from a fixed level asset. */
   static start(
     level: LevelAsset,
     lifecycleOrOptions?: AdventureLifecycleBus | AdventureSessionOptions,
   ): AdventureSession {
     if (lifecycleOrOptions instanceof AdventureLifecycleBus) {
-      return new AdventureSession(level, { lifecycle: lifecycleOrOptions });
+      return AdventureSession.startFromLevel(level, { lifecycle: lifecycleOrOptions });
     }
-    return new AdventureSession(level, lifecycleOrOptions ?? {});
+    return AdventureSession.startFromLevel(level, lifecycleOrOptions ?? {});
+  }
+
+  /** Single-floor run (JSON probe, battle_only, tests). LeaveLevel → evacuate. */
+  static startFromLevel(
+    level: LevelAsset,
+    options: AdventureSessionOptions = {},
+  ): AdventureSession {
+    return new AdventureSession(level, {
+      ...options,
+      levelCount: options.levelCount ?? 1,
+      levelIndex: 0,
+    });
+  }
+
+  /** Seeded multi-floor generated dungeon. */
+  static startRun(options: AdventureRunOptions): AdventureSession {
+    const levelCount = Math.max(1, options.levelCount ?? DEFAULT_DUNGEON_LEVEL_COUNT);
+    const factory =
+      options.levelFactory ??
+      ((index, seed) => generateDefaultDungeonLevel(seedForLevel(seed, index)));
+    const level = factory(0, options.runSeed);
+    return new AdventureSession(level, {
+      runSeed: options.runSeed,
+      levelCount,
+      lifecycle: options.lifecycle,
+      maxExploreAp: options.maxExploreAp,
+      levelFactory: factory,
+      levelIndex: 0,
+    });
+  }
+
+  getLevelSession(): LevelSession {
+    return this.levelSession;
+  }
+
+  getLevelIndex(): number {
+    return this.levelIndex;
+  }
+
+  getLevelCount(): number {
+    return this.levelCount;
+  }
+
+  getRunSeed(): number {
+    return this.runSeed;
   }
 
   getLifecycle(): AdventureLifecycleBus {
@@ -128,382 +163,169 @@ export class AdventureSession {
   }
 
   getLevel(): LevelAsset {
-    return this.level;
+    return this.levelSession.getLevel();
   }
 
   getPhase(): AdventurePhase {
-    return this.phase;
+    if (this.terminalPhase) {
+      return this.terminalPhase;
+    }
+    const levelPhase = this.levelSession.getPhase();
+    if (levelPhase === 'exited') {
+      // Mid-transition should not be observed; treat as explore.
+      return 'explore';
+    }
+    return levelPhase;
   }
 
   getRound(): number {
-    return this.round;
+    return this.levelSession.getRound();
   }
 
   getExploreAp(): number {
-    return this.exploreAp;
+    return this.levelSession.getExploreAp();
   }
 
   getMaxExploreAp(): number {
-    return this.maxExploreAp;
+    return this.levelSession.getMaxExploreAp();
   }
 
   getVisitedRoomIds(): string[] {
-    return [...this.visitedRoomIds].sort();
+    return this.levelSession.getVisitedRoomIds();
   }
 
-  /** Permanent layout memory: rooms ever revealed by vision. */
   getKnownRoomIds(): string[] {
-    return [...this.knownRoomIds].sort();
+    return this.levelSession.getKnownRoomIds();
   }
 
-  /** Room ids linked to `roomId` by at least one door. */
-  private doorAdjacentRoomIds(roomId: string): string[] {
-    const ids = new Set<string>();
-    for (const door of this.level.doors) {
-      const ra = this.level.occupancy[cellKey(door.a)];
-      const rb = this.level.occupancy[cellKey(door.b)];
-      if (ra === roomId && rb) {
-        ids.add(rb);
-      } else if (rb === roomId && ra) {
-        ids.add(ra);
-      }
-    }
-    return [...ids];
-  }
-
-  /** Current room ∪ door-adjacent rooms (interior vision). */
   getVisionRoomIds(): string[] {
-    const currentId = this.getCurrentRoomId();
-    const vision = new Set<string>([currentId, ...this.doorAdjacentRoomIds(currentId)]);
-    return [...vision].sort();
+    return this.levelSession.getVisionRoomIds();
   }
 
-  /** Rooms drawn on the map = known layout (ever seen). */
   getMappedRoomIds(): string[] {
-    return this.getKnownRoomIds();
+    return this.levelSession.getMappedRoomIds();
   }
 
-  /** @deprecated use getMappedRoomIds / getKnownRoomIds */
   getVisibleRoomIds(): string[] {
-    return this.getMappedRoomIds();
+    return this.levelSession.getVisibleRoomIds();
   }
 
   getPosition(): CellCoord {
-    return { ...this.position };
+    return this.levelSession.getPosition();
   }
 
   getCurrentRoomId(): string {
-    const id = this.level.occupancy[cellKey(this.position)];
-    if (!id) {
-      throw new AdventureError(`No room at ${cellKey(this.position)}`);
-    }
-    return id;
+    return this.levelSession.getCurrentRoomId();
   }
 
   isPendingCombat(): boolean {
-    return this.pendingCombat;
+    return this.levelSession.isPendingCombat();
   }
 
   getRoomState(roomId: string): RoomRuntimeState {
-    const state = this.roomStates[roomId];
-    if (!state) {
-      throw new AdventureError(`Unknown room: ${roomId}`);
-    }
-    return state;
+    return this.levelSession.getRoomState(roomId);
   }
 
   getCurrentRoom(): RoomDefinition {
-    const room = this.level.rooms[this.getCurrentRoomId()];
-    if (!room) {
-      throw new AdventureError(`Unknown current room: ${this.getCurrentRoomId()}`);
-    }
-    return room;
+    return this.levelSession.getCurrentRoom();
   }
 
   legalActions(): AdventureExploreAction[] {
-    if (this.phase !== 'explore') {
+    if (this.terminalPhase) {
       return [];
     }
-
-    const actions: AdventureExploreAction[] = [];
-    const room = this.getCurrentRoom();
-    const state = this.getRoomState(this.getCurrentRoomId());
-
-    if (this.pendingCombat) {
-      actions.push({ type: 'ConfirmCombat' });
-      for (let i = 0; i < state.loot.length; i += 1) {
-        actions.push({ type: 'PickupLoot', index: i });
-      }
-      return actions;
-    }
-
-    for (const dir of ROOM_DIRECTIONS) {
-      if (this.getMovementCost(dir) !== undefined) {
-        actions.push({ type: 'Move', direction: dir });
-      }
-    }
-
-    for (let i = 0; i < state.loot.length; i += 1) {
-      actions.push({ type: 'PickupLoot', index: i });
-    }
-
-    if (room.kind === 'exit' && this.canLeaveLevel()) {
-      actions.push({ type: 'LeaveLevel' });
-    }
-
-    actions.push({ type: 'EndRound' });
-    return actions;
+    return this.levelSession.legalActions();
   }
 
   applyAction(action: AdventureExploreAction): void {
-    if (this.phase !== 'explore') {
-      throw new AdventureError(`Cannot apply explore action in phase ${this.phase}`);
+    if (this.terminalPhase) {
+      throw new AdventureError(`Cannot apply explore action in phase ${this.terminalPhase}`);
     }
-
-    switch (action.type) {
-      case 'Move':
-        this.move(action.direction);
-        break;
-      case 'ConfirmCombat':
-        this.confirmCombat();
-        break;
-      case 'PickupLoot':
-        this.pickupLoot(action.index);
-        break;
-      case 'LeaveLevel':
-        this.leaveLevel();
-        break;
-      case 'EndRound':
-        this.endRound();
-        break;
-      default:
-        throw new AdventureError('Unknown adventure action');
+    if (action.type === 'LeaveLevel') {
+      this.useStairs();
+      return;
     }
+    this.levelSession.applyAction(action);
   }
 
   resolveCombatVictory(loot: RoomGroundLootEntry[]): void {
-    if (this.phase !== 'combat') {
-      throw new AdventureError('resolveCombatVictory requires combat phase');
-    }
-    const roomId = this.getCurrentRoomId();
-    const state = this.getRoomState(roomId);
-    state.cleared = true;
-    state.encounterConsumed = true;
-    state.loot.push(...loot);
-    this.pendingCombat = false;
-    this.phase = 'explore';
-    this.log.push(`Victory in ${roomId}. Loot on ground: ${loot.length}.`);
-    this.lifecycle.emit('EndCombat', { roomId, outcome: 'victory', lootCount: loot.length });
+    this.levelSession.resolveCombatVictory(loot);
   }
 
   resolveCombatDefeat(): void {
-    if (this.phase !== 'combat') {
-      throw new AdventureError('resolveCombatDefeat requires combat phase');
-    }
-    this.phase = 'defeat';
-    this.pendingCombat = false;
-    this.log.push('Defeat. Adventure ended.');
-    this.lifecycle.emit('EndCombat', {
-      roomId: this.getCurrentRoomId(),
-      outcome: 'defeat',
-    });
+    this.levelSession.resolveCombatDefeat();
+    this.terminalPhase = 'defeat';
+    this.runLog.push('Defeat. Adventure ended.');
   }
 
   notifyCombatAttached(): void {
-    if (this.phase !== 'combat') {
-      throw new AdventureError('notifyCombatAttached requires combat phase');
-    }
+    this.levelSession.notifyCombatAttached();
   }
 
-  getSnapshot(): AdventureSnapshot {
-    return {
-      phase: this.phase,
-      levelId: this.level.id,
-      currentRoomId: this.getCurrentRoomId(),
-      position: { ...this.position },
-      pendingCombat: this.pendingCombat,
-      round: this.round,
-      exploreAp: this.exploreAp,
-      maxExploreAp: this.maxExploreAp,
-      visitedRoomIds: this.getVisitedRoomIds(),
-      knownRoomIds: this.getKnownRoomIds(),
-      visionRoomIds: this.getVisionRoomIds(),
-      mappedRoomIds: this.getMappedRoomIds(),
-      visibleRoomIds: this.getMappedRoomIds(),
-      currentRoom: this.getCurrentRoom(),
-      roomStates: structuredClone(this.roomStates),
-      legalActions: this.legalActions(),
-      log: [...this.log],
-    };
-  }
-
-  private move(direction: RoomDirection): void {
-    const cost = this.getMovementCost(direction);
-    if (cost === undefined) {
-      throw new AdventureError(`Cannot move ${direction} from ${cellKey(this.position)}`);
-    }
-    this.commitMove(direction, cost);
-  }
-
-  /**
-   * Geometric step cost (ignores AP). Undefined if wall/void/pending/wrong phase.
-   */
   getStepCost(direction: RoomDirection): number | undefined {
-    if (this.phase !== 'explore') {
-      throw new AdventureError(`Cannot move in phase ${this.phase}`);
-    }
-    if (this.pendingCombat) {
-      throw new AdventureError('Confirm combat before moving');
-    }
-    const target = stepCell(this.position, direction);
-    return stepMovementCost(this.level, this.position, target);
+    return this.levelSession.getStepCost(direction);
   }
 
-  /**
-   * Cost for a legal affordable step, or undefined if illegal / not enough AP.
-   */
   getMovementCost(direction: RoomDirection): number | undefined {
-    const cost = this.getStepCost(direction);
-    if (cost === undefined) {
-      return undefined;
-    }
-    if (cost > this.exploreAp) {
-      return undefined;
-    }
-    return cost;
+    return this.levelSession.getMovementCost(direction);
   }
 
-  /**
-   * Commit a validated step. Prefer `activateDungeonMove` (GA) from hosts;
-   * `applyAction({ type: 'Move' })` also ends here.
-   */
   commitMove(direction: RoomDirection, movementCost: number): void {
-    const expected = this.getMovementCost(direction);
-    if (expected === undefined) {
-      const geometric = (() => {
-        try {
-          return this.getStepCost(direction);
-        } catch {
-          return undefined;
-        }
-      })();
-      if (geometric !== undefined && geometric > this.exploreAp) {
-        throw new AdventureError(
-          `Not enough explore AP (need ${geometric}, have ${this.exploreAp})`,
-        );
-      }
-      throw new AdventureError(`Cannot move ${direction} from ${cellKey(this.position)}`);
-    }
-    if (movementCost !== expected) {
-      throw new AdventureError(
-        `Movement cost mismatch: got ${movementCost}, expected ${expected}`,
-      );
-    }
-    const target = stepCell(this.position, direction);
-    this.position = target;
-    if (movementCost > 0) {
-      this.exploreAp -= movementCost;
-    }
-    const toRoom = this.getCurrentRoomId();
-    this.markVisited(toRoom);
-    this.revealKnownFromVision();
-    this.log.push(
-      `Moved ${direction} to ${cellKey(target)} (${toRoom}, cost ${movementCost}, AP ${this.exploreAp}/${this.maxExploreAp}).`,
-    );
-    this.refreshPendingCombatFlag();
-  }
-
-  private markVisited(roomId: string): void {
-    this.visitedRoomIds.add(roomId);
-    this.knownRoomIds.add(roomId);
-  }
-
-  /** Once a room enters vision, its layout is permanently known (Civ 开图). */
-  private revealKnownFromVision(): void {
-    for (const id of this.getVisionRoomIds()) {
-      this.knownRoomIds.add(id);
-    }
-  }
-
-  private beginRound(): void {
-    this.round += 1;
-    this.exploreAp = this.maxExploreAp;
-    this.log.push(`Round ${this.round} — explore AP ${this.exploreAp}/${this.maxExploreAp}.`);
-    this.lifecycle.emit('RoundStart', {
-      round: this.round,
-      exploreAp: this.exploreAp,
-      maxExploreAp: this.maxExploreAp,
-    });
-  }
-
-  private endRound(): void {
-    if (this.pendingCombat) {
-      throw new AdventureError('Confirm combat before ending round');
-    }
-    this.log.push(`Round ${this.round} ended.`);
-    this.lifecycle.emit('RoundEnd', {
-      round: this.round,
-      exploreAp: this.exploreAp,
-    });
-    // Hook for future unit-pool refresh (empty in F03).
-    this.beginRound();
-  }
-
-  private confirmCombat(): void {
-    if (!this.pendingCombat) {
-      throw new AdventureError('No pending combat to confirm');
-    }
-    const roomId = this.getCurrentRoomId();
-    this.phase = 'combat';
-    this.log.push(`Confirmed combat in ${roomId}.`);
-    this.lifecycle.emit('EnterCombat', { roomId });
-  }
-
-  private pickupLoot(index: number): RoomGroundLootEntry {
-    const state = this.getRoomState(this.getCurrentRoomId());
-    if (index < 0 || index >= state.loot.length) {
-      throw new AdventureError(`Invalid loot index: ${index}`);
-    }
-    const [entry] = state.loot.splice(index, 1);
-    if (!entry) {
-      throw new AdventureError(`Invalid loot index: ${index}`);
-    }
-    this.log.push(`Picked up ${entry.itemId} x${entry.quantity}.`);
-    return entry;
+    this.levelSession.commitMove(direction, movementCost);
   }
 
   takeLoot(index: number): RoomGroundLootEntry {
-    return this.pickupLoot(index);
+    return this.levelSession.takeLoot(index);
   }
 
-  private leaveLevel(): void {
-    if (!this.canLeaveLevel()) {
+  getSnapshot(): AdventureSnapshot {
+    const levelSnap = this.levelSession.getSnapshot();
+    const phase = this.getPhase();
+    const log = [...this.runLog, ...levelSnap.log];
+    return {
+      ...levelSnap,
+      phase,
+      levelIndex: this.levelIndex,
+      levelCount: this.levelCount,
+      runSeed: this.runSeed,
+      legalActions: this.legalActions(),
+      log,
+    };
+  }
+
+  /** Stairs action: descend or evacuate. */
+  private useStairs(): void {
+    if (!this.levelSession.canLeaveLevel()) {
       throw new AdventureError('Cannot leave level yet');
     }
-    this.phase = 'victory';
-    this.log.push('Left level. Adventure victory.');
-    this.lifecycle.emit('LeaveLevel', {
-      levelId: this.level.id,
-      roomId: this.getCurrentRoomId(),
+    this.levelSession.applyAction({ type: 'LeaveLevel' });
+    if (this.levelIndex + 1 < this.levelCount) {
+      this.descend();
+    } else {
+      this.evacuate();
+    }
+  }
+
+  private descend(): void {
+    const fromLevelId = this.levelSession.getLevel().id;
+    this.levelIndex += 1;
+    const next = this.levelFactory(this.levelIndex, this.runSeed);
+    this.runLog.push(
+      `Descended from ${fromLevelId} → floor ${this.levelIndex + 1}/${this.levelCount} (${next.id}).`,
+    );
+    this.levelSession = LevelSession.start(next, {
+      lifecycle: this.lifecycle,
+      maxExploreAp: this.maxExploreAp,
     });
   }
 
-  private canLeaveLevel(): boolean {
-    const room = this.getCurrentRoom();
-    return room.kind === 'exit' && !this.pendingCombat;
-  }
-
-  private refreshPendingCombatFlag(): void {
-    const room = this.getCurrentRoom();
-    const roomId = this.getCurrentRoomId();
-    const state = this.getRoomState(roomId);
-    const next = Boolean(room.encounter && !state.encounterConsumed && !state.cleared);
-    const newlyPending = next && !this.pendingCombat;
-    this.pendingCombat = next;
-    if (newlyPending) {
-      this.log.push(
-        `Enemy present in ${roomId} (${room.encounter!.characterId}) — confirm to fight.`,
-      );
-    }
+  private evacuate(): void {
+    this.terminalPhase = 'victory';
+    this.runLog.push('Evacuated dungeon. Victory.');
+    this.lifecycle.emit('LeaveDungeon', {
+      runSeed: this.runSeed,
+      levelIndex: this.levelIndex,
+      levelId: this.levelSession.getLevel().id,
+    });
   }
 }

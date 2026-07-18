@@ -39,7 +39,7 @@ export function executeConsoleCommand(controller: SessionController, input: stri
           'Commands:',
           '  help',
           '  battle [enemyId] restart BattleOnly virtual room (slime | orc_brute)',
-          '  dungeon [levelId] start dungeon explore (default level.probe)',
+          '  dungeon [levelId] start dungeon (omit id = seeded multi-level run)',
           '  state [entityId]',
           '  trace [on|off]',
           '  event <tag> [channel]',
@@ -58,11 +58,17 @@ export function executeConsoleCommand(controller: SessionController, input: stri
       };
     }
     case 'dungeon': {
-      const levelId = args[0] ?? 'level.probe';
+      const levelId = args[0];
       controller.startDungeon(levelId);
+      if (levelId) {
+        return {
+          lines: [`Started dungeon level ${levelId}.`],
+          statusMessage: `Dungeon ${levelId} — WASD to move.`,
+        };
+      }
       return {
-        lines: [`Started dungeon level ${levelId}.`],
-        statusMessage: `Dungeon ${levelId} — WASD to move.`,
+        lines: ['Started seeded multi-level dungeon run.'],
+        statusMessage: 'Dungeon run — WASD to move. L at exit to descend/evacuate.',
       };
     }
     case 'state': {

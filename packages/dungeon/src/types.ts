@@ -72,6 +72,10 @@ export type RoomRuntimeState = {
   loot: RoomGroundLootEntry[];
 };
 
+/** One floor: explore / combat / left stairs / defeat. */
+export type LevelPhase = 'explore' | 'combat' | 'exited' | 'defeat';
+
+/** Whole dungeon run (outer AdventureSession). */
 export type AdventurePhase = 'explore' | 'combat' | 'victory' | 'defeat';
 
 export type AdventureExploreAction =
@@ -80,6 +84,9 @@ export type AdventureExploreAction =
   | { type: 'PickupLoot'; index: number }
   | { type: 'LeaveLevel' }
   | { type: 'EndRound' };
+
+/** Default floors per generated dungeon run (F05). */
+export const DEFAULT_DUNGEON_LEVEL_COUNT = 2;
 
 /** Default explore AP per round (design doc example). */
 export const DEFAULT_EXPLORE_MAX_AP = 3;

@@ -51,7 +51,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `DUNGEON-F02` | Spatial rect rooms, doors, cell position, CLI map, lifecycle stubs | Done | — | [DUNGEON-F02-spatial-level-gen.md](./Dungeon/DUNGEON-F02-spatial-level-gen.md) |
 | `DUNGEON-F03` | Explore round timing + door moves spend AP | Done | — | [DUNGEON-F03-explore-round-ap.md](./Dungeon/DUNGEON-F03-explore-round-ap.md) |
 | `DUNGEON-F04` | Civ-style fog: permanent layout memory + door-linked vision | Done | — | [DUNGEON-F04-exploration-fog.md](./Dungeon/DUNGEON-F04-exploration-fog.md) |
-| `DUNGEON-F05` | Multi-level dungeon (descend / evacuate) | Planned | — | — |
+| `DUNGEON-F05` | Multi-level dungeon (descend / evacuate) | Done | — | [DUNGEON-F05-multi-level.md](./Dungeon/DUNGEON-F05-multi-level.md) |
 
 ---
 

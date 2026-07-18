@@ -10,6 +10,13 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-18 — DUNGEON-F05 Done: multi-level descend / evacuate
+
+- `LevelSession` (one floor) + outer `AdventureSession` (`startRun` / `startFromLevel`).
+- Single `LeaveLevel`: mid → descend (new map, AP/rounds reset); last → `LeaveDungeon` + victory.
+- CLI: seeded multi-level by default; phase line shows `L1/N`; `dungeon level.probe` still single floor.
+- **Verify:** 270 tests green.
+
 ### 2026-07-18 — DUNGEON-F04: known = ever seen (not only visited)
 
 - `knownRoomIds` permanent once room enters vision (door glimpse); visited separate.
