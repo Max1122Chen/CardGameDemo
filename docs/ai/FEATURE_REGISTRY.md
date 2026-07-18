@@ -54,7 +54,7 @@ Purpose: single source of truth for `<DOMAIN>-F<nn>` IDs.
 | `DUNGEON-F05` | Multi-level dungeon (descend / evacuate) | Done | — | [DUNGEON-F05-multi-level.md](./Dungeon/DUNGEON-F05-multi-level.md) |
 | `INTERACT-F01` | Interactable protocol + Dialogue shell; fountain + beggar samples | Done | — | [INTERACT-F01-dialogue-shell.md](./Interact/INTERACT-F01-dialogue-shell.md) |
 | `INTERACT-F02` | d20 + trap + more facilities + room mount (compressed) | Done | — | [INTERACT-F02-content-expansion.md](./Interact/INTERACT-F02-content-expansion.md) |
-| `REFAC-F01` | Codebase health check + consolidation (loaders, dead combat APIs) | In Progress | — | [REFAC-F01-codebase-health-check.md](./Refactor/REFAC-F01-codebase-health-check.md) |
+| `REFAC-F01` | Codebase health check + consolidation (loaders, dead combat APIs) | Done | — | [REFAC-F01-codebase-health-check.md](./Refactor/REFAC-F01-codebase-health-check.md) |
 
 ---
 

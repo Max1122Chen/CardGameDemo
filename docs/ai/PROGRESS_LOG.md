@@ -10,6 +10,12 @@ AI-oriented timeline of **what landed in the repo**. Not a full changelog. Appen
 
 ## Recent entries
 
+### 2026-07-19 — REFAC-F01 Done: CLI session split + foundation cleanup
+
+- Split `session-controller` → `session-types` / `session-view-sync` / `apply-ui-action` / factory.
+- Prior commit: `@cardgame/repo-data`, dead combat APIs, `EnemyCombatAi`.
+- **Verify:** 287 tests green.
+
 ### 2026-07-19 — REFAC-F01 (in progress): loaders + combat cleanup + EnemyCombatAi
 
 - New `@cardgame/repo-data`; deleted CLI `load-combat-bootstrap` duplicate.

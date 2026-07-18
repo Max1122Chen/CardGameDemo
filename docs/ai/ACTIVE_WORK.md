@@ -8,11 +8,11 @@ Last updated: 2026-07-19
 
 ## In focus
 
-**Phase:** REFAC-F01 In Progress — P0/P1 foundation done; next = CLI session-controller split (P2).
+**Phase:** REFAC-F01 **Done** — next theme TBD (gameplay Features when promoted).
 
 | Order | Feature | Scope (short) | Status |
 |-------|---------|---------------|--------|
-| 1 | **REFAC-F01** | Loaders + dead APIs + EnemyCombatAi; CLI split remaining | **In Progress** ([spec](./Refactor/REFAC-F01-codebase-health-check.md)) |
+| — | **REFAC-F01** | Loaders, dead APIs, EnemyCombatAi, CLI session split | **Done** ([spec](./Refactor/REFAC-F01-codebase-health-check.md)) |
 | — | **INTERACT-F01…F02** | Dialogue shell + d20 content | **Done** |
 | — | **DUNGEON-F01…F05** | Level explore stack | **Done** |
 
@@ -24,7 +24,7 @@ Last updated: 2026-07-19
 |-------|--------------|-------|
 | Equipment wear / dual-wield variants / passives | EQUIP-F02 | EQUIP-F01 |
 | Shop UI / rest-linked interacts | INTERACT-F03+ | After F02 |
-| CLI session-controller split | REFAC-F01 P2 | After P0/P1 |
+| Optional GFC / CombatSession preview further split | TD-REFAC-01 | Optional |
 
 ---
 

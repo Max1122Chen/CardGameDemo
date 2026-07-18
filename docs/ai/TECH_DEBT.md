@@ -9,8 +9,7 @@ Purpose: track **Open** issues deliberately deferred. Agents use Open rows in Pr
 
 | ID | Summary | Severity | Notes |
 |----|---------|----------|-------|
-| TD-REFAC-01 | CombatSession preview/snapshot + GFC file size | Med | Enemy AI extracted; further split optional |
-| TD-REFAC-02 | CLI session-controller god object | Med | REFAC-F01 P2 |
+| TD-REFAC-01 | GFC file size / CombatSession preview-snapshot further split | Low | Enemy AI + CLI split done; optional polish |
 | TD-REFAC-03 | Dungeon legacy grid/exits wire support | Low | Keep until all levels are rect+doors |
 
 ---
@@ -19,6 +18,7 @@ Purpose: track **Open** issues deliberately deferred. Agents use Open rows in Pr
 
 | ID | Summary | Closed |
 |----|---------|--------|
+| TD-REFAC-02 | CLI session-controller god object | 2026-07-19 (split into factory / view-sync / apply-ui-action) |
 | — | Duplicate resolveRepoDataRoot / CLI combat-bootstrap | 2026-07-19 (REFAC-F01 P0) |
 | — | Dead deal-damage / deal-outgoing / take-damage wrappers | 2026-07-19 |
 | — | visibleRoomIds + inventory/columns deprecated exports | 2026-07-19 |
